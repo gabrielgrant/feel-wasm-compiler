@@ -1,0 +1,14 @@
+[package]
+name = "feel-host"
+description = "Native host for FEEL Wasm modules: instantiate, evaluate and batch-evaluate using wasmi and the shared runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+feel-runtime.workspace = true
+feel-compiler.workspace = true
+wasmi.workspace = true
+serde.workspace = true
+serde_json.workspace = true

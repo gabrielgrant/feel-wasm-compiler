@@ -1,0 +1,9 @@
+[package]
+name = "feel-decimal"
+description = "IEEE 754-2008 decimal128-style arithmetic (34 digits, half-even) for FEEL numbers"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]

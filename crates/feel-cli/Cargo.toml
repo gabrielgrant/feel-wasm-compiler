@@ -1,0 +1,19 @@
+[package]
+name = "feel-cli"
+description = "Command-line interface: parse, check, compile, run and inspect FEEL → Wasm modules"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "feel"
+path = "src/main.rs"
+
+[dependencies]
+feel-compiler.workspace = true
+feel-host.workspace = true
+feel-runtime.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true

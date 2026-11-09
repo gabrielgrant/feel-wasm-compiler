@@ -1,0 +1,15 @@
+[package]
+name = "feel-compiler"
+description = "FEEL (DMN 1.5) parser, schema-aware checker, typed IR and WebAssembly code generator"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+feel-runtime.workspace = true
+wasm-encoder.workspace = true
+wasmparser.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true

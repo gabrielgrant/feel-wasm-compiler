@@ -1,0 +1,13 @@
+[package]
+name = "feel-runtime-wasm"
+description = "The FEEL runtime compiled to a standalone WebAssembly module (feel_rt_v1 exports)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+feel-runtime.workspace = true

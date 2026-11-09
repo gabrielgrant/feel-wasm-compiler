@@ -1,0 +1,12 @@
+[package]
+name = "feel-runtime"
+description = "Shared FEEL runtime: values, operators, builtins and the versioned Wasm ABI used by generated modules"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+feel-decimal.workspace = true
+feel-temporal.workspace = true
+fancy-regex.workspace = true
