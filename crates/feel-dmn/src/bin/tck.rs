@@ -24,6 +24,7 @@ fn main() {
     let mut verbose = false;
     let mut ro = RunOptions::default();
     let mut host_dt = false;
+    let mut levels: Vec<&str> = vec!["compliance-level-2", "compliance-level-3"];
     let mut i = 2;
     while i < args.len() {
         match args[i].as_str() {
@@ -42,12 +43,14 @@ fn main() {
             "--verbose" | "-v" => verbose = true,
             "--no-opt" => ro.no_opt = true,
             "--host-dt" => host_dt = true,
+            // the TCK's own "non-compliant" folder (informational only)
+            "--non-compliant" => levels = vec!["non-compliant"],
             _ => {}
         }
         i += 1;
     }
     let engine = Engine::new();
-    let files = discover(&root, &["compliance-level-2", "compliance-level-3"]);
+    let files = discover(&root, &levels);
     if host_dt {
         let (mut n, mut bad) = (0, Vec::new());
         for (dir, f) in &files {

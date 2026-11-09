@@ -135,6 +135,8 @@ pub struct Lowerer<'a> {
     /// item definition → (allowed values, applies to collection elements)
     allowed: Vec<(String, String, bool)>,
     tmp: u32,
+    /// item definitions currently being expanded (recursive types → Any)
+    expanding: std::cell::RefCell<Vec<String>>,
 }
 
 fn builtin_type(t: &str) -> Option<&'static str> {
@@ -166,6 +168,7 @@ impl<'a> Lowerer<'a> {
             aliases: Vec::new(),
             allowed: Vec::new(),
             tmp: 0,
+            expanding: std::cell::RefCell::new(Vec::new()),
         };
         l.collect_types();
         l
@@ -229,6 +232,18 @@ impl<'a> Lowerer<'a> {
 
     /// Structural FEEL type string for an item definition.
     fn item_type(&self, idf: &ItemDef, prefix: &str, m: &Definitions) -> String {
+        let key = format!("{}#{}", m.namespace, idf.name);
+        if !idf.name.is_empty() && self.expanding.borrow().contains(&key) {
+            // a recursive item definition: the recursive occurrence is Any
+            return "Any".to_string();
+        }
+        self.expanding.borrow_mut().push(key);
+        let r = self.item_type_inner(idf, prefix, m);
+        self.expanding.borrow_mut().pop();
+        r
+    }
+
+    fn item_type_inner(&self, idf: &ItemDef, prefix: &str, m: &Definitions) -> String {
         let base = if let Some(fi) = &idf.function_item {
             let ps: Vec<String> = fi
                 .params

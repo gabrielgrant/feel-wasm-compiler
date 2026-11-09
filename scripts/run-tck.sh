@@ -10,3 +10,5 @@ mkdir -p reports
 ./target/release/feel-tck "$TCK/TestCases" --json reports/tck.json --md reports/tck-by-directory.md "$@"
 ./target/release/feel-tck "$TCK/TestCases" --no-opt --json reports/tck-unoptimized.json
 ./target/release/feel-tck "$TCK/TestCases" --host-dt
+# informational: the TCK's non-compliant folder (not part of the conformance claim)
+./target/release/feel-tck "$TCK/TestCases" --non-compliant --json reports/tck-non-compliant.json || true

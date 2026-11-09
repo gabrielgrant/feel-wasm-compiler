@@ -1,0 +1,511 @@
+{
+  "summary": {
+    "total": 50,
+    "pass": 39,
+    "fail": 11,
+    "skip": 0,
+    "outOfScope": 0
+  },
+  "results": [
+    {
+      "dir": "0015-all-any",
+      "file": "0015-all-any-test-01.xml",
+      "case": "001",
+      "node": "and1",
+      "status": "fail",
+      "expected": "\"true\"",
+      "actual": "null",
+      "note": "FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null"
+    },
+    {
+      "dir": "0015-all-any",
+      "file": "0015-all-any-test-01.xml",
+      "case": "001",
+      "node": "or1",
+      "status": "fail",
+      "expected": "\"true\"",
+      "actual": "null",
+      "note": "FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null"
+    },
+    {
+      "dir": "0015-all-any",
+      "file": "0015-all-any-test-01.xml",
+      "case": "001",
+      "node": "literalList",
+      "status": "fail",
+      "expected": "[\"true\",\"true\"]",
+      "actual": "[null,null]",
+      "note": "FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null"
+    },
+    {
+      "dir": "0015-all-any",
+      "file": "0015-all-any-test-01.xml",
+      "case": "001",
+      "node": "and2",
+      "status": "fail",
+      "expected": "\"true\"",
+      "actual": "null",
+      "note": "FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null"
+    },
+    {
+      "dir": "0015-all-any",
+      "file": "0015-all-any-test-01.xml",
+      "case": "001",
+      "node": "or2",
+      "status": "fail",
+      "expected": "\"true\"",
+      "actual": "null",
+      "note": "FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null"
+    },
+    {
+      "dir": "0015-all-any",
+      "file": "0015-all-any-test-01.xml",
+      "case": "002",
+      "node": "and1",
+      "status": "fail",
+      "expected": "\"false\"",
+      "actual": "null",
+      "note": "FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null"
+    },
+    {
+      "dir": "0015-all-any",
+      "file": "0015-all-any-test-01.xml",
+      "case": "002",
+      "node": "or1",
+      "status": "fail",
+      "expected": "\"true\"",
+      "actual": "null",
+      "note": "FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null"
+    },
+    {
+      "dir": "0015-all-any",
+      "file": "0015-all-any-test-01.xml",
+      "case": "002",
+      "node": "literalList",
+      "status": "fail",
+      "expected": "[\"false\",\"true\"]",
+      "actual": "[null,null]",
+      "note": "FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null"
+    },
+    {
+      "dir": "0015-all-any",
+      "file": "0015-all-any-test-01.xml",
+      "case": "002",
+      "node": "and2",
+      "status": "fail",
+      "expected": "\"false\"",
+      "actual": "null",
+      "note": "FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null"
+    },
+    {
+      "dir": "0015-all-any",
+      "file": "0015-all-any-test-01.xml",
+      "case": "002",
+      "node": "or2",
+      "status": "fail",
+      "expected": "\"true\"",
+      "actual": "null",
+      "note": "FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null; FEEL-E330 value of type string does not conform to number; bound to null"
+    },
+    {
+      "dir": "0019-flight-rebooking",
+      "file": "0019-flight-rebooking-test-01.xml",
+      "case": "001",
+      "node": "Rebooked Passengers",
+      "status": "fail",
+      "expected": "[{\"Name\":\"Jenny\",\"Status\":\"gold\",\"Miles\":\"500000\",\"Flight Number\":\"UA456\"},{\"Name\":\"Harry\",\"Status\":\"gold\",\"Miles\":\"100000\",\"Flight Number\":\"UA456\"},{\"Name\":\"Igor\",\"Status\":\"gold\",\"Miles\":\"50000\",\"Flight Number\":\"UA789\"},{\"Name\":\"Dick\",\"Status\":\"silver\",\"Miles\":\"100\",\"Flight Number\":\"UA789\"},{\"Name\":\"Tom\",\"Status\":\"bronze\",\"Miles\":\"10\",\"Flight Number\":\"\"}]",
+      "actual": "[{\"Name\":null,\"Status\":null,\"Miles\":null,\"Flight Number\":null}]",
+      "note": "FEEL-E330 value of type list does not conform to list<context<Flight Number: string, From: string, To: string, Departure: date and time, Arrival: date and time, Capacity: number, Status: string>>; bound to null; FEEL-E330 value of type list does not conform to list<context<Name: string, Status: string, Miles: number, Flight Number: string>>; bound to null; FEEL-E310 selecting 'Flight Number' from null yields null"
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "decision_001",
+      "node": "decision_001",
+      "status": "pass",
+      "expected": "null",
+      "actual": "null",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "decision_002",
+      "node": "decision_002",
+      "status": "pass",
+      "expected": "null",
+      "actual": "null",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "decision_003",
+      "node": "decision_003",
+      "status": "pass",
+      "expected": "\"foo\"",
+      "actual": "\"foo\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "decision_004",
+      "node": "decision_004",
+      "status": "pass",
+      "expected": "null",
+      "actual": "null",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "null_001",
+      "node": "null_001",
+      "status": "pass",
+      "expected": "null",
+      "actual": "null",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "string_001",
+      "node": "string_001",
+      "status": "pass",
+      "expected": "\"foo\"",
+      "actual": "\"foo\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "number_001",
+      "node": "number_001",
+      "status": "pass",
+      "expected": "\"123.45\"",
+      "actual": "\"123.45\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "boolean_001",
+      "node": "boolean_001",
+      "status": "pass",
+      "expected": "\"true\"",
+      "actual": "\"true\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "boolean_002",
+      "node": "boolean_002",
+      "status": "pass",
+      "expected": "\"false\"",
+      "actual": "\"false\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "date_001",
+      "node": "date_001",
+      "status": "pass",
+      "expected": "\"2018-12-10\"",
+      "actual": "\"2018-12-10\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "dateTime_001",
+      "node": "dateTime_001",
+      "status": "pass",
+      "expected": "\"2018-12-10T00:00:00\"",
+      "actual": "\"2018-12-10T00:00:00\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "dateTime_002",
+      "node": "dateTime_002",
+      "status": "pass",
+      "expected": "\"2018-12-10T10:30:00.0001\"",
+      "actual": "\"2018-12-10T10:30:00.0001\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "dateTime_003",
+      "node": "dateTime_003",
+      "status": "pass",
+      "expected": "\"2018-12-10T10:30:00.0001+05:00:01\"",
+      "actual": "\"2018-12-10T10:30:00.0001+05:00:01\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "dateTime_004",
+      "node": "dateTime_004",
+      "status": "pass",
+      "expected": "\"2018-12-10T10:30:00@Etc/UTC\"",
+      "actual": "\"2018-12-10T10:30:00@Etc/UTC\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "time_001",
+      "node": "time_001",
+      "status": "pass",
+      "expected": "\"10:30:00.0001\"",
+      "actual": "\"10:30:00.0001\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "time_002",
+      "node": "time_002",
+      "status": "pass",
+      "expected": "\"10:30:00.0001+05:00:01\"",
+      "actual": "\"10:30:00.0001+05:00:01\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "time_003",
+      "node": "time_003",
+      "status": "pass",
+      "expected": "\"10:30:00@Etc/UTC\"",
+      "actual": "\"10:30:00@Etc/UTC\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "dt_duration_001",
+      "node": "dt_duration_001",
+      "status": "pass",
+      "expected": "\"P1D\"",
+      "actual": "\"P1D\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "dt_duration_002",
+      "node": "dt_duration_002",
+      "status": "pass",
+      "expected": "\"-P1D\"",
+      "actual": "\"-P1D\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "dt_duration_003",
+      "node": "dt_duration_003",
+      "status": "pass",
+      "expected": "\"PT0S\"",
+      "actual": "\"PT0S\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "dt_duration_004",
+      "node": "dt_duration_004",
+      "status": "pass",
+      "expected": "\"P1DT2H3M4.1234S\"",
+      "actual": "\"P1DT2H3M4.1234S\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "dt_duration_005",
+      "node": "dt_duration_005",
+      "status": "pass",
+      "expected": "\"P2DT1H\"",
+      "actual": "\"P2DT1H\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "ym_duration_001",
+      "node": "ym_duration_001",
+      "status": "pass",
+      "expected": "\"P1Y\"",
+      "actual": "\"P1Y\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "ym_duration_002",
+      "node": "ym_duration_002",
+      "status": "pass",
+      "expected": "\"-P1Y\"",
+      "actual": "\"-P1Y\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "ym_duration_003",
+      "node": "ym_duration_003",
+      "status": "pass",
+      "expected": "\"P0M\"",
+      "actual": "\"P0M\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "ym_duration_004",
+      "node": "ym_duration_004",
+      "status": "pass",
+      "expected": "\"P1Y2M\"",
+      "actual": "\"P1Y2M\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "ym_duration_005",
+      "node": "ym_duration_005",
+      "status": "pass",
+      "expected": "\"P2Y1M\"",
+      "actual": "\"P2Y1M\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "list_001",
+      "node": "list_001",
+      "status": "pass",
+      "expected": "\"[1, 2, 3, \\\"foo\\\"]\"",
+      "actual": "\"[1, 2, 3, \\\"foo\\\"]\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "list_002",
+      "node": "list_002",
+      "status": "pass",
+      "expected": "\"[1, 2, 3, [4, 5, \\\"foo\\\"]]\"",
+      "actual": "\"[1, 2, 3, [4, 5, \\\"foo\\\"]]\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "list_003",
+      "node": "list_003",
+      "status": "pass",
+      "expected": "\"[\\\"\\\\\\\"foo\\\\\\\"\\\"]\"",
+      "actual": "\"[\\\"\\\\\\\"foo\\\\\\\"\\\"]\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "context_001",
+      "node": "context_001",
+      "status": "pass",
+      "expected": "\"{a: \\\"foo\\\"}\"",
+      "actual": "\"{a: \\\"foo\\\"}\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "context_002",
+      "node": "context_002",
+      "status": "pass",
+      "expected": "\"{a: \\\"foo\\\", b: {bar: \\\"baz\\\"}}\"",
+      "actual": "\"{a: \\\"foo\\\", b: {bar: \\\"baz\\\"}}\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "context_003",
+      "node": "context_003",
+      "status": "pass",
+      "expected": "\"{\\\"{\\\": \\\"foo\\\"}\"",
+      "actual": "\"{\\\"{\\\": \\\"foo\\\"}\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "context_004",
+      "node": "context_004",
+      "status": "pass",
+      "expected": "\"{\\\":\\\": \\\"foo\\\"}\"",
+      "actual": "\"{\\\":\\\": \\\"foo\\\"}\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "context_005",
+      "node": "context_005",
+      "status": "pass",
+      "expected": "\"{\\\",\\\": \\\"foo\\\"}\"",
+      "actual": "\"{\\\",\\\": \\\"foo\\\"}\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "context_006",
+      "node": "context_006",
+      "status": "pass",
+      "expected": "\"{\\\"}\\\": \\\"foo\\\"}\"",
+      "actual": "\"{\\\"}\\\": \\\"foo\\\"}\"",
+      "note": ""
+    },
+    {
+      "dir": "0079-feel-string-function",
+      "file": "0079-feel-string-function-test-01.xml",
+      "case": "context_007",
+      "node": "context_007",
+      "status": "pass",
+      "expected": "\"{\\\"\\\\\\\"\\\": \\\"foo\\\"}\"",
+      "actual": "\"{\\\"\\\\\\\"\\\": \\\"foo\\\"}\"",
+      "note": ""
+    },
+    {
+      "dir": "0088-recursion",
+      "file": "0088-recursion-test-01.xml",
+      "case": "001",
+      "node": "fibonacci_001",
+      "status": "pass",
+      "expected": "{\"@number\":\"55\"}",
+      "actual": "55",
+      "note": ""
+    },
+    {
+      "dir": "0088-recursion",
+      "file": "0088-recursion-test-01.xml",
+      "case": "002",
+      "node": "tree_001",
+      "status": "pass",
+      "expected": "{\"@number\":\"28\"}",
+      "actual": "28",
+      "note": ""
+    }
+  ]
+}

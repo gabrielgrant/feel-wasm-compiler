@@ -872,6 +872,25 @@ fn bi_number(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
     }
 }
 
+/// A context key as written in FEEL: bare when it is a plain name, otherwise
+/// a string literal.
+fn feel_key(k: &str) -> String {
+    let plain = !k.is_empty()
+        && k.chars()
+            .next()
+            .map(|c| c.is_alphabetic() || c == '_' || c == '?')
+            .unwrap_or(false)
+        && k.chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == ' ' || c == '?');
+    if plain {
+        k.to_string()
+    } else {
+        let mut o = String::new();
+        crate::json::write_json_string(&mut o, k);
+        o
+    }
+}
+
 /// FEEL string representation used by `string()`.
 pub fn to_feel_string(rt: &Runtime, h: H, top: bool) -> String {
     match rt.get(h) {
@@ -904,7 +923,7 @@ pub fn to_feel_string(rt: &Runtime, h: H, top: bool) -> String {
                 .keys
                 .iter()
                 .zip(c.vals.iter())
-                .map(|(k, v)| format!("{}: {}", k, to_feel_string(rt, *v, false)))
+                .map(|(k, v)| format!("{}: {}", feel_key(k), to_feel_string(rt, *v, false)))
                 .collect();
             format!("{{{}}}", parts.join(", "))
         }
