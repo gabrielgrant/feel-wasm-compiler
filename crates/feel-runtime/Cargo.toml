@@ -10,3 +10,6 @@ rust-version.workspace = true
 feel-decimal.workspace = true
 feel-temporal.workspace = true
 fancy-regex.workspace = true
+
+[lints]
+workspace = true

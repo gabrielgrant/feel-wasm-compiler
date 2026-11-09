@@ -28,17 +28,31 @@ pub struct HostDecisionTable {
 }
 
 fn build(engine: &Engine, src: &str, entry: Entry, names: &[String]) -> Result<Instance, String> {
-    let opts = CompileOptions { entry, known_names: names.to_vec(), ..Default::default() };
+    let opts = CompileOptions {
+        entry,
+        known_names: names.to_vec(),
+        ..Default::default()
+    };
     let out = compile(src, &opts);
     let wasm = out.wasm.ok_or_else(|| {
-        format!("`{src}`: {}", out.diagnostics.iter().map(|d| d.to_string()).collect::<Vec<_>>().join("; "))
+        format!(
+            "`{src}`: {}",
+            out.diagnostics
+                .iter()
+                .map(|d| d.to_string())
+                .collect::<Vec<_>>()
+                .join("; ")
+        )
     })?;
     let p = engine.load(&wasm).map_err(|e| e.to_string())?;
-    p.instantiate(engine, InstanceOptions::default()).map_err(|e| e.to_string())
+    p.instantiate(engine, InstanceOptions::default())
+        .map_err(|e| e.to_string())
 }
 
 fn eo() -> EvalOptions {
-    EvalOptions { clock: ClockSpec::Fixed("2024-06-15T12:00:00Z".into()) }
+    EvalOptions {
+        clock: ClockSpec::Fixed("2024-06-15T12:00:00Z".into()),
+    }
 }
 
 impl HostDecisionTable {
@@ -90,7 +104,12 @@ impl HostDecisionTable {
             inputs,
             entries,
             outputs,
-            output_names: dt.outputs.iter().enumerate().map(|(i, o)| o.name.clone().unwrap_or_else(|| format!("output{}", i + 1))).collect(),
+            output_names: dt
+                .outputs
+                .iter()
+                .enumerate()
+                .map(|(i, o)| o.name.clone().unwrap_or_else(|| format!("output{}", i + 1)))
+                .collect(),
             output_values: dt.outputs.iter().map(|o| o.output_values.clone()).collect(),
             defaults,
             hit_policy: dt.hit_policy.to_ascii_uppercase(),
@@ -137,13 +156,18 @@ impl HostDecisionTable {
         let single = self.output_names.len() <= 1;
         let mut outs: Vec<String> = Vec::new();
         for r in &matched {
-            let vals: Vec<String> = self.outputs[*r].iter_mut().map(|o| Self::val(o, inputs)).collect::<Result<_, _>>()?;
-            outs.push(if single { vals.into_iter().next().unwrap_or_else(|| "null".into()) } else { ctx_json(&self.output_names, &vals) });
+            let vals: Vec<String> = self.outputs[*r]
+                .iter_mut()
+                .map(|o| Self::val(o, inputs))
+                .collect::<Result<_, _>>()?;
+            outs.push(if single {
+                vals.into_iter().next().unwrap_or_else(|| "null".into())
+            } else {
+                ctx_json(&self.output_names, &vals)
+            });
         }
         // 4. hit policy
-        let default = || -> Result<String, String> {
-            Ok("null".to_string())
-        };
+        let default = || -> Result<String, String> { Ok("null".to_string()) };
         if outs.is_empty() {
             if self.defaults.iter().any(|d| d.is_some()) {
                 let mut vals = Vec::new();
@@ -153,7 +177,11 @@ impl HostDecisionTable {
                         None => "null".into(),
                     });
                 }
-                return Ok(if single { vals.remove(0) } else { ctx_json(&self.output_names, &vals) });
+                return Ok(if single {
+                    vals.remove(0)
+                } else {
+                    ctx_json(&self.output_names, &vals)
+                });
             }
             if self.hit_policy.starts_with('C') && self.aggregation.as_deref() == Some("COUNT") {
                 return Ok("0".into());
@@ -161,7 +189,10 @@ impl HostDecisionTable {
             return default();
         }
         let mut rt = Runtime::new();
-        let hs: Vec<H> = outs.iter().map(|o| json::decode(&mut rt, o).unwrap_or(0)).collect();
+        let hs: Vec<H> = outs
+            .iter()
+            .map(|o| json::decode(&mut rt, o).unwrap_or(0))
+            .collect();
         let pick = |rt: &Runtime, h: H| json::encode(rt, h);
         Ok(match self.hit_policy.as_str() {
             "UNIQUE" | "U" => {
@@ -209,7 +240,8 @@ impl HostDecisionTable {
         let mut lists: Vec<Option<Vec<H>>> = Vec::new();
         for ov in &self.output_values {
             lists.push(ov.as_ref().and_then(|v| {
-                let out = feel_host::eval_once(&format!("[{v}]"), "{}", &CompileOptions::default()).ok()?;
+                let out = feel_host::eval_once(&format!("[{v}]"), "{}", &CompileOptions::default())
+                    .ok()?;
                 let h = json::decode(rt, out.result.as_deref()?).ok()?;
                 rt.list_items(h)
             }));
@@ -226,7 +258,11 @@ impl HostDecisionTable {
                     let kh = rt.str(&names[i]);
                     ops::path(rt, h, kh, 0)
                 };
-                k.push(l.iter().position(|x| ops::eq(rt, *x, v) == Some(true)).unwrap_or(usize::MAX));
+                k.push(
+                    l.iter()
+                        .position(|x| ops::eq(rt, *x, v) == Some(true))
+                        .unwrap_or(usize::MAX),
+                );
             }
             k
         };

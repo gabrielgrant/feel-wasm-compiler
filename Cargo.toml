@@ -38,9 +38,16 @@ serde_json = { version = "=1.0.154", features = ["preserve_order", "arbitrary_pr
 sha2 = "=0.11.1"
 clap = { version = "=4.6.7", features = ["derive"] }
 
+[workspace.lints.clippy]
+# options structs are routinely built from `Default` and then adjusted
+field_reassign_with_default = "allow"
+
 [profile.release]
 opt-level = 3
-lto = true
+# LTO is enabled for the Wasm artifacts (profile `wasm`) only: rustdoc
+# doctests linked against LTO-built rlibs crash with this toolchain
+# (reproducible with `CARGO_PROFILE_RELEASE_LTO=true cargo test --release --doc -p feel-host`).
+lto = false
 codegen-units = 1
 
 
@@ -48,5 +55,6 @@ codegen-units = 1
 [profile.wasm]
 inherits = "release"
 opt-level = "s"
+lto = true
 strip = true
 panic = "abort"

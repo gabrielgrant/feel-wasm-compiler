@@ -43,7 +43,9 @@ pub fn load_constants(rt: &mut Runtime, json_text: &str) -> Result<u32, String> 
         rt.vals.push(Value::Null);
     }
     let arr = json::decode(rt, json_text).map_err(|e| e.to_string())?;
-    let items = rt.list_items(arr).ok_or("constant pool must be a JSON array")?;
+    let items = rt
+        .list_items(arr)
+        .ok_or("constant pool must be a JSON array")?;
     if items.len() != n as usize {
         return Err("constant pool length mismatch".to_string());
     }
@@ -106,12 +108,19 @@ mod tests {
     #[test]
     fn constants_and_json_roundtrip() {
         let mut rt = Runtime::new();
-        let n = load_constants(&mut rt, r#"["abc", 1.10, [1, "x"], {"a": {"@date": "2020-01-02"}}]"#).unwrap();
+        let n = load_constants(
+            &mut rt,
+            r#"["abc", 1.10, [1, "x"], {"a": {"@date": "2020-01-02"}}]"#,
+        )
+        .unwrap();
         assert_eq!(n, 4);
         assert_eq!(&*rt.as_str(RESERVED).unwrap(), "abc");
         assert_eq!(json::encode(&rt, RESERVED + 1), "1.10");
         assert_eq!(json::encode(&rt, RESERVED + 2), "[1,\"x\"]");
-        assert_eq!(json::encode(&rt, RESERVED + 3), "{\"a\":{\"@date\":\"2020-01-02\"}}");
+        assert_eq!(
+            json::encode(&rt, RESERVED + 3),
+            "{\"a\":{\"@date\":\"2020-01-02\"}}"
+        );
         rt.begin_eval();
         let h = json::decode(&mut rt, "123456789012345678901234567890.123").unwrap();
         assert_eq!(json::encode(&rt, h), "123456789012345678901234567890.123");

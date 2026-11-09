@@ -67,11 +67,18 @@ fn toks(s: &str) -> Vec<String> {
 }
 
 pub fn check_program(p: &Program, env: &CheckEnv) -> CheckOutput {
-    let mut c = Checker { env, scopes: vec![Vec::new()], narrowed: Vec::new(), diags: Vec::new(), types: HashMap::new() };
+    let mut c = Checker {
+        env,
+        scopes: vec![Vec::new()],
+        narrowed: Vec::new(),
+        diags: Vec::new(),
+        types: HashMap::new(),
+    };
     let result = match p {
         Program::Expression(e) => c.expr(e),
         Program::UnaryTests(t, span) => {
-            c.scopes.push(vec![(vec!["?".into()], "?".into(), env.candidate.clone())]);
+            c.scopes
+                .push(vec![(vec!["?".into()], "?".into(), env.candidate.clone())]);
             c.unary_tests(&env.candidate, t, *span);
             c.scopes.pop();
             Ty::Boolean
@@ -79,10 +86,18 @@ pub fn check_program(p: &Program, env: &CheckEnv) -> CheckOutput {
     };
     if let (Some(exp), Program::Expression(e)) = (&env.expected, p) {
         if !result.compatible(exp) {
-            c.err("FEEL-C108", format!("result type {result} does not conform to the expected type {exp}"), e.span);
+            c.err(
+                "FEEL-C108",
+                format!("result type {result} does not conform to the expected type {exp}"),
+                e.span,
+            );
         }
     }
-    CheckOutput { result, diagnostics: c.diags, types: c.types }
+    CheckOutput {
+        result,
+        diagnostics: c.diags,
+        types: c.types,
+    }
 }
 
 fn levenshtein(a: &str, b: &str) -> usize {
@@ -92,7 +107,11 @@ fn levenshtein(a: &str, b: &str) -> usize {
     for i in 1..=a.len() {
         let mut cur = vec![i; b.len() + 1];
         for j in 1..=b.len() {
-            let cost = if a[i - 1].eq_ignore_ascii_case(&b[j - 1]) { 0 } else { 1 };
+            let cost = if a[i - 1].eq_ignore_ascii_case(&b[j - 1]) {
+                0
+            } else {
+                1
+            };
             cur[j] = (prev[j] + 1).min(cur[j - 1] + 1).min(prev[j - 1] + cost);
         }
         prev = cur;
@@ -118,7 +137,11 @@ fn spec_ty(s: &str) -> Ty {
 
 impl Checker<'_> {
     fn err(&mut self, code: &str, msg: impl Into<String>, span: Span) {
-        let sev = if self.env.mode == CheckMode::Strict { Severity::Error } else { Severity::Warning };
+        let sev = if self.env.mode == CheckMode::Strict {
+            Severity::Error
+        } else {
+            Severity::Warning
+        };
         let mut d = Diagnostic::error(code, msg, span);
         d.severity = sev;
         self.diags.push(d);
@@ -142,7 +165,12 @@ impl Checker<'_> {
         if let Some((_, _, ty)) = self.env.inputs.iter().find(|(n, _, _)| n.as_slice() == t) {
             return Some(ty.clone());
         }
-        if let Some((_, _, ty, _)) = self.env.functions.iter().find(|(n, _, _, _)| n.as_slice() == t) {
+        if let Some((_, _, ty, _)) = self
+            .env
+            .functions
+            .iter()
+            .find(|(n, _, _, _)| n.as_slice() == t)
+        {
             return Some(ty.clone());
         }
         None
@@ -155,7 +183,12 @@ impl Checker<'_> {
         }
         v.extend(self.env.inputs.iter().map(|x| x.1.clone()));
         v.extend(self.env.functions.iter().map(|x| x.1.clone()));
-        v.extend(builtins::BUILTINS.iter().filter(|b| b.extension == 0 || self.env.extensions & b.extension != 0).map(|b| b.name.to_string()));
+        v.extend(
+            builtins::BUILTINS
+                .iter()
+                .filter(|b| b.extension == 0 || self.env.extensions & b.extension != 0)
+                .map(|b| b.name.to_string()),
+        );
         v
     }
 
@@ -265,7 +298,7 @@ impl Checker<'_> {
             }
             ExprKind::Name(n) => match self.lookup(&n.tokens) {
                 Some(t) => {
-                    if self.is_narrowed(&[n.text.clone()]) {
+                    if self.is_narrowed(std::slice::from_ref(&n.text)) {
                         t.non_null()
                     } else {
                         t
@@ -274,7 +307,10 @@ impl Checker<'_> {
                 None => {
                     if let Some(id) = builtins::lookup(&n.tokens.join(" ")) {
                         let ov = &builtins::overloads(id)[0];
-                        return Ty::Function(ov.params.iter().map(|p| spec_ty(&p.ty)).collect(), Box::new(spec_ty(&ov.ret)));
+                        return Ty::Function(
+                            ov.params.iter().map(|p| spec_ty(&p.ty)).collect(),
+                            Box::new(spec_ty(&ov.ret)),
+                        );
                     }
                     if self.env.closed {
                         let names = self.all_names();
@@ -306,7 +342,14 @@ impl Checker<'_> {
                     Ty::Any => Ty::Any,
                     other => {
                         if lt.known().is_some() {
-                            self.warn("FEEL-W211", format!("filtering a {} (treated as a singleton list)", other.kind()), l.span);
+                            self.warn(
+                                "FEEL-W211",
+                                format!(
+                                    "filtering a {} (treated as a singleton list)",
+                                    other.kind()
+                                ),
+                                l.span,
+                            );
                         }
                         other
                     }
@@ -314,7 +357,11 @@ impl Checker<'_> {
                 let mut frame = vec![(vec!["item".to_string()], "item".to_string(), elem.clone())];
                 if let Ty::Context(fs, _) = elem.non_null() {
                     for f in fs {
-                        let ft = if f.optional { f.ty.clone().nullable() } else { f.ty.clone() };
+                        let ft = if f.optional {
+                            f.ty.clone().nullable()
+                        } else {
+                            f.ty.clone()
+                        };
                         frame.push((toks(&f.name), f.name.clone(), ft));
                     }
                 }
@@ -325,7 +372,14 @@ impl Checker<'_> {
                     Ty::Number => elem.nullable(),
                     Ty::Boolean | Ty::Any => Ty::List(Box::new(elem)),
                     other => {
-                        self.err("FEEL-C106", format!("filter expression is {}, not boolean or number", other.kind()), p.span);
+                        self.err(
+                            "FEEL-C106",
+                            format!(
+                                "filter expression is {}, not boolean or number",
+                                other.kind()
+                            ),
+                            p.span,
+                        );
                         Ty::List(Box::new(elem))
                     }
                 }
@@ -338,7 +392,11 @@ impl Checker<'_> {
                     Ty::Number | Ty::Dtd | Ty::Ymd => t,
                     Ty::Any | Ty::Null => Ty::Any,
                     other => {
-                        self.err("FEEL-C103", format!("negation of {} is always null", other.kind()), e.span);
+                        self.err(
+                            "FEEL-C103",
+                            format!("negation of {} is always null", other.kind()),
+                            e.span,
+                        );
                         Ty::Null
                     }
                 }
@@ -367,7 +425,11 @@ impl Checker<'_> {
                         };
                         self.err(
                             "FEEL-C103",
-                            format!("'{sym}' is not defined for {} and {}; the result is always null", ta.kind(), tb.kind()),
+                            format!(
+                                "'{sym}' is not defined for {} and {}; the result is always null",
+                                ta.kind(),
+                                tb.kind()
+                            ),
                             e.span,
                         );
                         Ty::Null
@@ -377,7 +439,8 @@ impl Checker<'_> {
             ExprKind::Compare(op, a, b) => {
                 let ta = self.expr(a);
                 let tb = self.expr(b);
-                let null_test = matches!(a.kind, ExprKind::Null) || matches!(b.kind, ExprKind::Null);
+                let null_test =
+                    matches!(a.kind, ExprKind::Null) || matches!(b.kind, ExprKind::Null);
                 if !null_test {
                     let (x, y) = (ta.non_null(), tb.non_null());
                     let ok = match op {
@@ -387,7 +450,12 @@ impl Checker<'_> {
                     if !ok {
                         self.err(
                             "FEEL-C107",
-                            format!("cannot compare {} with {} using '{}'; the result is always null", ta.kind(), tb.kind(), op.as_str()),
+                            format!(
+                                "cannot compare {} with {} using '{}'; the result is always null",
+                                ta.kind(),
+                                tb.kind(),
+                                op.as_str()
+                            ),
                             e.span,
                         );
                     }
@@ -402,7 +470,11 @@ impl Checker<'_> {
                 let tb = self.with_facts(fs, |c| c.expr(b));
                 for (t, x) in [(ta, a), (tb, b)] {
                     if !t.compatible(&Ty::Boolean) {
-                        self.err("FEEL-C106", format!("logical operand is {}, not boolean", t.kind()), x.span);
+                        self.err(
+                            "FEEL-C106",
+                            format!("logical operand is {}, not boolean", t.kind()),
+                            x.span,
+                        );
                     }
                 }
                 Ty::Boolean.nullable()
@@ -413,14 +485,19 @@ impl Checker<'_> {
                 let b = self.expr(hi);
                 for o in [a, b] {
                     if !comparable_ord(&t.non_null(), &o.non_null()) {
-                        self.err("FEEL-C107", format!("cannot compare {} with {} in 'between'", t.kind(), o.kind()), e.span);
+                        self.err(
+                            "FEEL-C107",
+                            format!("cannot compare {} with {} in 'between'", t.kind(), o.kind()),
+                            e.span,
+                        );
                     }
                 }
                 Ty::Boolean
             }
             ExprKind::In(x, tests) => {
                 let t = self.expr(x);
-                self.scopes.push(vec![(vec!["?".into()], "?".into(), t.clone())]);
+                self.scopes
+                    .push(vec![(vec!["?".into()], "?".into(), t.clone())]);
                 for ts in tests {
                     self.unary_test(&t, ts);
                 }
@@ -429,7 +506,8 @@ impl Checker<'_> {
             }
             ExprKind::Tests(x, tests) => {
                 let t = self.expr(x);
-                self.scopes.push(vec![(vec!["?".into()], "?".into(), t.clone())]);
+                self.scopes
+                    .push(vec![(vec!["?".into()], "?".into(), t.clone())]);
                 self.unary_tests(&t, tests, e.span);
                 self.scopes.pop();
                 Ty::Boolean
@@ -446,7 +524,11 @@ impl Checker<'_> {
             ExprKind::If(c, t, f) => {
                 let tc = self.expr(c);
                 if !tc.compatible(&Ty::Boolean) {
-                    self.err("FEEL-C106", format!("if condition is {}, not boolean", tc.kind()), c.span);
+                    self.err(
+                        "FEEL-C106",
+                        format!("if condition is {}, not boolean", tc.kind()),
+                        c.span,
+                    );
                 }
                 let mut pos = Vec::new();
                 Self::facts(c, true, &mut pos);
@@ -474,8 +556,18 @@ impl Checker<'_> {
                             let ta = self.expr(a);
                             let tb = self.expr(b);
                             for (t, x) in [(&ta, a), (&tb, b)] {
-                                if !matches!(t.non_null(), Ty::Number | Ty::Date | Ty::Any | Ty::Null) {
-                                    self.err("FEEL-C105", format!("iteration bound must be a number or date, not {}", t.kind()), x.span);
+                                if !matches!(
+                                    t.non_null(),
+                                    Ty::Number | Ty::Date | Ty::Any | Ty::Null
+                                ) {
+                                    self.err(
+                                        "FEEL-C105",
+                                        format!(
+                                            "iteration bound must be a number or date, not {}",
+                                            t.kind()
+                                        ),
+                                        x.span,
+                                    );
                                 }
                             }
                             ta.non_null()
@@ -484,7 +576,11 @@ impl Checker<'_> {
                     self.scopes.pop();
                     frame.push((n.tokens.clone(), n.text.clone(), et));
                 }
-                frame.push((vec!["partial".into()], "partial".into(), Ty::List(Box::new(Ty::Any))));
+                frame.push((
+                    vec!["partial".into()],
+                    "partial".into(),
+                    Ty::List(Box::new(Ty::Any)),
+                ));
                 self.scopes.push(frame);
                 let bt = self.expr(body);
                 self.scopes.pop();
@@ -506,7 +602,11 @@ impl Checker<'_> {
                 let bt = self.expr(body);
                 self.scopes.pop();
                 if !bt.compatible(&Ty::Boolean) {
-                    self.err("FEEL-C106", format!("'satisfies' expression is {}, not boolean", bt.kind()), body.span);
+                    self.err(
+                        "FEEL-C106",
+                        format!("'satisfies' expression is {}, not boolean", bt.kind()),
+                        body.span,
+                    );
                 }
                 Ty::Boolean.nullable()
             }
@@ -526,12 +626,26 @@ impl Checker<'_> {
                 let mut fs = Vec::new();
                 for en in entries {
                     if let ExprKind::FunctionDef(fd) = &en.value.kind {
-                        let pre = Ty::Function(fd.params.iter().map(|_| Ty::Any).collect(), Box::new(Ty::Any));
-                        self.scopes.last_mut().unwrap().push((toks(&en.key), en.key.clone(), pre));
+                        let pre = Ty::Function(
+                            fd.params.iter().map(|_| Ty::Any).collect(),
+                            Box::new(Ty::Any),
+                        );
+                        self.scopes
+                            .last_mut()
+                            .unwrap()
+                            .push((toks(&en.key), en.key.clone(), pre));
                     }
                     let t = self.expr(&en.value);
-                    self.scopes.last_mut().unwrap().push((toks(&en.key), en.key.clone(), t.clone()));
-                    fs.push(Field { name: en.key.clone(), ty: t, optional: false });
+                    self.scopes.last_mut().unwrap().push((
+                        toks(&en.key),
+                        en.key.clone(),
+                        t.clone(),
+                    ));
+                    fs.push(Field {
+                        name: en.key.clone(),
+                        ty: t,
+                        optional: false,
+                    });
                 }
                 self.scopes.pop();
                 Ty::Context(fs, false)
@@ -558,7 +672,15 @@ impl Checker<'_> {
                 let a = self.expr(&iv.start);
                 let b = self.expr(&iv.end);
                 if !comparable_ord(&a.non_null(), &b.non_null()) {
-                    self.err("FEEL-C107", format!("range endpoints {} and {} are not comparable", a.kind(), b.kind()), e.span);
+                    self.err(
+                        "FEEL-C107",
+                        format!(
+                            "range endpoints {} and {} are not comparable",
+                            a.kind(),
+                            b.kind()
+                        ),
+                        e.span,
+                    );
                 }
                 Ty::Range(Box::new(a.non_null().join(&b.non_null())))
             }
@@ -617,7 +739,13 @@ impl Checker<'_> {
                 "timezone" => Ty::String.nullable(),
                 "time" => Ty::Time,
                 "date" => Ty::Date,
-                _ => prop(key, &["year", "month", "day", "weekday", "hour", "minute", "second"], Ty::Number),
+                _ => prop(
+                    key,
+                    &[
+                        "year", "month", "day", "weekday", "hour", "minute", "second",
+                    ],
+                    Ty::Number,
+                ),
             },
             Ty::Time => match key {
                 "time offset" => Ty::Dtd.nullable(),
@@ -634,7 +762,14 @@ impl Checker<'_> {
             _ => Ty::Null,
         };
         if r == Ty::Null && !matches!(base, Ty::Context(..)) {
-            self.err("FEEL-C102", format!("{} has no property '{key}'; selecting it yields null", bt.kind()), span);
+            self.err(
+                "FEEL-C102",
+                format!(
+                    "{} has no property '{key}'; selecting it yields null",
+                    bt.kind()
+                ),
+                span,
+            );
         }
         if bt.is_nullable() {
             r.nullable()
@@ -646,7 +781,10 @@ impl Checker<'_> {
     fn call(&mut self, f: &Expr, args: &Args, span: Span) -> Ty {
         let arg_types: Vec<(Option<String>, Ty, Span)> = match args {
             Args::Positional(a) => a.iter().map(|x| (None, self.expr(x), x.span)).collect(),
-            Args::Named(a) => a.iter().map(|(n, _, x)| (Some(n.text.clone()), self.expr(x), x.span)).collect(),
+            Args::Named(a) => a
+                .iter()
+                .map(|(n, _, x)| (Some(n.text.clone()), self.expr(x), x.span))
+                .collect(),
         };
         if let ExprKind::Name(n) = &f.kind {
             if self.lookup(&n.tokens).is_none() {
@@ -663,14 +801,32 @@ impl Checker<'_> {
         let ft = self.expr(f);
         match ft.non_null() {
             Ty::Function(ps, r) => {
-                if !ps.is_empty() && matches!(args, Args::Positional(_)) && ps.len() != arg_types.len() {
-                    self.err("FEEL-C104", format!("function expects {} arguments but {} were given", ps.len(), arg_types.len()), span);
+                if !ps.is_empty()
+                    && matches!(args, Args::Positional(_))
+                    && ps.len() != arg_types.len()
+                {
+                    self.err(
+                        "FEEL-C104",
+                        format!(
+                            "function expects {} arguments but {} were given",
+                            ps.len(),
+                            arg_types.len()
+                        ),
+                        span,
+                    );
                 }
                 *r
             }
             Ty::Any | Ty::Null => Ty::Any,
             other => {
-                self.err("FEEL-C110", format!("a {} is not a function; invoking it yields null", other.kind()), f.span);
+                self.err(
+                    "FEEL-C110",
+                    format!(
+                        "a {} is not a function; invoking it yields null",
+                        other.kind()
+                    ),
+                    f.span,
+                );
                 Ty::Null
             }
         }
@@ -684,7 +840,8 @@ impl Checker<'_> {
         let mut chosen = None;
         for o in &ovs {
             let ok_arity = if named {
-                args.iter().all(|a| o.params.iter().any(|p| Some(&p.name) == a.0.as_ref()))
+                args.iter()
+                    .all(|a| o.params.iter().any(|p| Some(&p.name) == a.0.as_ref()))
             } else {
                 n >= o.min_args() && o.max_args().map(|m| n <= m).unwrap_or(true)
             };
@@ -697,7 +854,9 @@ impl Checker<'_> {
                 let p = if named {
                     o.params.iter().find(|p| Some(&p.name) == an.as_ref())
                 } else {
-                    o.params.get(i).or_else(|| o.params.last().filter(|p| p.variadic))
+                    o.params
+                        .get(i)
+                        .or_else(|| o.params.last().filter(|p| p.variadic))
                 };
                 if let Some(p) = p {
                     let pt = spec_ty(&p.ty);
@@ -720,8 +879,15 @@ impl Checker<'_> {
         let Some(o) = chosen else {
             if named {
                 let given: Vec<String> = args.iter().filter_map(|a| a.0.clone()).collect();
-                let all: Vec<String> = ovs.iter().flat_map(|o| o.params.iter().map(|p| p.name.clone())).collect();
-                let bad = given.iter().find(|g| !all.contains(g)).cloned().unwrap_or_default();
+                let all: Vec<String> = ovs
+                    .iter()
+                    .flat_map(|o| o.params.iter().map(|p| p.name.clone()))
+                    .collect();
+                let bad = given
+                    .iter()
+                    .find(|g| !all.contains(g))
+                    .cloned()
+                    .unwrap_or_default();
                 let s = suggest(&bad, all.iter().map(|s| s.as_str()));
                 self.err_s(
                     "FEEL-C104",
@@ -740,7 +906,10 @@ impl Checker<'_> {
                     .collect();
                 self.err(
                     "FEEL-C104",
-                    format!("'{name}' expects {} arguments but {n} were given; the call yields null", arities.join(" or ")),
+                    format!(
+                        "'{name}' expects {} arguments but {n} were given; the call yields null",
+                        arities.join(" or ")
+                    ),
                     span,
                 );
             }
@@ -751,7 +920,9 @@ impl Checker<'_> {
             let p = if named {
                 o.params.iter().find(|p| Some(&p.name) == an.as_ref())
             } else {
-                o.params.get(i).or_else(|| o.params.last().filter(|p| p.variadic))
+                o.params
+                    .get(i)
+                    .or_else(|| o.params.last().filter(|p| p.variadic))
             };
             if let Some(p) = p {
                 let pt = spec_ty(&p.ty);
@@ -761,7 +932,10 @@ impl Checker<'_> {
                 if !compatible {
                     self.err(
                         "FEEL-C105",
-                        format!("argument '{}' of '{name}' expects {} but got {}; the call yields null", p.name, pt, at),
+                        format!(
+                            "argument '{}' of '{name}' expects {} but got {}; the call yields null",
+                            p.name, pt, at
+                        ),
                         *aspan,
                     );
                 }
@@ -776,8 +950,8 @@ impl Checker<'_> {
                 _ => Ty::Any,
             },
             "abs" => first,
-            "sublist" | "append" | "concatenate" | "insert before" | "remove" | "reverse" | "union" | "distinct values" | "sort"
-            | "list replace" => {
+            "sublist" | "append" | "concatenate" | "insert before" | "remove" | "reverse"
+            | "union" | "distinct values" | "sort" | "list replace" => {
                 if let Ty::List(_) = first {
                     first
                 } else {
@@ -822,7 +996,12 @@ impl Checker<'_> {
                 if !ok {
                     self.err(
                         "FEEL-C109",
-                        format!("test '{} {}' cannot match a candidate of type {}", op.as_str(), et.kind(), cand),
+                        format!(
+                            "test '{} {}' cannot match a candidate of type {}",
+                            op.as_str(),
+                            et.kind(),
+                            cand
+                        ),
                         *span,
                     );
                 }
@@ -832,7 +1011,15 @@ impl Checker<'_> {
                 let b = self.expr(&iv.end);
                 for x in [a, b] {
                     if !comparable_ord(&cand.non_null(), &x.non_null()) {
-                        self.err("FEEL-C109", format!("interval of {} cannot contain a candidate of type {}", x.kind(), cand), *span);
+                        self.err(
+                            "FEEL-C109",
+                            format!(
+                                "interval of {} cannot contain a candidate of type {}",
+                                x.kind(),
+                                cand
+                            ),
+                            *span,
+                        );
                     }
                 }
             }
@@ -841,16 +1028,32 @@ impl Checker<'_> {
                 if !*uses_q {
                     let x = et.non_null();
                     let ok = match &x {
-                        Ty::List(el) => comparable_eq(&cand.non_null(), &el.non_null()) || matches!(el.non_null(), Ty::Range(_)),
+                        Ty::List(el) => {
+                            comparable_eq(&cand.non_null(), &el.non_null())
+                                || matches!(el.non_null(), Ty::Range(_))
+                        }
                         Ty::Range(el) => comparable_ord(&cand.non_null(), &el.non_null()),
                         Ty::Boolean => true,
                         other => comparable_eq(&cand.non_null(), other),
                     };
                     if !ok {
-                        self.err("FEEL-C109", format!("test of type {} cannot match a candidate of type {}", et, cand), e.span);
+                        self.err(
+                            "FEEL-C109",
+                            format!(
+                                "test of type {} cannot match a candidate of type {}",
+                                et, cand
+                            ),
+                            e.span,
+                        );
                     }
-                } else if !et.compatible(&Ty::Boolean) && !matches!(et.non_null(), Ty::Range(_) | Ty::List(_)) {
-                    self.err("FEEL-C106", format!("unary test using '?' is {}, not boolean", et.kind()), e.span);
+                } else if !et.compatible(&Ty::Boolean)
+                    && !matches!(et.non_null(), Ty::Range(_) | Ty::List(_))
+                {
+                    self.err(
+                        "FEEL-C106",
+                        format!("unary test using '?' is {}, not boolean", et.kind()),
+                        e.span,
+                    );
                 }
             }
         }
@@ -873,7 +1076,9 @@ pub fn comparable_eq(a: &Ty, b: &Ty) -> bool {
     match (a, b) {
         (Ty::Any, _) | (_, Ty::Any) | (Ty::Null, _) | (_, Ty::Null) => true,
         (Ty::Date, Ty::DateTime) | (Ty::DateTime, Ty::Date) => true,
-        (Ty::List(_), Ty::List(_)) | (Ty::Context(..), Ty::Context(..)) | (Ty::Range(_), Ty::Range(_)) => true,
+        (Ty::List(_), Ty::List(_))
+        | (Ty::Context(..), Ty::Context(..))
+        | (Ty::Range(_), Ty::Range(_)) => true,
         (Ty::Function(..), Ty::Function(..)) => true,
         (x, y) => x == y,
     }
@@ -883,7 +1088,10 @@ pub fn comparable_ord(a: &Ty, b: &Ty) -> bool {
     match (a, b) {
         (Ty::Any, _) | (_, Ty::Any) | (Ty::Null, _) | (_, Ty::Null) => true,
         (Ty::Date, Ty::DateTime) | (Ty::DateTime, Ty::Date) => true,
-        (x, y) if x == y => matches!(x, Ty::Number | Ty::String | Ty::Date | Ty::Time | Ty::DateTime | Ty::Dtd | Ty::Ymd),
+        (x, y) if x == y => matches!(
+            x,
+            Ty::Number | Ty::String | Ty::Date | Ty::Time | Ty::DateTime | Ty::Dtd | Ty::Ymd
+        ),
         _ => false,
     }
 }
@@ -913,7 +1121,13 @@ pub fn arith_type(op: BinOp, a: &Ty, b: &Ty) -> Option<Ty> {
             (Number, Number) => Number,
             (Ymd, Ymd) => Ymd,
             (Dtd, Dtd) => Dtd,
-            (x, y) if temporal(x) && temporal(y) && (x == y || matches!((x, y), (Date, DateTime) | (DateTime, Date))) => Dtd,
+            (x, y)
+                if temporal(x)
+                    && temporal(y)
+                    && (x == y || matches!((x, y), (Date, DateTime) | (DateTime, Date))) =>
+            {
+                Dtd
+            }
             (DateTime, Ymd | Dtd) => DateTime,
             (Time, Dtd) => Time,
             (Date, Ymd | Dtd) => Date,
@@ -949,7 +1163,8 @@ pub fn env_from_schema<'a>(
     let mut inputs = Vec::new();
     for i in &schema.inputs {
         let t = match &i.ty {
-            Some(t) => parse_schema_type(t, &schema.types).map_err(|e| bad(format!("input '{}': {e}", i.name)))?,
+            Some(t) => parse_schema_type(t, &schema.types)
+                .map_err(|e| bad(format!("input '{}': {e}", i.name)))?,
             None => Ty::Any,
         };
         inputs.push((toks(&i.name), i.name.clone(), t));
@@ -960,25 +1175,45 @@ pub fn env_from_schema<'a>(
         let mut names = Vec::new();
         for p in &f.params {
             ps.push(match &p.ty {
-                Some(t) => parse_schema_type(t, &schema.types).map_err(|e| bad(format!("function '{}': {e}", f.name)))?,
+                Some(t) => parse_schema_type(t, &schema.types)
+                    .map_err(|e| bad(format!("function '{}': {e}", f.name)))?,
                 None => Ty::Any,
             });
             names.push(p.name.clone());
         }
         let r = match &f.returns {
-            Some(t) => parse_schema_type(t, &schema.types).map_err(|e| bad(format!("function '{}': {e}", f.name)))?,
+            Some(t) => parse_schema_type(t, &schema.types)
+                .map_err(|e| bad(format!("function '{}': {e}", f.name)))?,
             None => Ty::Any,
         };
-        functions.push((toks(&f.name), f.name.clone(), Ty::Function(ps, Box::new(r)), names));
+        functions.push((
+            toks(&f.name),
+            f.name.clone(),
+            Ty::Function(ps, Box::new(r)),
+            names,
+        ));
     }
     let candidate = match &schema.candidate {
-        Some(t) => parse_schema_type(t, &schema.types).map_err(|e| bad(format!("candidate: {e}")))?,
+        Some(t) => {
+            parse_schema_type(t, &schema.types).map_err(|e| bad(format!("candidate: {e}")))?
+        }
         None => Ty::Any,
     };
     let expected = match &schema.expected {
-        Some(t) => Some(parse_schema_type(t, &schema.types).map_err(|e| bad(format!("expected: {e}")))?),
+        Some(t) => {
+            Some(parse_schema_type(t, &schema.types).map_err(|e| bad(format!("expected: {e}")))?)
+        }
         None => None,
     };
     let _ = named;
-    Ok(CheckEnv { inputs, functions, aliases: &schema.types, closed: schema.closed, extensions, candidate, expected, mode })
+    Ok(CheckEnv {
+        inputs,
+        functions,
+        aliases: &schema.types,
+        closed: schema.closed,
+        extensions,
+        candidate,
+        expected,
+        mode,
+    })
 }

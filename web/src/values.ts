@@ -97,7 +97,7 @@ function numberToken(n: number): string {
 }
 
 /** Base class of the string-backed temporal wrappers. */
-abstract class FeelTemporal {
+abstract class FeelTemporalBase {
   /** The FEEL lexical form (as in `date("…")`, `time("…")` …). */
   readonly value: string;
   constructor(value: string) {
@@ -112,15 +112,15 @@ abstract class FeelTemporal {
 }
 
 /** A FEEL `date` (`"2020-01-31"`), FEEL-JSON `{"@date": …}`. */
-export class FeelDate extends FeelTemporal {
+export class FeelDate extends FeelTemporalBase {
   readonly kind = 'date' as const;
 }
 /** A FEEL `time` (`"10:30:00"`, `"10:30:00+01:00"`, `"10:30:00@Europe/Paris"`), FEEL-JSON `{"@time": …}`. */
-export class FeelTime extends FeelTemporal {
+export class FeelTime extends FeelTemporalBase {
   readonly kind = 'time' as const;
 }
 /** A FEEL `date and time` (`"2020-01-31T10:30:00Z"`), FEEL-JSON `{"@dateTime": …}`. */
-export class FeelDateTime extends FeelTemporal {
+export class FeelDateTime extends FeelTemporalBase {
   readonly kind = 'dateTime' as const;
   /** Convert a JS `Date` (an instant) to a UTC FEEL date and time. */
   static fromDate(d: Date): FeelDateTime {
@@ -128,7 +128,7 @@ export class FeelDateTime extends FeelTemporal {
   }
 }
 /** A FEEL duration (`"P1DT2H"` days and time, `"P1Y2M"` years and months), FEEL-JSON `{"@duration": …}`. */
-export class FeelDuration extends FeelTemporal {
+export class FeelDuration extends FeelTemporalBase {
   readonly kind = 'duration' as const;
 }
 
@@ -216,91 +216,82 @@ export interface DecodeOptions {
  *   escaped as `{"@context": …}`).
  */
 export function encodeFeelJson(v: FeelValue): string {
-  const out: string[] = [];
-  encodeInto(v, out, 0);
-  return out.join('');
+  return enc(v, 0);
 }
 
-function encodeInto(v: FeelValue, out: string[], depth: number): void {
-  if (depth > 256) throw new RangeError('value nested too deeply for FEEL-JSON');
-  if (v === null || v === undefined) {
-    out.push('null');
-    return;
-  }
+const SAFE_STRING = /^[\x20\x21\x23-\x5b\x5d-\x7e]*$/;
+
+function str(s: string): string {
+  // fast path for plain ASCII without quotes/backslashes/control characters
+  return s.length < 64 && SAFE_STRING.test(s) ? `"${s}"` : JSON.stringify(s);
+}
+
+function enc(v: FeelValue, depth: number): string {
+  if (v === null || v === undefined) return 'null';
   switch (typeof v) {
     case 'boolean':
-      out.push(v ? 'true' : 'false');
-      return;
+      return v ? 'true' : 'false';
     case 'string':
-      out.push(JSON.stringify(v));
-      return;
+      return str(v);
     case 'number':
-      out.push(numberToken(v));
-      return;
+      return numberToken(v);
     case 'bigint':
-      out.push(v.toString());
-      return;
+      return v.toString();
     case 'object':
       break;
     default:
       throw new TypeError(`cannot pass a ${typeof v} to FEEL`);
   }
+  if (depth > 256) throw new RangeError('value nested too deeply for FEEL-JSON');
+  if (v instanceof FeelDecimal) return v.text;
   if (Array.isArray(v)) {
-    out.push('[');
+    let out = '[';
     for (let i = 0; i < v.length; i++) {
-      if (i > 0) out.push(',');
-      encodeInto(v[i], out, depth + 1);
+      if (i > 0) out += ',';
+      out += enc(v[i], depth + 1);
     }
-    out.push(']');
-    return;
+    return out + ']';
   }
-  if (v instanceof FeelDecimal) {
-    out.push(v.text);
-    return;
+  if (v instanceof Map) {
+    let out = '{';
+    let n = 0;
+    let first = '';
+    for (const [k, x] of v) {
+      if (n > 0) out += ',';
+      else first = k;
+      out += str(k) + ':' + enc(x, depth + 1);
+      n++;
+    }
+    out += '}';
+    return n === 1 && first.charCodeAt(0) === 64 ? `{"@context":${out}}` : out;
   }
-  if (v instanceof FeelDate) return tagged(out, '@date', v.value);
-  if (v instanceof FeelTime) return tagged(out, '@time', v.value);
-  if (v instanceof FeelDateTime) return tagged(out, '@dateTime', v.value);
-  if (v instanceof FeelDuration) return tagged(out, '@duration', v.value);
+  if (v instanceof FeelTemporalBase) {
+    const tag = v instanceof FeelDate ? '@date' : v instanceof FeelTime ? '@time' : v instanceof FeelDateTime ? '@dateTime' : '@duration';
+    return `{"${tag}":${str(v.value)}}`;
+  }
   if (v instanceof Date) {
     if (Number.isNaN(v.getTime())) throw new RangeError('invalid Date');
-    return tagged(out, '@dateTime', v.toISOString());
+    return `{"@dateTime":"${v.toISOString()}"}`;
   }
-  if (v instanceof FeelFunction) return tagged(out, '@function', v.description);
+  if (v instanceof FeelFunction) return `{"@function":${str(v.description)}}`;
   if (v instanceof FeelRange) {
-    out.push('{"@range":{');
-    if (v.start !== undefined) {
-      out.push('"start":');
-      encodeInto(v.start, out, depth + 1);
-      out.push(',');
-    }
-    if (v.end !== undefined) {
-      out.push('"end":');
-      encodeInto(v.end, out, depth + 1);
-      out.push(',');
-    }
-    out.push(`"startIncluded":${v.startIncluded},"endIncluded":${v.endIncluded}`);
-    if (v.notEqual) out.push(',"notEqual":true');
-    if (v.equal) out.push(',"equal":true');
-    out.push('}}');
-    return;
+    let out = '{"@range":{';
+    if (v.start !== undefined) out += `"start":${enc(v.start, depth + 1)},`;
+    if (v.end !== undefined) out += `"end":${enc(v.end, depth + 1)},`;
+    out += `"startIncluded":${v.startIncluded},"endIncluded":${v.endIncluded}`;
+    if (v.notEqual) out += ',"notEqual":true';
+    if (v.equal) out += ',"equal":true';
+    return out + '}}';
   }
-  const entries: [string, FeelValue][] =
-    v instanceof Map ? [...v.entries()] : Object.keys(v).map((k) => [k, (v as Record<string, FeelValue>)[k]]);
-  const escape = entries.length === 1 && entries[0][0].startsWith('@');
-  if (escape) out.push('{"@context":');
-  out.push('{');
-  for (let i = 0; i < entries.length; i++) {
-    if (i > 0) out.push(',');
-    out.push(JSON.stringify(entries[i][0]), ':');
-    encodeInto(entries[i][1], out, depth + 1);
+  const o = v as Record<string, FeelValue>;
+  const keys = Object.keys(o);
+  let out = '{';
+  for (let i = 0; i < keys.length; i++) {
+    if (i > 0) out += ',';
+    out += str(keys[i]) + ':' + enc(o[keys[i]], depth + 1);
   }
-  out.push('}');
-  if (escape) out.push('}');
-}
-
-function tagged(out: string[], tag: string, s: string): void {
-  out.push('{"', tag, '":', JSON.stringify(s), '}');
+  out += '}';
+  return keys.length === 1 && keys[0].charCodeAt(0) === 64 ? `{"@context":${out}}` : out;
 }
 
 // ---------------------------------------------------------------- decoding

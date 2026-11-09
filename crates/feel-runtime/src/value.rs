@@ -51,7 +51,10 @@ pub struct Ctx {
 
 impl Ctx {
     pub fn get(&self, key: &str) -> Option<H> {
-        self.keys.iter().position(|k| &**k == key).map(|i| self.vals[i])
+        self.keys
+            .iter()
+            .position(|k| &**k == key)
+            .map(|i| self.vals[i])
     }
     pub fn put(&mut self, key: Rc<str>, v: H) {
         if let Some(i) = self.keys.iter().position(|k| *k == key) {
@@ -90,11 +93,21 @@ pub enum Func {
     /// A function defined in the generated module: table index, captured
     /// environment (a list handle) and signature constant (a list of
     /// `[name, type-or-null]` pairs).
-    User { index: u32, env: H, sig: H },
+    User {
+        index: u32,
+        env: H,
+        sig: H,
+    },
     /// `function(..) external {...}`: mapping-information context and signature.
-    External { mapping: H, sig: H },
+    External {
+        mapping: H,
+        sig: H,
+    },
     /// A host function bound by name (see the schema's `functions`).
-    Host { name: Rc<str>, sig: H },
+    Host {
+        name: Rc<str>,
+        sig: H,
+    },
 }
 
 /// An evaluation diagnostic: produced alongside a FEEL `null` (or other
@@ -255,7 +268,13 @@ impl Runtime {
             _ => {}
         }
         if self.vals.len() as u64 - self.fixed as u64 >= self.limits.max_values as u64 {
-            self.limit("FEEL-L401", format!("allocation limit exceeded ({} values)", self.limits.max_values));
+            self.limit(
+                "FEEL-L401",
+                format!(
+                    "allocation limit exceeded ({} values)",
+                    self.limits.max_values
+                ),
+            );
             return NULL;
         }
         let h = self.vals.len() as H;
@@ -285,21 +304,39 @@ impl Runtime {
     }
     pub fn str(&mut self, s: &str) -> H {
         if s.len() as u64 > self.limits.max_string as u64 {
-            self.limit("FEEL-L403", format!("string length limit exceeded ({} bytes)", self.limits.max_string));
+            self.limit(
+                "FEEL-L403",
+                format!(
+                    "string length limit exceeded ({} bytes)",
+                    self.limits.max_string
+                ),
+            );
             return NULL;
         }
         self.alloc(Value::Str(Rc::from(s)))
     }
     pub fn string(&mut self, s: String) -> H {
         if s.len() as u64 > self.limits.max_string as u64 {
-            self.limit("FEEL-L403", format!("string length limit exceeded ({} bytes)", self.limits.max_string));
+            self.limit(
+                "FEEL-L403",
+                format!(
+                    "string length limit exceeded ({} bytes)",
+                    self.limits.max_string
+                ),
+            );
             return NULL;
         }
         self.alloc(Value::Str(Rc::from(s)))
     }
     pub fn list(&mut self, items: Vec<H>) -> H {
         if items.len() as u64 > self.limits.max_collection as u64 {
-            self.limit("FEEL-L402", format!("collection size limit exceeded ({} items)", self.limits.max_collection));
+            self.limit(
+                "FEEL-L402",
+                format!(
+                    "collection size limit exceeded ({} items)",
+                    self.limits.max_collection
+                ),
+            );
             return NULL;
         }
         self.alloc(Value::List(items))
@@ -326,7 +363,11 @@ impl Runtime {
     /// Record an evaluation diagnostic (bounded).
     pub fn diag(&mut self, code: &'static str, site: u32, message: impl Into<String>) {
         if (self.diags.len() as u32) < self.limits.max_diags {
-            self.diags.push(EvalDiag { code, site, message: message.into() });
+            self.diags.push(EvalDiag {
+                code,
+                site,
+                message: message.into(),
+            });
         } else {
             self.diag_overflow += 1;
         }
@@ -396,7 +437,10 @@ impl Runtime {
             }
         }
         if over {
-            self.limit("FEEL-L402", format!("collection size limit exceeded ({max} items)"));
+            self.limit(
+                "FEEL-L402",
+                format!("collection size limit exceeded ({max} items)"),
+            );
         }
     }
 

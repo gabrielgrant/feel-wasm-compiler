@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FEEL Wasm benchmark</title>
+    <style>
+      body { font: 15px/1.5 system-ui, sans-serif; margin: 16px; background: #fff; color: #1d2330; }
+      @media (prefers-color-scheme: dark) { body { background: #12151b; color: #e4e8ef; } }
+    </style>
+  </head>
+  <body>
+    <h1>FEEL Wasm benchmark harness</h1>
+    <p>Driven by <code>node web/bench/run.mjs</code>. This page only defines <code>window.__bench</code>; it does not load the Wasm artifacts until asked, so cold-start measurements start from a fresh page.</p>
+    <script type="module" src="../dist/bench/bench.js"></script>
+  </body>
+</html>

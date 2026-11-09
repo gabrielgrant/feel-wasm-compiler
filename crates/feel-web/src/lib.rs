@@ -101,7 +101,12 @@ pub extern "C" fn fw_version() -> i32 {
 pub fn compile_json(src: &str, opts_json: &str) -> (String, Option<Vec<u8>>) {
     let opts = match options(opts_json) {
         Ok(o) => o,
-        Err(e) => return (serde_json::json!({"ok": false, "error": e}).to_string(), None),
+        Err(e) => {
+            return (
+                serde_json::json!({"ok": false, "error": e}).to_string(),
+                None,
+            )
+        }
     };
     let out = feel_compiler::compile(src, &opts);
     let ok = out.wasm.is_some();
@@ -156,6 +161,9 @@ pub unsafe extern "C" fn fw_parse(src: i32, src_len: i32, opts: i32, opts_len: i
     };
     let out = feel_compiler::parse(text(src, src_len), &opts);
     let ok = out.program.is_some();
-    set_out(serde_json::json!({"ok": ok, "ast": out.program, "diagnostics": out.diagnostics}).to_string());
+    set_out(
+        serde_json::json!({"ok": ok, "ast": out.program, "diagnostics": out.diagnostics})
+            .to_string(),
+    );
     ok as i32
 }

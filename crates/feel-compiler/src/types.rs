@@ -98,14 +98,26 @@ impl Ty {
                 let mut fs = Vec::new();
                 for f in a {
                     if let Some(g) = b.iter().find(|g| g.name == f.name) {
-                        fs.push(Field { name: f.name.clone(), ty: f.ty.join(&g.ty), optional: f.optional || g.optional });
+                        fs.push(Field {
+                            name: f.name.clone(),
+                            ty: f.ty.join(&g.ty),
+                            optional: f.optional || g.optional,
+                        });
                     } else {
-                        fs.push(Field { name: f.name.clone(), ty: f.ty.clone(), optional: true });
+                        fs.push(Field {
+                            name: f.name.clone(),
+                            ty: f.ty.clone(),
+                            optional: true,
+                        });
                     }
                 }
                 for g in b {
                     if !a.iter().any(|f| f.name == g.name) {
-                        fs.push(Field { name: g.name.clone(), ty: g.ty.clone(), optional: true });
+                        fs.push(Field {
+                            name: g.name.clone(),
+                            ty: g.ty.clone(),
+                            optional: true,
+                        });
                     }
                 }
                 Ty::Context(fs, *oa || *ob)
@@ -126,10 +138,14 @@ impl Ty {
             (Ty::List(a), Ty::List(b)) => a.conforms(b),
             (Ty::Range(a), Ty::Range(b)) => a.conforms(b),
             (Ty::Context(a, _), Ty::Context(b, _)) => b.iter().all(|g| {
-                a.iter().any(|f| f.name == g.name && f.ty.conforms(&g.ty) && (!f.optional || g.optional)) || g.optional
+                a.iter().any(|f| {
+                    f.name == g.name && f.ty.conforms(&g.ty) && (!f.optional || g.optional)
+                }) || g.optional
             }),
             (Ty::Function(pa, ra), Ty::Function(pb, rb)) => {
-                pa.len() == pb.len() && pa.iter().zip(pb).all(|(x, y)| y.conforms(x)) && ra.conforms(rb)
+                pa.len() == pb.len()
+                    && pa.iter().zip(pb).all(|(x, y)| y.conforms(x))
+                    && ra.conforms(rb)
             }
             (a, b) => a == b,
         }
@@ -166,8 +182,11 @@ impl Ty {
         match self {
             Ty::Nullable(t) => t.to_runtime_string(),
             Ty::Context(fs, _) => {
-                let parts: Vec<String> =
-                    fs.iter().filter(|f| !f.optional).map(|f| format!("{}: {}", quote_key(&f.name), f.ty.to_runtime_string())).collect();
+                let parts: Vec<String> = fs
+                    .iter()
+                    .filter(|f| !f.optional)
+                    .map(|f| format!("{}: {}", quote_key(&f.name), f.ty.to_runtime_string()))
+                    .collect();
                 format!("context<{}>", parts.join(", "))
             }
             Ty::List(t) => format!("list<{}>", t.to_runtime_string()),
@@ -182,7 +201,9 @@ impl Ty {
 }
 
 fn quote_key(k: &str) -> String {
-    if k.chars().all(|c| c.is_alphanumeric() || c == '_' || c == ' ') {
+    if k.chars()
+        .all(|c| c.is_alphanumeric() || c == '_' || c == ' ')
+    {
         k.to_string()
     } else {
         format!("\"{k}\"")
@@ -210,7 +231,13 @@ impl fmt::Display for Ty {
                     if i > 0 {
                         write!(f, ", ")?;
                     }
-                    write!(f, "{}{}: {}", x.name, if x.optional { "?" } else { "" }, x.ty)?;
+                    write!(
+                        f,
+                        "{}{}: {}",
+                        x.name,
+                        if x.optional { "?" } else { "" },
+                        x.ty
+                    )?;
                 }
                 write!(f, ">")
             }
@@ -233,7 +260,13 @@ impl fmt::Display for Ty {
 /// `?` suffixes for nullable types (`number?`) and optional context fields
 /// (`context<a?: number>`), and named type aliases.
 pub fn parse_schema_type(s: &str, aliases: &[(String, String)]) -> Result<Ty, String> {
-    let mut p = P { s: s.as_bytes(), src: s, i: 0, aliases, depth: 0 };
+    let mut p = P {
+        s: s.as_bytes(),
+        src: s,
+        i: 0,
+        aliases,
+        depth: 0,
+    };
     let t = p.ty()?;
     p.ws();
     if p.i != p.s.len() {
@@ -279,12 +312,21 @@ impl P<'_> {
         let start = self.i;
         while self.i < self.s.len() {
             let c = self.s[self.i];
-            if c == b'<' || c == b'>' || c == b',' || c == b':' || c == b'?' || (c == b'-' && self.s.get(self.i + 1) == Some(&b'>')) {
+            if c == b'<'
+                || c == b'>'
+                || c == b','
+                || c == b':'
+                || c == b'?'
+                || (c == b'-' && self.s.get(self.i + 1) == Some(&b'>'))
+            {
                 break;
             }
             self.i += 1;
         }
-        self.src[start..self.i].split_whitespace().collect::<Vec<_>>().join(" ")
+        self.src[start..self.i]
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
     }
     fn ty(&mut self) -> Result<Ty, String> {
         self.depth += 1;
@@ -321,7 +363,11 @@ impl P<'_> {
                                 return Err(format!("expected ':' after field '{k}'"));
                             }
                             let t = self.ty()?;
-                            fs.push(Field { name: k, ty: t, optional });
+                            fs.push(Field {
+                                name: k,
+                                ty: t,
+                                optional,
+                            });
                         }
                         if !self.eat(",") {
                             break;
@@ -354,7 +400,13 @@ impl P<'_> {
                 None => match self.aliases.iter().find(|(a, _)| a == other) {
                     Some((_, def)) => {
                         let def = def.clone();
-                        let mut q = P { s: def.as_bytes(), src: &def, i: 0, aliases: self.aliases, depth: self.depth };
+                        let mut q = P {
+                            s: def.as_bytes(),
+                            src: &def,
+                            i: 0,
+                            aliases: self.aliases,
+                            depth: self.depth,
+                        };
                         q.ty()?
                     }
                     None => return Err(format!("unknown type '{other}'")),

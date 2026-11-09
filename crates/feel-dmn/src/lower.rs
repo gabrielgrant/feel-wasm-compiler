@@ -58,19 +58,41 @@ pub struct Lowered {
 }
 
 pub fn mk(kind: ExprKind) -> Expr {
-    Expr { id: 0, span: Span::default(), kind }
+    Expr {
+        id: 0,
+        span: Span::default(),
+        kind,
+    }
 }
 pub fn name(s: &str) -> Expr {
-    mk(ExprKind::Name(Name { text: s.to_string(), tokens: name_tokens(s) }))
+    mk(ExprKind::Name(Name {
+        text: s.to_string(),
+        tokens: name_tokens(s),
+    }))
 }
 pub fn path(e: Expr, k: &str) -> Expr {
-    mk(ExprKind::Path(Box::new(e), Name { text: k.to_string(), tokens: name_tokens(k) }))
+    mk(ExprKind::Path(
+        Box::new(e),
+        Name {
+            text: k.to_string(),
+            tokens: name_tokens(k),
+        },
+    ))
 }
 pub fn call(f: &str, args: Vec<Expr>) -> Expr {
     mk(ExprKind::Call(Box::new(name(f)), Args::Positional(args)))
 }
 pub fn ctx(entries: Vec<(String, Expr)>) -> Expr {
-    mk(ExprKind::Context(entries.into_iter().map(|(key, value)| ContextEntry { key, key_span: Span::default(), value }).collect()))
+    mk(ExprKind::Context(
+        entries
+            .into_iter()
+            .map(|(key, value)| ContextEntry {
+                key,
+                key_span: Span::default(),
+                value,
+            })
+            .collect(),
+    ))
 }
 pub fn num(n: &str) -> Expr {
     mk(ExprKind::Number(n.to_string()))
@@ -94,7 +116,10 @@ pub fn instance_of(e: Expr, t: &str) -> Expr {
 fn not_boolean(e: Expr) -> Expr {
     call(
         "not",
-        vec![mk(ExprKind::Or(Box::new(instance_of(e.clone(), "boolean")), Box::new(cmp(CmpOp::Eq, e, null()))))],
+        vec![mk(ExprKind::Or(
+            Box::new(instance_of(e.clone(), "boolean")),
+            Box::new(cmp(CmpOp::Eq, e, null())),
+        ))],
     )
 }
 fn ty(t: &str) -> TypeExpr {
@@ -147,9 +172,10 @@ impl<'a> Lowerer<'a> {
     }
 
     fn collect_types(&mut self) {
-        let mut models: Vec<(String, &Definitions)> = std::iter::once((String::new(), &self.set.main))
-            .chain(self.set.imports.iter().map(|(n, d)| (n.clone(), d)))
-            .collect();
+        let mut models: Vec<(String, &Definitions)> =
+            std::iter::once((String::new(), &self.set.main))
+                .chain(self.set.imports.iter().map(|(n, d)| (n.clone(), d)))
+                .collect();
         for d in &self.set.all {
             if !models.iter().any(|(_, m)| m.namespace == d.namespace) {
                 models.push(("\u{0}".to_string(), d));
@@ -157,7 +183,11 @@ impl<'a> Lowerer<'a> {
         }
         for (prefix, m) in &models {
             for idf in &m.item_defs {
-                let name = if prefix.is_empty() { idf.name.clone() } else { format!("{prefix}.{}", idf.name) };
+                let name = if prefix.is_empty() {
+                    idf.name.clone()
+                } else {
+                    format!("{prefix}.{}", idf.name)
+                };
                 let t = self.item_type(idf, prefix, m);
                 self.aliases.push((name.clone(), t));
                 if let Some(av) = &idf.allowed_values {
@@ -181,7 +211,14 @@ impl<'a> Lowerer<'a> {
                 continue;
             }
             if prefix.is_empty() {
-                for x in m.decisions.iter().map(|d| &d.name).chain(m.bkms.iter().map(|b| &b.name)).chain(m.services.iter().map(|s| &s.name)).chain(m.inputs.iter().map(|i| &i.name)) {
+                for x in m
+                    .decisions
+                    .iter()
+                    .map(|d| &d.name)
+                    .chain(m.bkms.iter().map(|b| &b.name))
+                    .chain(m.services.iter().map(|s| &s.name))
+                    .chain(m.inputs.iter().map(|i| &i.name))
+                {
                     self.base_names.push(x.clone());
                 }
             } else {
@@ -193,11 +230,22 @@ impl<'a> Lowerer<'a> {
     /// Structural FEEL type string for an item definition.
     fn item_type(&self, idf: &ItemDef, prefix: &str, m: &Definitions) -> String {
         let base = if let Some(fi) = &idf.function_item {
-            let ps: Vec<String> = fi.params.iter().map(|(_, t)| self.type_string(t.as_deref(), prefix, m)).collect();
-            format!("function<{}>->{}", ps.join(", "), self.type_string(fi.output_type_ref.as_deref(), prefix, m))
+            let ps: Vec<String> = fi
+                .params
+                .iter()
+                .map(|(_, t)| self.type_string(t.as_deref(), prefix, m))
+                .collect();
+            format!(
+                "function<{}>->{}",
+                ps.join(", "),
+                self.type_string(fi.output_type_ref.as_deref(), prefix, m)
+            )
         } else if !idf.components.is_empty() {
-            let parts: Vec<String> =
-                idf.components.iter().map(|c| format!("\"{}\": {}", c.name, self.item_type(c, prefix, m))).collect();
+            let parts: Vec<String> = idf
+                .components
+                .iter()
+                .map(|c| format!("\"{}\": {}", c.name, self.item_type(c, prefix, m)))
+                .collect();
             format!("context<{}>", parts.join(", "))
         } else {
             self.type_string(idf.type_ref.as_deref(), prefix, m)
@@ -226,7 +274,11 @@ impl<'a> Lowerer<'a> {
 
     /// Resolve an item definition name relative to model `m` (possibly
     /// qualified by an import name).
-    fn find_item_def<'b>(&'b self, t: &str, m: &'b Definitions) -> Option<(&'b ItemDef, &'b Definitions)> {
+    fn find_item_def<'b>(
+        &'b self,
+        t: &str,
+        m: &'b Definitions,
+    ) -> Option<(&'b ItemDef, &'b Definitions)> {
         if let Some(idf) = m.item_defs.iter().find(|i| i.name == t) {
             return Some((idf, m));
         }
@@ -287,7 +339,12 @@ impl<'a> Lowerer<'a> {
         let mut o = CompileOptions::default();
         o.entry = entry;
         o.check = feel_compiler::check::CheckMode::Off;
-        o.known_names = self.base_names.iter().chain(scope.iter()).cloned().collect();
+        o.known_names = self
+            .base_names
+            .iter()
+            .chain(scope.iter())
+            .cloned()
+            .collect();
         o.known_fields = self.fields.clone();
         o.schema.types = self.aliases.clone();
         o
@@ -299,14 +356,24 @@ impl<'a> Lowerer<'a> {
         match p.program {
             Some(Program::Expression(e)) => {
                 if let Some(bad) = invalid_at_literal(&e) {
-                    self.report.errors.push((what.to_string(), format!("@\"{bad}\" is not a valid temporal literal")));
+                    self.report.errors.push((
+                        what.to_string(),
+                        format!("@\"{bad}\" is not a valid temporal literal"),
+                    ));
                     return null();
                 }
                 e
             }
             _ => {
-                let msg = p.diagnostics.iter().map(|d| d.message.clone()).collect::<Vec<_>>().join("; ");
-                self.report.errors.push((what.to_string(), format!("{msg} in `{}`", text.trim())));
+                let msg = p
+                    .diagnostics
+                    .iter()
+                    .map(|d| d.message.clone())
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                self.report
+                    .errors
+                    .push((what.to_string(), format!("{msg} in `{}`", text.trim())));
                 null()
             }
         }
@@ -318,8 +385,16 @@ impl<'a> Lowerer<'a> {
         match p.program {
             Some(Program::UnaryTests(t, _)) => t,
             _ => {
-                let msg = p.diagnostics.iter().map(|d| d.message.clone()).collect::<Vec<_>>().join("; ");
-                self.report.errors.push((what.to_string(), format!("{msg} in unary tests `{}`", text.trim())));
+                let msg = p
+                    .diagnostics
+                    .iter()
+                    .map(|d| d.message.clone())
+                    .collect::<Vec<_>>()
+                    .join("; ");
+                self.report.errors.push((
+                    what.to_string(),
+                    format!("{msg} in unary tests `{}`", text.trim()),
+                ));
                 UnaryTests::Positive(vec![UnaryTest::Expr(mk(ExprKind::Bool(false)), false)])
             }
         }
@@ -340,13 +415,24 @@ impl<'a> Lowerer<'a> {
                 let t = mk(ExprKind::Tests(Box::new(name(&x)), Box::new(tests)));
                 mk(ExprKind::Quantified(
                     Quantifier::Every,
-                    vec![(Name { text: x.clone(), tokens: name_tokens(&x) }, Span::default(), name(&v))],
+                    vec![(
+                        Name {
+                            text: x.clone(),
+                            tokens: name_tokens(&x),
+                        },
+                        Span::default(),
+                        name(&v),
+                    )],
                     Box::new(t),
                 ))
             } else {
                 mk(ExprKind::Tests(Box::new(name(&v)), Box::new(tests)))
             };
-            let body = iff(cmp(CmpOp::Eq, name(&v), null()), null(), iff(check, name(&v), null()));
+            let body = iff(
+                cmp(CmpOp::Eq, name(&v), null()),
+                null(),
+                iff(check, name(&v), null()),
+            );
             e = path(ctx(vec![(v, e), (r.clone(), body)]), &r);
         }
         e
@@ -354,7 +440,14 @@ impl<'a> Lowerer<'a> {
 
     // ------------------------------------------------------------------ boxed expressions
 
-    pub fn boxed(&mut self, b: &Boxed, scope: &mut Vec<String>, what: &str, prefix: &str, m: &Definitions) -> Expr {
+    pub fn boxed(
+        &mut self,
+        b: &Boxed,
+        scope: &mut Vec<String>,
+        what: &str,
+        prefix: &str,
+        m: &Definitions,
+    ) -> Expr {
         match b {
             Boxed::Literal { text, .. } => {
                 if text.trim().is_empty() {
@@ -393,10 +486,21 @@ impl<'a> Lowerer<'a> {
                     None => ctx(out),
                 }
             }
-            Boxed::List(items) => mk(ExprKind::List(items.iter().map(|x| self.boxed(x, scope, what, prefix, m)).collect())),
+            Boxed::List(items) => mk(ExprKind::List(
+                items
+                    .iter()
+                    .map(|x| self.boxed(x, scope, what, prefix, m))
+                    .collect(),
+            )),
             Boxed::Relation { columns, rows } => mk(ExprKind::List(
                 rows.iter()
-                    .map(|r| ctx(columns.iter().cloned().zip(r.iter().map(|c| self.boxed(c, scope, what, prefix, m))).collect()))
+                    .map(|r| {
+                        ctx(columns
+                            .iter()
+                            .cloned()
+                            .zip(r.iter().map(|c| self.boxed(c, scope, what, prefix, m)))
+                            .collect())
+                    })
                     .collect(),
             )),
             Boxed::Invocation { callee, bindings } => {
@@ -408,7 +512,14 @@ impl<'a> Lowerer<'a> {
                             Some(e) => self.boxed(e, scope, what, prefix, m),
                             None => null(),
                         };
-                        (Name { text: p.clone(), tokens: name_tokens(p) }, Span::default(), v)
+                        (
+                            Name {
+                                text: p.clone(),
+                                tokens: name_tokens(p),
+                            },
+                            Span::default(),
+                            v,
+                        )
                     })
                     .collect();
                 mk(ExprKind::Call(Box::new(f), Args::Named(args)))
@@ -437,10 +548,17 @@ impl<'a> Lowerer<'a> {
                 scope.pop();
                 let lv = self.fresh("list");
                 let r = self.fresh("r");
-                let bad = mk(ExprKind::Filter(Box::new(name(&lv)), Box::new(not_boolean(p.clone()))));
+                let bad = mk(ExprKind::Filter(
+                    Box::new(name(&lv)),
+                    Box::new(not_boolean(p.clone())),
+                ));
                 let body = iff(
                     instance_of(name(&lv), "list"),
-                    iff(cmp(CmpOp::Gt, call("count", vec![bad]), num("0")), null(), mk(ExprKind::Filter(Box::new(name(&lv)), Box::new(p)))),
+                    iff(
+                        cmp(CmpOp::Gt, call("count", vec![bad]), num("0")),
+                        null(),
+                        mk(ExprKind::Filter(Box::new(name(&lv)), Box::new(p))),
+                    ),
                     null(),
                 );
                 path(ctx(vec![(lv, l), (r.clone(), body)]), &r)
@@ -455,13 +573,25 @@ impl<'a> Lowerer<'a> {
                 let lv = self.fresh("list");
                 let r = self.fresh("r");
                 let f = mk(ExprKind::For(
-                    vec![(Name { text: var.clone(), tokens: name_tokens(var) }, Span::default(), IterCtx::Expr(name(&lv)))],
+                    vec![(
+                        Name {
+                            text: var.clone(),
+                            tokens: name_tokens(var),
+                        },
+                        Span::default(),
+                        IterCtx::Expr(name(&lv)),
+                    )],
                     Box::new(rv),
                 ));
                 let body = iff(instance_of(name(&lv), "list"), f, null());
                 path(ctx(vec![(lv, l), (r.clone(), body)]), &r)
             }
-            Boxed::Quantified { every, var, input, satisfies } => {
+            Boxed::Quantified {
+                every,
+                var,
+                input,
+                satisfies,
+            } => {
                 let l = self.boxed(input, scope, what, prefix, m);
                 scope.push(var.clone());
                 let sv = self.boxed(satisfies, scope, what, prefix, m);
@@ -471,13 +601,31 @@ impl<'a> Lowerer<'a> {
                 let q = |kind: Quantifier, body: Expr| {
                     mk(ExprKind::Quantified(
                         kind,
-                        vec![(Name { text: var.clone(), tokens: name_tokens(var) }, Span::default(), name(&lv))],
+                        vec![(
+                            Name {
+                                text: var.clone(),
+                                tokens: name_tokens(var),
+                            },
+                            Span::default(),
+                            name(&lv),
+                        )],
                         Box::new(body),
                     ))
                 };
                 let check = q(Quantifier::Some, not_boolean(sv.clone()));
-                let main = q(if *every { Quantifier::Every } else { Quantifier::Some }, sv);
-                let body = iff(instance_of(name(&lv), "list"), iff(check, null(), main), null());
+                let main = q(
+                    if *every {
+                        Quantifier::Every
+                    } else {
+                        Quantifier::Some
+                    },
+                    sv,
+                );
+                let body = iff(
+                    instance_of(name(&lv), "list"),
+                    iff(check, null(), main),
+                    null(),
+                );
                 path(ctx(vec![(lv, l), (r.clone(), body)]), &r)
             }
             Boxed::DecisionTable(dt) => self.decision_table(dt, scope, what),
@@ -488,14 +636,26 @@ impl<'a> Lowerer<'a> {
         }
     }
 
-    fn function(&mut self, fd: &FunctionDefinition, scope: &mut Vec<String>, what: &str, prefix: &str, m: &Definitions) -> Expr {
+    fn function(
+        &mut self,
+        fd: &FunctionDefinition,
+        scope: &mut Vec<String>,
+        what: &str,
+        prefix: &str,
+        m: &Definitions,
+    ) -> Expr {
         let params: Vec<Param> = fd
             .params
             .iter()
             .map(|(n, t)| Param {
-                name: Name { text: n.clone(), tokens: name_tokens(n) },
+                name: Name {
+                    text: n.clone(),
+                    tokens: name_tokens(n),
+                },
                 span: Span::default(),
-                ty: self.resolve_typeref(t.as_deref(), prefix, m).map(|s| ty(&s)),
+                ty: self
+                    .resolve_typeref(t.as_deref(), prefix, m)
+                    .map(|s| ty(&s)),
             })
             .collect();
         let n0 = scope.len();
@@ -516,7 +676,9 @@ impl<'a> Lowerer<'a> {
                     let e = self.boxed(b, scope, what, prefix, m);
                     // the body expression's own typeRef converts its result
                     match b {
-                        Boxed::Literal { type_ref: Some(t), .. } => self.bind(e, Some(t), prefix, m),
+                        Boxed::Literal {
+                            type_ref: Some(t), ..
+                        } => self.bind(e, Some(t), prefix, m),
                         _ => e,
                     }
                 }
@@ -525,10 +687,14 @@ impl<'a> Lowerer<'a> {
             (b, false)
         };
         scope.truncate(n0);
-        mk(ExprKind::FunctionDef(FunctionDef { params, body: Box::new(body), external }))
+        mk(ExprKind::FunctionDef(FunctionDef {
+            params,
+            body: Box::new(body),
+            external,
+        }))
     }
 
-    fn decision_table(&mut self, dt: &DecisionTable, scope: &mut Vec<String>, what: &str) -> Expr {
+    fn decision_table(&mut self, dt: &DecisionTable, scope: &[String], what: &str) -> Expr {
         let mut entries: Vec<(String, Expr)> = Vec::new();
         let mut in_names = Vec::new();
         for (k, inp) in dt.inputs.iter().enumerate() {
@@ -538,15 +704,24 @@ impl<'a> Lowerer<'a> {
             in_names.push(n);
         }
         let single = dt.outputs.len() <= 1;
-        let out_names: Vec<String> = dt.outputs.iter().enumerate().map(|(i, o)| o.name.clone().unwrap_or_else(|| format!("output{}", i + 1))).collect();
+        let out_names: Vec<String> = dt
+            .outputs
+            .iter()
+            .enumerate()
+            .map(|(i, o)| o.name.clone().unwrap_or_else(|| format!("output{}", i + 1)))
+            .collect();
         let mut rule_exprs = Vec::new();
         for (r, rule) in dt.rules.iter().enumerate() {
             let mut cond: Option<Expr> = None;
             for (k, t) in rule.inputs.iter().enumerate() {
-                let Some(iname) = in_names.get(k) else { continue };
+                let Some(iname) = in_names.get(k) else {
+                    continue;
+                };
                 let tests = if t.trim() == "-" || t.trim().is_empty() {
                     match dt.inputs.get(k).and_then(|i| i.input_values.as_ref()) {
-                        Some(v) if !v.trim().is_empty() => self.parse_tests(v, scope, &format!("{what} input values {}", k + 1)),
+                        Some(v) if !v.trim().is_empty() => {
+                            self.parse_tests(v, scope, &format!("{what} input values {}", k + 1))
+                        }
                         _ => continue,
                     }
                 } else {
@@ -559,8 +734,14 @@ impl<'a> Lowerer<'a> {
                 });
             }
             // input names must be visible to output entries? (no: outputs use the outer scope)
-            let outs: Vec<Expr> =
-                rule.outputs.iter().enumerate().map(|(j, o)| self.parse_expr(o, scope, &format!("{what} rule {} output {}", r + 1, j + 1))).collect();
+            let outs: Vec<Expr> = rule
+                .outputs
+                .iter()
+                .enumerate()
+                .map(|(j, o)| {
+                    self.parse_expr(o, scope, &format!("{what} rule {} output {}", r + 1, j + 1))
+                })
+                .collect();
             let out = if single {
                 outs.into_iter().next().unwrap_or_else(null)
             } else {
@@ -573,7 +754,11 @@ impl<'a> Lowerer<'a> {
             });
         }
         let m = self.fresh("matches");
-        let matches = if rule_exprs.is_empty() { mk(ExprKind::List(vec![])) } else { call("concatenate", rule_exprs) };
+        let matches = if rule_exprs.is_empty() {
+            mk(ExprKind::List(vec![]))
+        } else {
+            call("concatenate", rule_exprs)
+        };
         entries.push((m.clone(), matches));
         // default output
         let has_default = dt.outputs.iter().any(|o| o.default.is_some());
@@ -602,11 +787,27 @@ impl<'a> Lowerer<'a> {
         let hp = dt.hit_policy.to_ascii_uppercase();
         let agg = dt.aggregation.clone().map(|a| a.to_ascii_uppercase());
         let body = match hp.as_str() {
-            "UNIQUE" | "U" => iff(none, default, iff(cmp(CmpOp::Eq, call("count", vec![mv()]), num("1")), index(mv(), 1), null())),
+            "UNIQUE" | "U" => iff(
+                none,
+                default,
+                iff(
+                    cmp(CmpOp::Eq, call("count", vec![mv()]), num("1")),
+                    index(mv(), 1),
+                    null(),
+                ),
+            ),
             "ANY" | "A" => iff(
                 none,
                 default,
-                iff(cmp(CmpOp::Eq, call("count", vec![call("distinct values", vec![mv()])]), num("1")), index(mv(), 1), null()),
+                iff(
+                    cmp(
+                        CmpOp::Eq,
+                        call("count", vec![call("distinct values", vec![mv()])]),
+                        num("1"),
+                    ),
+                    index(mv(), 1),
+                    null(),
+                ),
             ),
             "FIRST" | "F" => iff(none, default, index(mv(), 1)),
             "PRIORITY" | "P" => {
@@ -626,7 +827,9 @@ impl<'a> Lowerer<'a> {
                 _ => iff(none, default, mv()),
             },
             _ => {
-                self.report.unsupported.push(format!("{what}: hit policy {hp}"));
+                self.report
+                    .unsupported
+                    .push(format!("{what}: hit policy {hp}"));
                 null()
             }
         };
@@ -637,13 +840,29 @@ impl<'a> Lowerer<'a> {
 
     /// Sort matched outputs by the order of their values in the output
     /// values lists (Priority / Output order).
-    fn priority_sort(&mut self, dt: &DecisionTable, out_names: &[String], list: Expr, single: bool, scope: &[String], what: &str) -> Expr {
+    fn priority_sort(
+        &mut self,
+        dt: &DecisionTable,
+        out_names: &[String],
+        list: Expr,
+        single: bool,
+        scope: &[String],
+        what: &str,
+    ) -> Expr {
         // per output: list of priority values
         let mut keys: Vec<(Option<String>, Expr)> = Vec::new();
         for (i, o) in dt.outputs.iter().enumerate() {
             if let Some(v) = &o.output_values {
-                let lst = self.parse_expr(&format!("[{v}]"), scope, &format!("{what} output values"));
-                keys.push((if single { None } else { Some(out_names[i].clone()) }, lst));
+                let lst =
+                    self.parse_expr(&format!("[{v}]"), scope, &format!("{what} output values"));
+                keys.push((
+                    if single {
+                        None
+                    } else {
+                        Some(out_names[i].clone())
+                    },
+                    lst,
+                ));
             }
         }
         if keys.is_empty() {
@@ -666,14 +885,25 @@ impl<'a> Lowerer<'a> {
                 None => lt,
                 Some(rest) => mk(ExprKind::Or(
                     Box::new(lt),
-                    Box::new(mk(ExprKind::And(Box::new(cmp(CmpOp::Eq, prio(&a, k, l), prio(&b, k, l))), Box::new(rest)))),
+                    Box::new(mk(ExprKind::And(
+                        Box::new(cmp(CmpOp::Eq, prio(&a, k, l), prio(&b, k, l))),
+                        Box::new(rest),
+                    ))),
                 )),
             });
         }
         let f = mk(ExprKind::FunctionDef(FunctionDef {
             params: vec![
-                Param { name: Name::simple(&a), span: Span::default(), ty: None },
-                Param { name: Name::simple(&b), span: Span::default(), ty: None },
+                Param {
+                    name: Name::simple(&a),
+                    span: Span::default(),
+                    ty: None,
+                },
+                Param {
+                    name: Name::simple(&b),
+                    span: Span::default(),
+                    ty: None,
+                },
             ],
             body: Box::new(cond.unwrap()),
             external: false,
@@ -690,12 +920,23 @@ impl<'a> Lowerer<'a> {
             .map(|d| d.name.clone())
             .or_else(|| m.inputs.iter().find(|i| i.id == id).map(|i| i.name.clone()))
             .or_else(|| m.bkms.iter().find(|b| b.id == id).map(|b| b.name.clone()))
-            .or_else(|| m.services.iter().find(|s| s.id == id).map(|s| s.name.clone()))
+            .or_else(|| {
+                m.services
+                    .iter()
+                    .find(|s| s.id == id)
+                    .map(|s| s.name.clone())
+            })
     }
 
     /// Context entries for a model: inputs, BKMs, services, decisions.
     /// `input_source(name)` gives the expression providing an input value.
-    fn model_entries(&mut self, m: &Definitions, prefix: &str, input_source: &dyn Fn(&str) -> Expr, depth: u32) -> Vec<(String, Expr)> {
+    fn model_entries(
+        &mut self,
+        m: &Definitions,
+        prefix: &str,
+        input_source: &dyn Fn(&str) -> Expr,
+        depth: u32,
+    ) -> Vec<(String, Expr)> {
         let mut entries = Vec::new();
         let mut scope: Vec<String> = Vec::new();
         // imported models: a context per named import; unnamed imports are
@@ -703,7 +944,9 @@ impl<'a> Lowerer<'a> {
         // imported model are bound once per namespace (DMN16-50).
         if depth < 8 {
             for imp in m.imports.clone() {
-                let Some(im) = self.set.by_namespace(&imp.namespace).cloned() else { continue };
+                let Some(im) = self.set.by_namespace(&imp.namespace).cloned() else {
+                    continue;
+                };
                 let ns = im.namespace.clone();
                 let src = move |n: &str| name(&namespaced_input(&ns, n));
                 let sub = self.model_entries(&im, &imp.name, &src, depth + 1);
@@ -726,7 +969,13 @@ impl<'a> Lowerer<'a> {
         // BKMs in knowledge-requirement order
         let order = topo(
             &m.bkms.iter().map(|b| b.id.clone()).collect::<Vec<_>>(),
-            |id| m.bkms.iter().find(|b| b.id == id).map(|b| b.required_knowledge.clone()).unwrap_or_default(),
+            |id| {
+                m.bkms
+                    .iter()
+                    .find(|b| b.id == id)
+                    .map(|b| b.required_knowledge.clone())
+                    .unwrap_or_default()
+            },
         );
         for id in order {
             let b = m.bkms.iter().find(|b| b.id == id).unwrap().clone();
@@ -748,7 +997,13 @@ impl<'a> Lowerer<'a> {
         }
         // decisions in requirement order
         let ids: Vec<String> = m.decisions.iter().map(|d| d.id.clone()).collect();
-        let order = topo(&ids, |id| m.decisions.iter().find(|d| d.id == id).map(|d| d.required_decisions.clone()).unwrap_or_default());
+        let order = topo(&ids, |id| {
+            m.decisions
+                .iter()
+                .find(|d| d.id == id)
+                .map(|d| d.required_decisions.clone())
+                .unwrap_or_default()
+        });
         // decision services (they reference decisions by evaluating them in
         // their own scope; they need BKMs, which are defined above)
         for s in &m.services {
@@ -764,7 +1019,13 @@ impl<'a> Lowerer<'a> {
         entries
     }
 
-    fn decision_logic(&mut self, d: &Decision, scope: &mut Vec<String>, prefix: &str, m: &Definitions) -> Expr {
+    fn decision_logic(
+        &mut self,
+        d: &Decision,
+        scope: &mut Vec<String>,
+        prefix: &str,
+        m: &Definitions,
+    ) -> Expr {
         let what = format!("decision '{}'", d.name);
         let e = match &d.expr {
             Some(b) => self.boxed(b, scope, &what, prefix, m),
@@ -777,7 +1038,17 @@ impl<'a> Lowerer<'a> {
         let mut params = Vec::new();
         for id in s.input_data.iter().chain(s.input_decisions.iter()) {
             if let Some(n) = Self::find_name(m, id) {
-                let t = m.inputs.iter().find(|i| i.name == n).and_then(|i| i.type_ref.clone()).or_else(|| m.decisions.iter().find(|d| d.name == n).and_then(|d| d.type_ref.clone()));
+                let t = m
+                    .inputs
+                    .iter()
+                    .find(|i| i.name == n)
+                    .and_then(|i| i.type_ref.clone())
+                    .or_else(|| {
+                        m.decisions
+                            .iter()
+                            .find(|d| d.name == n)
+                            .and_then(|d| d.type_ref.clone())
+                    });
                 params.push((n, t));
             }
         }
@@ -788,7 +1059,13 @@ impl<'a> Lowerer<'a> {
                 ids.push(o.clone());
             }
         }
-        let order = topo(&ids, |id| m.decisions.iter().find(|d| d.id == id).map(|d| d.required_decisions.clone()).unwrap_or_default());
+        let order = topo(&ids, |id| {
+            m.decisions
+                .iter()
+                .find(|d| d.id == id)
+                .map(|d| d.required_decisions.clone())
+                .unwrap_or_default()
+        });
         let mut scope: Vec<String> = params.iter().map(|p| p.0.clone()).collect();
         let mut entries = Vec::new();
         for id in order {
@@ -798,7 +1075,11 @@ impl<'a> Lowerer<'a> {
                 scope.push(d.name.clone());
             }
         }
-        let outs: Vec<String> = s.output_decisions.iter().filter_map(|id| Self::find_name(m, id)).collect();
+        let outs: Vec<String> = s
+            .output_decisions
+            .iter()
+            .filter_map(|id| Self::find_name(m, id))
+            .collect();
         let r = self.fresh("ds");
         let result = if outs.len() == 1 {
             name(&outs[0])
@@ -813,12 +1094,21 @@ impl<'a> Lowerer<'a> {
         let ps = params
             .iter()
             .map(|(n, t)| Param {
-                name: Name { text: n.clone(), tokens: name_tokens(n) },
+                name: Name {
+                    text: n.clone(),
+                    tokens: name_tokens(n),
+                },
                 span: Span::default(),
-                ty: self.resolve_typeref(t.as_deref(), prefix, m).map(|s| ty(&s)),
+                ty: self
+                    .resolve_typeref(t.as_deref(), prefix, m)
+                    .map(|s| ty(&s)),
             })
             .collect();
-        mk(ExprKind::FunctionDef(FunctionDef { params: ps, body: Box::new(body), external: false }))
+        mk(ExprKind::FunctionDef(FunctionDef {
+            params: ps,
+            body: Box::new(body),
+            external: false,
+        }))
     }
 
     /// The whole-model program: a context of all DRG elements. Input data
@@ -833,7 +1123,13 @@ impl<'a> Lowerer<'a> {
     }
 
     pub fn input_names(&self) -> Vec<String> {
-        let mut v: Vec<String> = self.set.main.inputs.iter().map(|i| i.name.clone()).collect();
+        let mut v: Vec<String> = self
+            .set
+            .main
+            .inputs
+            .iter()
+            .map(|i| i.name.clone())
+            .collect();
         v.extend(self.set.imports.iter().map(|(n, _)| n.clone()));
         v
     }
@@ -844,7 +1140,10 @@ impl<'a> Lowerer<'a> {
 fn invalid_at_literal(e: &Expr) -> Option<String> {
     use feel_runtime::temporal as tm;
     if let ExprKind::At(s) = &e.kind {
-        let ok = tm::Date::parse(s).is_some() || tm::DateTime::parse(s).is_some() || tm::Time::parse(s).is_some() || tm::parse_duration(s).is_some();
+        let ok = tm::Date::parse(s).is_some()
+            || tm::DateTime::parse(s).is_some()
+            || tm::Time::parse(s).is_some()
+            || tm::parse_duration(s).is_some();
         if !ok {
             return Some(s.clone());
         }
@@ -863,8 +1162,17 @@ fn collect_component_names(idf: &ItemDef, out: &mut Vec<String>) {
 pub fn topo(ids: &[String], deps: impl Fn(&str) -> Vec<String>) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     let mut visiting: Vec<String> = Vec::new();
-    fn visit(id: &str, ids: &[String], deps: &dyn Fn(&str) -> Vec<String>, out: &mut Vec<String>, visiting: &mut Vec<String>) {
-        if out.iter().any(|x| x == id) || visiting.iter().any(|x| x == id) || !ids.iter().any(|x| x == id) {
+    fn visit(
+        id: &str,
+        ids: &[String],
+        deps: &dyn Fn(&str) -> Vec<String>,
+        out: &mut Vec<String>,
+        visiting: &mut Vec<String>,
+    ) {
+        if out.iter().any(|x| x == id)
+            || visiting.iter().any(|x| x == id)
+            || !ids.iter().any(|x| x == id)
+        {
             return;
         }
         visiting.push(id.to_string());

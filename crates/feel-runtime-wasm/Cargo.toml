@@ -11,3 +11,6 @@ crate-type = ["cdylib"]
 
 [dependencies]
 feel-runtime.workspace = true
+
+[lints]
+workspace = true

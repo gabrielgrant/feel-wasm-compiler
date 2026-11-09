@@ -24,7 +24,10 @@ impl Span {
         Span { start, end }
     }
     pub fn to(self, other: Span) -> Span {
-        Span { start: self.start.min(other.start), end: self.end.max(other.end) }
+        Span {
+            start: self.start.min(other.start),
+            end: self.end.max(other.end),
+        }
     }
 }
 
@@ -64,7 +67,10 @@ impl Diagnostic {
         }
     }
     pub fn warning(code: &str, msg: impl Into<String>, span: Span) -> Diagnostic {
-        Diagnostic { severity: Severity::Warning, ..Diagnostic::error(code, msg, span) }
+        Diagnostic {
+            severity: Severity::Warning,
+            ..Diagnostic::error(code, msg, span)
+        }
     }
     pub fn with_suggestion(mut self, s: impl Into<String>) -> Diagnostic {
         self.suggestion = Some(s.into());
@@ -105,7 +111,11 @@ impl std::fmt::Display for Diagnostic {
             Severity::Warning => "warning",
             Severity::Info => "info",
         };
-        write!(f, "{sev}[{}] {}:{}: {}", self.code, self.line, self.column, self.message)?;
+        write!(
+            f,
+            "{sev}[{}] {}:{}: {}",
+            self.code, self.line, self.column, self.message
+        )?;
         if let Some(s) = &self.suggestion {
             write!(f, " (suggestion: {s})")?;
         }

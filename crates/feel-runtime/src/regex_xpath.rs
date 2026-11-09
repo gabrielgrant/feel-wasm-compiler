@@ -116,9 +116,17 @@ fn translate(src: &str, out: &mut String, dot_all: bool) -> Option<()> {
                 let n = *chars.get(k + 1)?;
                 match n {
                     // XPath multi-char escapes \i \c (XML name chars) approximated
-                    'i' => out.push_str(if depth_class > 0 { "_:A-Za-z" } else { "[_:A-Za-z]" }),
+                    'i' => out.push_str(if depth_class > 0 {
+                        "_:A-Za-z"
+                    } else {
+                        "[_:A-Za-z]"
+                    }),
                     'I' => out.push_str("[^_:A-Za-z]"),
-                    'c' => out.push_str(if depth_class > 0 { "-._:A-Za-z0-9" } else { "[-._:A-Za-z0-9]" }),
+                    'c' => out.push_str(if depth_class > 0 {
+                        "-._:A-Za-z0-9"
+                    } else {
+                        "[-._:A-Za-z0-9]"
+                    }),
                     'C' => out.push_str("[^-._:A-Za-z0-9]"),
                     'p' | 'P' => {
                         // \p{IsBlock} → Unicode block names are not supported by
@@ -192,7 +200,11 @@ fn translate(src: &str, out: &mut String, dot_all: bool) -> Option<()> {
 }
 
 /// Expand an XPath replacement string (`$n`, `\$`, `\\`) for one match.
-pub fn expand_replacement(rep: &str, caps: &fancy_regex::Captures<'_, str>, ngroups: usize) -> Option<String> {
+pub fn expand_replacement(
+    rep: &str,
+    caps: &fancy_regex::Captures<'_, str>,
+    ngroups: usize,
+) -> Option<String> {
     let mut out = String::new();
     let b: Vec<char> = rep.chars().collect();
     let mut k = 0;

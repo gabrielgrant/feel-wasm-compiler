@@ -4,7 +4,9 @@
 //! feel-tck <TCK TestCases dir> [--json out.json] [--md out.md] [--filter substr] [--verbose]
 //! ```
 
-use feel_dmn::tck::{discover, host_dt_differential, run_test_file_with, CaseResult, RunOptions, Status};
+use feel_dmn::tck::{
+    discover, host_dt_differential, run_test_file_with, CaseResult, RunOptions, Status,
+};
 use feel_host::Engine;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -56,7 +58,10 @@ fn main() {
         for b in &bad {
             println!("MISMATCH {b}");
         }
-        println!("host-orchestrated decision tables: {n} results compared, {} mismatches", bad.len());
+        println!(
+            "host-orchestrated decision tables: {n} results compared, {} mismatches",
+            bad.len()
+        );
         std::process::exit(if bad.is_empty() { 0 } else { 1 });
     }
     let mut all: Vec<CaseResult> = Vec::new();
@@ -69,7 +74,9 @@ fn main() {
                 continue;
             }
         }
-        let rep = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run_test_file_with(&dir, &f, &engine, ro)));
+        let rep = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            run_test_file_with(&dir, &f, &engine, ro)
+        }));
         match rep {
             Ok(r) => {
                 compile_ms += r.compile_ms;
@@ -90,7 +97,12 @@ fn main() {
     }
     let elapsed = t0.elapsed().as_secs_f64();
     let count = |s: Status| all.iter().filter(|r| r.status == s).count();
-    let (p, f, s, o) = (count(Status::Pass), count(Status::Fail), count(Status::Skip), count(Status::OutOfScope));
+    let (p, f, s, o) = (
+        count(Status::Pass),
+        count(Status::Fail),
+        count(Status::Skip),
+        count(Status::OutOfScope),
+    );
     let mut by_dir: BTreeMap<String, (usize, usize)> = BTreeMap::new();
     for r in &all {
         let e = by_dir.entry(r.dir.clone()).or_default();
@@ -102,7 +114,10 @@ fn main() {
     }
     for r in all.iter().filter(|r| r.status == Status::Fail) {
         if verbose {
-            println!("FAIL {}/{} {} [{}]\n   expected {}\n   actual   {}\n   {}", r.dir, r.file, r.case, r.node, r.expected, r.actual, r.note);
+            println!(
+                "FAIL {}/{} {} [{}]\n   expected {}\n   actual   {}\n   {}",
+                r.dir, r.file, r.case, r.node, r.expected, r.actual, r.note
+            );
         }
     }
     println!(
@@ -133,7 +148,7 @@ fn main() {
     }
     if let Some(m) = md_out {
         let mut s = String::new();
-        s.push_str(&format!("| directory | pass | fail |\n|---|---:|---:|\n"));
+        s.push_str("| directory | pass | fail |\n|---|---:|---:|\n");
         for (d, (pp, ff)) in &by_dir {
             s.push_str(&format!("| {d} | {pp} | {ff} |\n"));
         }

@@ -66,7 +66,11 @@ pub fn value_json(n: &Node) -> String {
         return scalar_json(&v);
     }
     if let Some(l) = n.children().find(|c| c.is_element() && local(c) == "list") {
-        let items: Vec<String> = l.children().filter(|c| c.is_element() && local(c) == "item").map(|i| value_json(&i)).collect();
+        let items: Vec<String> = l
+            .children()
+            .filter(|c| c.is_element() && local(c) == "item")
+            .map(|i| value_json(&i))
+            .collect();
         return format!("[{}]", items.join(","));
     }
     let comps: Vec<String> = n
@@ -86,11 +90,17 @@ pub fn value_json(n: &Node) -> String {
 }
 
 fn scalar_json(v: &Node) -> String {
-    let nil = v.attributes().any(|a| a.name() == "nil" && a.value() == "true");
+    let nil = v
+        .attributes()
+        .any(|a| a.name() == "nil" && a.value() == "true");
     if nil {
         return "null".into();
     }
-    let ty = v.attributes().find(|a| a.name() == "type").map(|a| a.value()).unwrap_or("");
+    let ty = v
+        .attributes()
+        .find(|a| a.name() == "type")
+        .map(|a| a.value())
+        .unwrap_or("");
     let ty = ty.rsplit(':').next().unwrap_or(ty);
     let text: String = v.text().unwrap_or("").to_string();
     // nested structure inside <value> (some TCK files nest components)
@@ -143,7 +153,10 @@ pub fn parse_tests(xml: &str) -> Result<(String, Vec<TestCase>), String> {
         .unwrap_or("")
         .to_string();
     let mut cases = Vec::new();
-    for tc in root.children().filter(|c| c.is_element() && local(c) == "testCase") {
+    for tc in root
+        .children()
+        .filter(|c| c.is_element() && local(c) == "testCase")
+    {
         let mut c = TestCase {
             id: tc.attribute("id").unwrap_or("").to_string(),
             invocable: tc.attribute("invocableName").map(|s| s.to_string()),
@@ -162,7 +175,9 @@ pub fn parse_tests(xml: &str) -> Result<(String, Vec<TestCase>), String> {
                     c.inputs.push((key, value_json(&n)))
                 }
                 "resultNode" => {
-                    let exp = n.children().find(|x| x.is_element() && local(x) == "expected");
+                    let exp = n
+                        .children()
+                        .find(|x| x.is_element() && local(x) == "expected");
                     c.results.push(ResultNode {
                         name: n.attribute("name").unwrap_or("").to_string(),
                         expected: exp.map(|e| value_json(&e)).unwrap_or_else(|| "null".into()),
@@ -180,7 +195,10 @@ pub fn parse_tests(xml: &str) -> Result<(String, Vec<TestCase>), String> {
 /// Compare an actual FEEL-JSON result with an expected FEEL-JSON value.
 pub fn values_match(expected: &str, actual: &str) -> bool {
     let mut rt = Runtime::new();
-    let (Ok(e), Ok(a)) = (json::decode(&mut rt, expected), json::decode(&mut rt, actual)) else {
+    let (Ok(e), Ok(a)) = (
+        json::decode(&mut rt, expected),
+        json::decode(&mut rt, actual),
+    ) else {
         return expected == actual;
     };
     deep_match(&rt, e, a)
@@ -198,14 +216,25 @@ fn deep_match(rt: &Runtime, e: H, a: H) -> bool {
                 None => false,
             }
         }
-        (Value::List(x), Value::List(y)) => x.len() == y.len() && x.iter().zip(y.iter()).all(|(p, q)| deep_match(rt, *p, *q)),
+        (Value::List(x), Value::List(y)) => {
+            x.len() == y.len() && x.iter().zip(y.iter()).all(|(p, q)| deep_match(rt, *p, *q))
+        }
         (Value::Ctx(x), Value::Ctx(y)) => {
-            x.len() == y.len() && x.keys.iter().zip(x.vals.iter()).all(|(k, v)| y.get(k).map(|w| deep_match(rt, *v, w)).unwrap_or(false))
+            x.len() == y.len()
+                && x.keys
+                    .iter()
+                    .zip(x.vals.iter())
+                    .all(|(k, v)| y.get(k).map(|w| deep_match(rt, *v, w)).unwrap_or(false))
         }
         (Value::Str(x), Value::Str(y)) => x == y,
-        (Value::Time(x), Value::Time(y)) => feel_runtime::temporal::eq_time_exact(x, y).unwrap_or(false) || x.to_string() == y.to_string(),
+        (Value::Time(x), Value::Time(y)) => {
+            feel_runtime::temporal::eq_time_exact(x, y).unwrap_or(false)
+                || x.to_string() == y.to_string()
+        }
         (Value::DateTime(x), Value::DateTime(y)) => {
-            x.to_string() == y.to_string() || (x.zone.is_some() == y.zone.is_some() && feel_runtime::temporal::eq_datetime_exact(x, y).unwrap_or(false))
+            x.to_string() == y.to_string()
+                || (x.zone.is_some() == y.zone.is_some()
+                    && feel_runtime::temporal::eq_datetime_exact(x, y).unwrap_or(false))
         }
         _ => feel_runtime::ops::eq(rt, e, a) == Some(true),
     }
@@ -219,7 +248,8 @@ pub struct ModelRun {
 
 fn load_model_set(dir: &Path, model_file: &str) -> Result<ModelSet, String> {
     let main_path = dir.join(model_file);
-    let xml = std::fs::read_to_string(&main_path).map_err(|e| format!("{}: {e}", main_path.display()))?;
+    let xml =
+        std::fs::read_to_string(&main_path).map_err(|e| format!("{}: {e}", main_path.display()))?;
     let main = parse_definitions(&xml)?;
     // index all models in the directory by namespace
     let mut others: Vec<Definitions> = Vec::new();
@@ -250,7 +280,11 @@ fn load_model_set(dir: &Path, model_file: &str) -> Result<ModelSet, String> {
     let imports = main
         .imports
         .iter()
-        .filter_map(|im| all.iter().find(|d| d.namespace == im.namespace).map(|d| (im.name.clone(), d.clone())))
+        .filter_map(|im| {
+            all.iter()
+                .find(|d| d.namespace == im.namespace)
+                .map(|d| (im.name.clone(), d.clone()))
+        })
         .collect();
     Ok(ModelSet { main, imports, all })
 }
@@ -267,10 +301,25 @@ fn build_program<'a>(set: &'a ModelSet, invocable: Option<&str>) -> (Program, Lo
             let params: Vec<String> = invocable_params(set, inv);
             let args = params
                 .iter()
-                .map(|p| (Name { text: p.clone(), tokens: name_tokens(p) }, Span::default(), lower::path(lower::name("__args"), p)))
+                .map(|p| {
+                    (
+                        Name {
+                            text: p.clone(),
+                            tokens: name_tokens(p),
+                        },
+                        Span::default(),
+                        lower::path(lower::name("__args"), p),
+                    )
+                })
                 .collect();
-            let call = lower::mk(ExprKind::Call(Box::new(lower::path(lower::name("__model"), inv)), Args::Named(args)));
-            lower::path(lower::ctx(vec![("__model".into(), model), ("__invoke".into(), call)]), "__invoke")
+            let call = lower::mk(ExprKind::Call(
+                Box::new(lower::path(lower::name("__model"), inv)),
+                Args::Named(args),
+            ));
+            lower::path(
+                lower::ctx(vec![("__model".into(), model), ("__invoke".into(), call)]),
+                "__invoke",
+            )
         }
     };
     (Program::Expression(prog), l)
@@ -279,7 +328,11 @@ fn build_program<'a>(set: &'a ModelSet, invocable: Option<&str>) -> (Program, Lo
 fn invocable_params(set: &ModelSet, inv: &str) -> Vec<String> {
     let m = &set.main;
     if let Some(b) = m.bkms.iter().find(|b| b.name == inv) {
-        return b.logic.as_ref().map(|f| f.params.iter().map(|p| p.0.clone()).collect()).unwrap_or_default();
+        return b
+            .logic
+            .as_ref()
+            .map(|f| f.params.iter().map(|p| p.0.clone()).collect())
+            .unwrap_or_default();
     }
     if let Some(s) = m.services.iter().find(|s| s.name == inv) {
         let find = |id: &String| {
@@ -287,9 +340,19 @@ fn invocable_params(set: &ModelSet, inv: &str) -> Vec<String> {
                 .iter()
                 .find(|d| &d.id == id)
                 .map(|d| d.name.clone())
-                .or_else(|| m.inputs.iter().find(|i| &i.id == id).map(|i| i.name.clone()))
+                .or_else(|| {
+                    m.inputs
+                        .iter()
+                        .find(|i| &i.id == id)
+                        .map(|i| i.name.clone())
+                })
         };
-        return s.input_data.iter().chain(s.input_decisions.iter()).filter_map(find).collect();
+        return s
+            .input_data
+            .iter()
+            .chain(s.input_decisions.iter())
+            .filter_map(find)
+            .collect();
     }
     Vec::new()
 }
@@ -313,32 +376,67 @@ pub fn run_test_file(dir: &Path, test_file: &Path, engine: &Engine) -> FileRepor
     run_test_file_with(dir, test_file, engine, RunOptions::default())
 }
 
-pub fn run_test_file_with(dir: &Path, test_file: &Path, engine: &Engine, ro: RunOptions) -> FileReport {
-    let dname = dir.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
-    let fname = test_file.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
+pub fn run_test_file_with(
+    dir: &Path,
+    test_file: &Path,
+    engine: &Engine,
+    ro: RunOptions,
+) -> FileReport {
+    let dname = dir
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
+    let fname = test_file
+        .file_name()
+        .map(|s| s.to_string_lossy().to_string())
+        .unwrap_or_default();
     let mut results = Vec::new();
-    let mk = |case: &str, node: &str, status: Status, expected: &str, actual: &str, note: &str| CaseResult {
-        dir: dname.clone(),
-        file: fname.clone(),
-        case: case.to_string(),
-        node: node.to_string(),
-        status,
-        expected: expected.to_string(),
-        actual: actual.to_string(),
-        note: note.to_string(),
+    let mk = |case: &str, node: &str, status: Status, expected: &str, actual: &str, note: &str| {
+        CaseResult {
+            dir: dname.clone(),
+            file: fname.clone(),
+            case: case.to_string(),
+            node: node.to_string(),
+            status,
+            expected: expected.to_string(),
+            actual: actual.to_string(),
+            note: note.to_string(),
+        }
     };
     let xml = match std::fs::read_to_string(test_file) {
         Ok(x) => x,
         Err(e) => {
-            results.push(mk("*", "*", Status::Fail, "", "", &format!("cannot read test file: {e}")));
-            return FileReport { results, compile_ms: 0.0, module_bytes: 0 };
+            results.push(mk(
+                "*",
+                "*",
+                Status::Fail,
+                "",
+                "",
+                &format!("cannot read test file: {e}"),
+            ));
+            return FileReport {
+                results,
+                compile_ms: 0.0,
+                module_bytes: 0,
+            };
         }
     };
     let (model_file, cases) = match parse_tests(&xml) {
         Ok(x) => x,
         Err(e) => {
-            results.push(mk("*", "*", Status::Fail, "", "", &format!("cannot parse test file: {e}")));
-            return FileReport { results, compile_ms: 0.0, module_bytes: 0 };
+            results.push(mk(
+                "*",
+                "*",
+                Status::Fail,
+                "",
+                "",
+                &format!("cannot parse test file: {e}"),
+            ));
+            return FileReport {
+                results,
+                compile_ms: 0.0,
+                module_bytes: 0,
+            };
         }
     };
     let set = match load_model_set(dir, &model_file) {
@@ -346,10 +444,21 @@ pub fn run_test_file_with(dir: &Path, test_file: &Path, engine: &Engine, ro: Run
         Err(e) => {
             for c in &cases {
                 for r in &c.results {
-                    results.push(mk(&c.id, &r.name, Status::Fail, &r.expected, "", &format!("model error: {e}")));
+                    results.push(mk(
+                        &c.id,
+                        &r.name,
+                        Status::Fail,
+                        &r.expected,
+                        "",
+                        &format!("model error: {e}"),
+                    ));
                 }
             }
-            return FileReport { results, compile_ms: 0.0, module_bytes: 0 };
+            return FileReport {
+                results,
+                compile_ms: 0.0,
+                module_bytes: 0,
+            };
         }
     };
     // one compiled module per distinct invocable (None = whole model)
@@ -363,7 +472,10 @@ pub fn run_test_file_with(dir: &Path, test_file: &Path, engine: &Engine, ro: Run
             let (prog, l) = build_program(&set, key.as_deref());
             if std::env::var("FEEL_TCK_PRINT").is_ok() {
                 if let Program::Expression(e) = &prog {
-                    eprintln!("lowered program for {fname}:\n{e}\nerrors: {:?}", l.report.errors);
+                    eprintln!(
+                        "lowered program for {fname}:\n{e}\nerrors: {:?}",
+                        l.report.errors
+                    );
                 }
             }
             let mut opts = l.options(&[], feel_compiler::Entry::Expression);
@@ -377,25 +489,48 @@ pub fn run_test_file_with(dir: &Path, test_file: &Path, engine: &Engine, ro: Run
                     engine
                         .load(&w)
                         .and_then(|p| {
-                            let io = InstanceOptions { host: feel_host::bindings::test_bindings(), ..Default::default() };
+                            let io = InstanceOptions {
+                                host: feel_host::bindings::test_bindings(),
+                                ..Default::default()
+                            };
                             p.instantiate(engine, io)
                         })
-                        .map(|instance| ModelRun { instance, lower_errors: errors, unsupported })
+                        .map(|instance| ModelRun {
+                            instance,
+                            lower_errors: errors,
+                            unsupported,
+                        })
                         .map_err(|e| e.to_string())
                 }
-                None => Err(out.diagnostics.iter().map(|d| d.to_string()).collect::<Vec<_>>().join("; ")),
+                None => Err(out
+                    .diagnostics
+                    .iter()
+                    .map(|d| d.to_string())
+                    .collect::<Vec<_>>()
+                    .join("; ")),
             };
             compile_ms += t0.elapsed().as_secs_f64() * 1000.0;
             compiled.push((key.clone(), run));
         }
     }
     for c in &cases {
-        let run = compiled.iter_mut().find(|(k, _)| *k == c.invocable).map(|(_, r)| r).unwrap();
+        let run = compiled
+            .iter_mut()
+            .find(|(k, _)| *k == c.invocable)
+            .map(|(_, r)| r)
+            .unwrap();
         let run = match run {
             Ok(r) => r,
             Err(e) => {
                 for r in &c.results {
-                    results.push(mk(&c.id, &r.name, Status::Fail, &r.expected, "", &format!("compile error: {e}")));
+                    results.push(mk(
+                        &c.id,
+                        &r.name,
+                        Status::Fail,
+                        &r.expected,
+                        "",
+                        &format!("compile error: {e}"),
+                    ));
                 }
                 continue;
             }
@@ -412,10 +547,22 @@ pub fn run_test_file_with(dir: &Path, test_file: &Path, engine: &Engine, ro: Run
             inputs.push_str(v);
         }
         inputs.push('}');
-        let inputs = if c.invocable.is_some() { format!("{{\"__args\":{inputs}}}") } else { inputs };
-        let ev = run.instance.evaluate(&inputs, &EvalOptions { clock: ClockSpec::Fixed(CLOCK.into()) });
+        let inputs = if c.invocable.is_some() {
+            format!("{{\"__args\":{inputs}}}")
+        } else {
+            inputs
+        };
+        let ev = run.instance.evaluate(
+            &inputs,
+            &EvalOptions {
+                clock: ClockSpec::Fixed(CLOCK.into()),
+            },
+        );
         if std::env::var("FEEL_TCK_DUMP").is_ok() {
-            eprintln!("case {} inputs {inputs}\n  result {:?}\n  abort {:?}", c.id, ev.result, ev.abort);
+            eprintln!(
+                "case {} inputs {inputs}\n  result {:?}\n  abort {:?}",
+                c.id, ev.result, ev.abort
+            );
         }
         for r in &c.results {
             let actual = match (&ev.result, &ev.abort) {
@@ -450,7 +597,12 @@ pub fn run_test_file_with(dir: &Path, test_file: &Path, engine: &Engine, ro: Run
                 } else if !run.unsupported.is_empty() {
                     note = format!("unsupported: {}", run.unsupported.join(", "));
                 }
-                let ds: Vec<String> = ev.diagnostics.iter().take(3).map(|d| format!("{} {}", d.code, d.message)).collect();
+                let ds: Vec<String> = ev
+                    .diagnostics
+                    .iter()
+                    .take(3)
+                    .map(|d| format!("{} {}", d.code, d.message))
+                    .collect();
                 if !ds.is_empty() {
                     if !note.is_empty() {
                         note.push_str(" | ");
@@ -458,10 +610,21 @@ pub fn run_test_file_with(dir: &Path, test_file: &Path, engine: &Engine, ro: Run
                     note.push_str(&ds.join("; "));
                 }
             }
-            results.push(mk(&c.id, &r.name, if pass { Status::Pass } else { Status::Fail }, &r.expected, &actual, &note));
+            results.push(mk(
+                &c.id,
+                &r.name,
+                if pass { Status::Pass } else { Status::Fail },
+                &r.expected,
+                &actual,
+                &note,
+            ));
         }
     }
-    FileReport { results, compile_ms, module_bytes }
+    FileReport {
+        results,
+        compile_ms,
+        module_bytes,
+    }
 }
 
 fn select_entry(ctx_json: &str, key: &str) -> String {
@@ -480,15 +643,30 @@ pub fn discover(root: &Path, levels: &[&str]) -> Vec<(PathBuf, PathBuf)> {
     let mut out = Vec::new();
     for lvl in levels {
         let base = root.join(lvl);
-        let Ok(rd) = std::fs::read_dir(&base) else { continue };
-        let mut dirs: Vec<PathBuf> = rd.flatten().map(|e| e.path()).filter(|p| p.is_dir()).collect();
+        let Ok(rd) = std::fs::read_dir(&base) else {
+            continue;
+        };
+        let mut dirs: Vec<PathBuf> = rd
+            .flatten()
+            .map(|e| e.path())
+            .filter(|p| p.is_dir())
+            .collect();
         dirs.sort();
         for d in dirs {
-            let Ok(rd) = std::fs::read_dir(&d) else { continue };
+            let Ok(rd) = std::fs::read_dir(&d) else {
+                continue;
+            };
             let mut files: Vec<PathBuf> = rd
                 .flatten()
                 .map(|e| e.path())
-                .filter(|p| p.file_name().map(|n| n.to_string_lossy().contains("-test-") && n.to_string_lossy().ends_with(".xml")).unwrap_or(false))
+                .filter(|p| {
+                    p.file_name()
+                        .map(|n| {
+                            n.to_string_lossy().contains("-test-")
+                                && n.to_string_lossy().ends_with(".xml")
+                        })
+                        .unwrap_or(false)
+                })
                 .collect();
             files.sort();
             for f in files {
@@ -508,19 +686,35 @@ pub fn host_dt_differential(dir: &Path, test_file: &Path, engine: &Engine) -> (u
     use crate::model::Boxed;
     let mut compared = 0;
     let mut mism = Vec::new();
-    let Ok(xml) = std::fs::read_to_string(test_file) else { return (0, mism) };
-    let Ok((model_file, cases)) = parse_tests(&xml) else { return (0, mism) };
-    let Ok(set) = load_model_set(dir, &model_file) else { return (0, mism) };
+    let Ok(xml) = std::fs::read_to_string(test_file) else {
+        return (0, mism);
+    };
+    let Ok((model_file, cases)) = parse_tests(&xml) else {
+        return (0, mism);
+    };
+    let Ok(set) = load_model_set(dir, &model_file) else {
+        return (0, mism);
+    };
     let input_names: Vec<String> = set.main.inputs.iter().map(|i| i.name.clone()).collect();
     let rep = run_test_file(dir, test_file, engine);
     for d in &set.main.decisions {
-        let Some(Boxed::DecisionTable(dt)) = &d.expr else { continue };
+        let Some(Boxed::DecisionTable(dt)) = &d.expr else {
+            continue;
+        };
         if !d.required_decisions.is_empty() || !d.required_knowledge.is_empty() {
             continue;
         }
-        let Ok(mut h) = HostDecisionTable::compile(engine, dt, &input_names) else { continue };
+        let Ok(mut h) = HostDecisionTable::compile(engine, dt, &input_names) else {
+            continue;
+        };
         for c in cases.iter().filter(|c| c.invocable.is_none()) {
-            let Some(lowered) = rep.results.iter().find(|r| r.case == c.id && r.node == d.name) else { continue };
+            let Some(lowered) = rep
+                .results
+                .iter()
+                .find(|r| r.case == c.id && r.node == d.name)
+            else {
+                continue;
+            };
             let mut inputs = String::from("{");
             for (i, (k, v)) in c.inputs.iter().enumerate() {
                 if i > 0 {
@@ -531,10 +725,15 @@ pub fn host_dt_differential(dir: &Path, test_file: &Path, engine: &Engine) -> (u
                 inputs.push_str(v);
             }
             inputs.push('}');
-            let host = h.evaluate(&inputs).unwrap_or_else(|e| format!("<error {e}>"));
+            let host = h
+                .evaluate(&inputs)
+                .unwrap_or_else(|e| format!("<error {e}>"));
             compared += 1;
             if !values_match(&lowered.actual, &host) {
-                mism.push(format!("{} {} {}: lowered {} host {}", lowered.dir, c.id, d.name, lowered.actual, host));
+                mism.push(format!(
+                    "{} {} {}: lowered {} host {}",
+                    lowered.dir, c.id, d.name, lowered.actual, host
+                ));
             }
         }
     }

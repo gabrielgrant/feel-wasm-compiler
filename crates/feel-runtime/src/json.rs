@@ -35,7 +35,11 @@ pub struct JsonError {
 
 impl std::fmt::Display for JsonError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "invalid FEEL-JSON at byte {}: {}", self.offset, self.message)
+        write!(
+            f,
+            "invalid FEEL-JSON at byte {}: {}",
+            self.offset, self.message
+        )
     }
 }
 
@@ -43,10 +47,17 @@ const MAX_DEPTH: u32 = 256;
 
 impl<'a> Decoder<'a> {
     pub fn new(s: &'a str) -> Self {
-        Decoder { s: s.as_bytes(), i: 0, depth: 0 }
+        Decoder {
+            s: s.as_bytes(),
+            i: 0,
+            depth: 0,
+        }
     }
     fn err<T>(&self, m: &str) -> Result<T, JsonError> {
-        Err(JsonError { offset: self.i, message: m.to_string() })
+        Err(JsonError {
+            offset: self.i,
+            message: m.to_string(),
+        })
     }
     fn ws(&mut self) {
         while self.i < self.s.len() && matches!(self.s[self.i], b' ' | b'\t' | b'\n' | b'\r') {
@@ -164,7 +175,8 @@ impl<'a> Decoder<'a> {
                     self.i += 1;
                 }
                 while self.i < self.s.len()
-                    && (self.s[self.i].is_ascii_digit() || matches!(self.s[self.i], b'.' | b'e' | b'E' | b'+' | b'-'))
+                    && (self.s[self.i].is_ascii_digit()
+                        || matches!(self.s[self.i], b'.' | b'e' | b'E' | b'+' | b'-'))
                 {
                     self.i += 1;
                 }
@@ -183,7 +195,10 @@ impl<'a> Decoder<'a> {
 
     fn tagged(&self, rt: &mut Runtime, tag: &str, v: H) -> Result<H, JsonError> {
         let sval = rt.as_str(v);
-        let bad = |what: &str| JsonError { offset: self.i, message: format!("invalid {what} payload for {tag}") };
+        let bad = |what: &str| JsonError {
+            offset: self.i,
+            message: format!("invalid {what} payload for {tag}"),
+        };
         match tag {
             "@number" => {
                 let s = sval.ok_or_else(|| bad("string"))?;
@@ -217,11 +232,27 @@ impl<'a> Decoder<'a> {
                 let c = rt.as_ctx(v).cloned().ok_or_else(|| bad("object"))?;
                 let start = c.get("start");
                 let end = c.get("end");
-                let si = c.get("startIncluded").and_then(|h| rt.as_bool(h)).unwrap_or(start.is_some());
-                let ei = c.get("endIncluded").and_then(|h| rt.as_bool(h)).unwrap_or(end.is_some());
-                let ne = c.get("notEqual").and_then(|h| rt.as_bool(h)).unwrap_or(false);
+                let si = c
+                    .get("startIncluded")
+                    .and_then(|h| rt.as_bool(h))
+                    .unwrap_or(start.is_some());
+                let ei = c
+                    .get("endIncluded")
+                    .and_then(|h| rt.as_bool(h))
+                    .unwrap_or(end.is_some());
+                let ne = c
+                    .get("notEqual")
+                    .and_then(|h| rt.as_bool(h))
+                    .unwrap_or(false);
                 let eq = c.get("equal").and_then(|h| rt.as_bool(h)).unwrap_or(false);
-                Ok(rt.alloc(Value::Range(Range { start, end, start_incl: si, end_incl: ei, ne, eq })))
+                Ok(rt.alloc(Value::Range(Range {
+                    start,
+                    end,
+                    start_incl: si,
+                    end_incl: ei,
+                    ne,
+                    eq,
+                })))
             }
             // function values cannot cross the boundary; their placeholder
             // decodes to null
@@ -233,7 +264,10 @@ impl<'a> Decoder<'a> {
                     Err(bad("object"))
                 }
             }
-            _ => Err(JsonError { offset: self.i, message: format!("unknown tag {tag}") }),
+            _ => Err(JsonError {
+                offset: self.i,
+                message: format!("unknown tag {tag}"),
+            }),
         }
     }
 
@@ -254,10 +288,12 @@ impl<'a> Decoder<'a> {
             while self.i < self.s.len() && self.s[self.i] != b'"' && self.s[self.i] != b'\\' {
                 self.i += 1;
             }
-            out.push_str(std::str::from_utf8(&self.s[start..self.i]).map_err(|_| JsonError {
-                offset: start,
-                message: "invalid UTF-8".into(),
-            })?);
+            out.push_str(
+                std::str::from_utf8(&self.s[start..self.i]).map_err(|_| JsonError {
+                    offset: start,
+                    message: "invalid UTF-8".into(),
+                })?,
+            );
             match self.s.get(self.i) {
                 None => return self.err("unterminated string"),
                 Some(b'"') => {
@@ -283,7 +319,9 @@ impl<'a> Decoder<'a> {
                         b'u' => {
                             let cp = self.hex4()?;
                             if (0xD800..0xDC00).contains(&cp) {
-                                if self.s.get(self.i) == Some(&b'\\') && self.s.get(self.i + 1) == Some(&b'u') {
+                                if self.s.get(self.i) == Some(&b'\\')
+                                    && self.s.get(self.i + 1) == Some(&b'u')
+                                {
                                     self.i += 2;
                                     let lo = self.hex4()?;
                                     if (0xDC00..0xE000).contains(&lo) {
@@ -308,9 +346,18 @@ impl<'a> Decoder<'a> {
     }
 
     fn hex4(&mut self) -> Result<u32, JsonError> {
-        let h = self.s.get(self.i..self.i + 4).ok_or_else(|| JsonError { offset: self.i, message: "bad \\u".into() })?;
-        let s = std::str::from_utf8(h).map_err(|_| JsonError { offset: self.i, message: "bad \\u".into() })?;
-        let v = u32::from_str_radix(s, 16).map_err(|_| JsonError { offset: self.i, message: "bad \\u".into() })?;
+        let h = self.s.get(self.i..self.i + 4).ok_or_else(|| JsonError {
+            offset: self.i,
+            message: "bad \\u".into(),
+        })?;
+        let s = std::str::from_utf8(h).map_err(|_| JsonError {
+            offset: self.i,
+            message: "bad \\u".into(),
+        })?;
+        let v = u32::from_str_radix(s, 16).map_err(|_| JsonError {
+            offset: self.i,
+            message: "bad \\u".into(),
+        })?;
         self.i += 4;
         Ok(v)
     }
@@ -429,7 +476,11 @@ pub fn encode_into(rt: &Runtime, h: H, out: &mut String, depth: u32) {
             if !first {
                 out.push(',');
             }
-            let _ = write!(out, "\"startIncluded\":{},\"endIncluded\":{}", r.start_incl, r.end_incl);
+            let _ = write!(
+                out,
+                "\"startIncluded\":{},\"endIncluded\":{}",
+                r.start_incl, r.end_incl
+            );
             if r.ne {
                 out.push_str(",\"notEqual\":true");
             }

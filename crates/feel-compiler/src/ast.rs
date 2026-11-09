@@ -24,7 +24,10 @@ pub struct Name {
 
 impl Name {
     pub fn simple(s: &str) -> Name {
-        Name { text: s.to_string(), tokens: vec![s.to_string()] }
+        Name {
+            text: s.to_string(),
+            tokens: vec![s.to_string()],
+        }
     }
 }
 
@@ -245,8 +248,17 @@ impl Expr {
     pub fn children(&self) -> Vec<&Expr> {
         let mut v: Vec<&Expr> = Vec::new();
         match &self.kind {
-            ExprKind::Null | ExprKind::Bool(_) | ExprKind::Number(_) | ExprKind::String(_) | ExprKind::At(_) | ExprKind::Name(_) => {}
-            ExprKind::Path(e, _) | ExprKind::Neg(e) | ExprKind::InstanceOf(e, _) | ExprKind::UnaryRange(_, e) | ExprKind::Coerce(e, _) => v.push(e),
+            ExprKind::Null
+            | ExprKind::Bool(_)
+            | ExprKind::Number(_)
+            | ExprKind::String(_)
+            | ExprKind::At(_)
+            | ExprKind::Name(_) => {}
+            ExprKind::Path(e, _)
+            | ExprKind::Neg(e)
+            | ExprKind::InstanceOf(e, _)
+            | ExprKind::UnaryRange(_, e)
+            | ExprKind::Coerce(e, _) => v.push(e),
             ExprKind::Tests(e, ts) => {
                 v.push(e);
                 if let UnaryTests::Positive(ts) | UnaryTests::Negated(ts) = &**ts {
@@ -255,7 +267,11 @@ impl Expr {
                     }
                 }
             }
-            ExprKind::Filter(a, b) | ExprKind::Binary(_, a, b) | ExprKind::Compare(_, a, b) | ExprKind::And(a, b) | ExprKind::Or(a, b) => {
+            ExprKind::Filter(a, b)
+            | ExprKind::Binary(_, a, b)
+            | ExprKind::Compare(_, a, b)
+            | ExprKind::And(a, b)
+            | ExprKind::Or(a, b) => {
                 v.push(a);
                 v.push(b)
             }
@@ -352,7 +368,10 @@ fn fmt_tests(f: &mut std::fmt::Formatter<'_>, ts: &[UnaryTest]) -> std::fmt::Res
 }
 
 fn key_text(k: &str) -> String {
-    if k.chars().all(|c| c.is_alphanumeric() || c == '_' || c == ' ') && !k.is_empty() {
+    if k.chars()
+        .all(|c| c.is_alphanumeric() || c == '_' || c == ' ')
+        && !k.is_empty()
+    {
         k.to_string()
     } else {
         format!("{k:?}")
@@ -443,7 +462,15 @@ impl std::fmt::Display for Expr {
                 write!(f, " return {b}")
             }
             ExprKind::Quantified(q, its, b) => {
-                write!(f, "{} ", if *q == Quantifier::Some { "some" } else { "every" })?;
+                write!(
+                    f,
+                    "{} ",
+                    if *q == Quantifier::Some {
+                        "some"
+                    } else {
+                        "every"
+                    }
+                )?;
                 for (i, (n, _, e)) in its.iter().enumerate() {
                     if i > 0 {
                         write!(f, ", ")?;
@@ -483,7 +510,12 @@ impl std::fmt::Display for Expr {
                         write!(f, ": {t}")?;
                     }
                 }
-                write!(f, ") {}{}", if fd.external { "external " } else { "" }, fd.body)
+                write!(
+                    f,
+                    ") {}{}",
+                    if fd.external { "external " } else { "" },
+                    fd.body
+                )
             }
             ExprKind::Interval(iv) => write!(
                 f,

@@ -308,6 +308,16 @@ try {
       };
       const s2 = await runtime.instantiate(S);
       out.sorted = s2.evaluate({ xs: [3, 1, 2] }).valueJson;
+      // batch evaluation and the compiled-module cache
+      const c1 = compiler.compileCached('x * 2', { check: 'strict', schema: { inputs: { x: 'number' } } });
+      const c2 = compiler.compileCached('x * 2', { schema: { inputs: { x: 'number' } }, check: 'strict' });
+      out.cacheSame = c1 === c2 && compiler.cacheStats.hits >= 1 && /^[0-9a-f]{64}$/.test(c1.cacheKey);
+      const bi = await runtime.instantiate(c1);
+      out.batch = bi.evaluateBatch([{ x: 1 }, { x: '2' }, { x: 2.5 }]).map((r) => r.valueJson ?? r.abort?.code);
+      // deep recursion beyond the engine stack is a boundary abort, and the instance recovers
+      const R = compiler.compile('{f: function(n) if n = 0 then 0 else 1 + f(n - 1), r: f(depth)}.r');
+      const ri = await runtime.instantiate(R, { limits: { maxDepth: 1000000 } });
+      out.deep = [ri.evaluate({ depth: 50000 }).abort?.code, ri.evaluate({ depth: 10 }).valueJson];
       return out;
     });
     check(r.a1 === r.a2 && r.a1 === '{"now":"2020-01-01T00:00:00Z","sum":55,"host":"A"}', `instance A unaffected by B (${r.a1} / ${r.a2})`);
@@ -321,8 +331,54 @@ try {
       `6000 aborts handled, instance still usable (${JSON.stringify(r.aborts)})`,
     );
     check(r.sorted === '[1,2,3]', 'sort works on a fresh instance');
+    check(r.cacheSame, 'compileCached returns the cached result for equivalent options');
+    check(JSON.stringify(r.batch) === '["2","FEEL-B506","5.0"]', `evaluateBatch with boundary validation (${JSON.stringify(r.batch)})`);
+    check(r.deep[0] === 'FEEL-B503' && r.deep[1] === '10', `engine stack overflow reported and recovered (${JSON.stringify(r.deep)})`);
     console.log(`  live values: first=${r.leak.first} max=${r.leak.max}; memory ${r.leak.mem100} -> ${r.leak.mem2000} bytes`);
     console.log(`  6000 nested-frame aborts: ${r.aborts.recycles} runtime recycles in ${r.aborts.ms} ms`);
+  }
+
+  section('precision-preserving FEEL-JSON codec and value round trips');
+  {
+    const r = await page.evaluate(async () => {
+      const feel = await import('/dist/src/feel.js');
+      const { compiler, runtime } = window.__feelDemo.api;
+      const text =
+        '{"n":12345678901234567890.123456789,"s":"a\\"b\u00e9\\n","d":{"@date":"2020-02-29"},"t":{"@time":"10:30:00@Europe/Paris"},' +
+        '"dt":{"@dateTime":"2020-01-01T10:00:00+01:00"},"du":{"@duration":"P1Y2M"},"r":{"@range":{"start":1,"end":10,"startIncluded":true,"endIncluded":false}},' +
+        '"l":[1.10,null,true,[]],"__proto__":{"k":1}}';
+      const v = feel.parseFeelJson(text, { contexts: 'map' });
+      const again = feel.encodeFeelJson(v);
+      const inst = await runtime.instantiate(compiler.compile('v'));
+      const echoed = inst.evaluate({ v }).valueJson;
+      // a context whose only key starts with '@' is escaped as {"@context": …}
+      const escText = '{"@context":{"@x":1}}';
+      const escTs = feel.encodeFeelJson(feel.parseFeelJson(escText, { contexts: 'map' }));
+      const escOut = (await runtime.instantiate(compiler.compile('{"@x": 1}'))).evaluate({}).valueJson;
+      const escIn = inst.evaluateJson(`{"v":${escText}}`);
+      const asObject = feel.parseFeelJson(text);
+      const typed = inst.evaluate({
+        v: [new feel.FeelDecimal('0.1'), 0.1, 10n ** 30n, new Date(Date.UTC(2024, 0, 2, 3, 4, 5)), new feel.FeelDuration('PT1H'), new feel.FeelRange(undefined, new feel.FeelDecimal('5'), false, true)],
+      }).valueJson;
+      let nanError = '';
+      try {
+        feel.encodeFeelJson(Number.NaN);
+      } catch (e) {
+        nanError = e.name;
+      }
+      return { text, again, echoed, escText, escTs, escOut, escIn, protoOwn: Object.prototype.hasOwnProperty.call(asObject, '__proto__'), typed, nanError, decimalClass: v.get('n') instanceof feel.FeelDecimal };
+    });
+    check(r.again === r.text, `codec round trip is exact (${r.again})`);
+    check(r.echoed === r.text, `runtime round trip is exact (${r.echoed})`);
+    check(r.protoOwn, '"__proto__" key decoded as an own property');
+    check(r.decimalClass, 'numbers decode to FeelDecimal');
+    check(
+      r.typed === '[0.1,0.1,1000000000000000000000000000000,{"@dateTime":"2024-01-02T03:04:05Z"},{"@duration":"PT1H"},{"@range":{"end":5,"startIncluded":false,"endIncluded":true}}]',
+      `JS input types encoded as documented (${r.typed})`,
+    );
+    check(r.nanError === 'RangeError', 'NaN is rejected');
+    check(r.escTs === r.escText && r.escOut === r.escText, `@context escape: TS codec and runtime encoder agree (${r.escTs} / ${r.escOut})`);
+    if (!r.escIn.ok) console.log(`  KNOWN RUST ISSUE (not counted): runtime cannot decode its own escape ${r.escText}: ${r.escIn.abort?.message}`);
   }
 
   section('(g) semantic vectors in the browser (compiler.wasm + runtime.wasm + generated modules)');

@@ -19,7 +19,11 @@ use std::io::Read;
 use std::process::ExitCode;
 
 #[derive(Parser)]
-#[command(name = "feel", version, about = "FEEL (DMN 1.5) to WebAssembly compiler")]
+#[command(
+    name = "feel",
+    version,
+    about = "FEEL (DMN 1.5) to WebAssembly compiler"
+)]
 struct Cli {
     #[command(subcommand)]
     cmd: Cmd,
@@ -113,7 +117,9 @@ fn source(s: &Src) -> Result<String, String> {
     match s.file.as_deref() {
         Some("-") | None => {
             let mut b = String::new();
-            std::io::stdin().read_to_string(&mut b).map_err(|e| e.to_string())?;
+            std::io::stdin()
+                .read_to_string(&mut b)
+                .map_err(|e| e.to_string())?;
             Ok(b)
         }
         Some(f) => std::fs::read_to_string(f).map_err(|e| format!("{f}: {e}")),
@@ -122,14 +128,20 @@ fn source(s: &Src) -> Result<String, String> {
 
 pub fn parse_schema(text: &str) -> Result<Schema, String> {
     // accept `inputs` as an array of {name,type} or an object name → type
-    let mut v: serde_json::Value = serde_json::from_str(text).map_err(|e| format!("schema: {e}"))?;
+    let mut v: serde_json::Value =
+        serde_json::from_str(text).map_err(|e| format!("schema: {e}"))?;
     if let Some(obj) = v.get_mut("inputs").and_then(|x| x.as_object().cloned()) {
-        let arr: Vec<serde_json::Value> =
-            obj.into_iter().map(|(k, t)| serde_json::json!({"name": k, "type": t})).collect();
+        let arr: Vec<serde_json::Value> = obj
+            .into_iter()
+            .map(|(k, t)| serde_json::json!({"name": k, "type": t}))
+            .collect();
         v["inputs"] = serde_json::Value::Array(arr);
     }
     if let Some(obj) = v.get_mut("types").and_then(|x| x.as_object().cloned()) {
-        let arr: Vec<serde_json::Value> = obj.into_iter().map(|(k, t)| serde_json::json!([k, t])).collect();
+        let arr: Vec<serde_json::Value> = obj
+            .into_iter()
+            .map(|(k, t)| serde_json::json!([k, t]))
+            .collect();
         v["types"] = serde_json::Value::Array(arr);
     }
     serde_json::from_value(v).map_err(|e| format!("schema: {e}"))
@@ -158,11 +170,18 @@ fn options(s: &Src) -> Result<CompileOptions, String> {
 fn print_diags(src: &str, diags: &[feel_compiler::diag::Diagnostic]) {
     for d in diags {
         eprintln!("{d}");
-        let line = src.lines().nth(d.line.saturating_sub(1) as usize).unwrap_or("");
+        let line = src
+            .lines()
+            .nth(d.line.saturating_sub(1) as usize)
+            .unwrap_or("");
         if !line.is_empty() {
             eprintln!("    {line}");
             let width = (d.span.end.saturating_sub(d.span.start)).max(1);
-            eprintln!("    {}{}", " ".repeat(d.column.saturating_sub(1) as usize), "^".repeat(width.min(line.len().max(1))));
+            eprintln!(
+                "    {}{}",
+                " ".repeat(d.column.saturating_sub(1) as usize),
+                "^".repeat(width.min(line.len().max(1)))
+            );
         }
     }
 }
@@ -197,7 +216,11 @@ fn run() -> Result<ExitCode, String> {
             let c = feel_compiler::check(&src, &o);
             print_diags(&src, &c.diagnostics);
             println!("{}", serde_json::to_string_pretty(&c).unwrap());
-            Ok(if c.ok { ExitCode::SUCCESS } else { ExitCode::from(1) })
+            Ok(if c.ok {
+                ExitCode::SUCCESS
+            } else {
+                ExitCode::from(1)
+            })
         }
         Cmd::Deps(s) => {
             let src = source(&s)?;
@@ -217,22 +240,36 @@ fn run() -> Result<ExitCode, String> {
             let o = options(&s)?;
             let c = feel_compiler::compile(&src, &o);
             print_diags(&src, &c.diagnostics);
-            let Some(wasm) = &c.wasm else { return Ok(ExitCode::from(1)) };
+            let Some(wasm) = &c.wasm else {
+                return Ok(ExitCode::from(1));
+            };
             std::fs::write(&out, wasm).map_err(|e| e.to_string())?;
             let meta_path = format!("{out}.meta.json");
-            std::fs::write(&meta_path, serde_json::to_string_pretty(&c.metadata).unwrap()).map_err(|e| e.to_string())?;
+            std::fs::write(
+                &meta_path,
+                serde_json::to_string_pretty(&c.metadata).unwrap(),
+            )
+            .map_err(|e| e.to_string())?;
             eprintln!("wrote {out} ({} bytes) and {meta_path}", wasm.len());
             if dump {
                 println!("{}", dump_module(wasm));
             }
             Ok(ExitCode::SUCCESS)
         }
-        Cmd::Run { src: s, inputs, candidate, clock: ck, max_steps } => {
+        Cmd::Run {
+            src: s,
+            inputs,
+            candidate,
+            clock: ck,
+            max_steps,
+        } => {
             let src = source(&s)?;
             let o = options(&s)?;
             let c = feel_compiler::compile(&src, &o);
             print_diags(&src, &c.diagnostics);
-            let Some(wasm) = &c.wasm else { return Ok(ExitCode::from(1)) };
+            let Some(wasm) = &c.wasm else {
+                return Ok(ExitCode::from(1));
+            };
             let engine = Engine::new();
             let p = engine.load(wasm).map_err(|e| e.to_string())?;
             let mut io = InstanceOptions::default();
@@ -249,22 +286,39 @@ fn run() -> Result<ExitCode, String> {
             };
             report(&src, &r)
         }
-        Cmd::Exec { module, inputs, batch, candidate, clock: ck } => {
+        Cmd::Exec {
+            module,
+            inputs,
+            batch,
+            candidate,
+            clock: ck,
+        } => {
             let bytes = std::fs::read(&module).map_err(|e| format!("{module}: {e}"))?;
             let engine = Engine::new();
             let p = engine.load(&bytes).map_err(|e| e.to_string())?;
-            let io = InstanceOptions { host: feel_host_bindings(), ..Default::default() };
+            let io = InstanceOptions {
+                host: feel_host_bindings(),
+                ..Default::default()
+            };
             let mut inst = p.instantiate(&engine, io).map_err(|e| e.to_string())?;
             let eo = EvalOptions { clock: clock(&ck) };
             if let Some(b) = batch {
                 let text = std::fs::read_to_string(&b).map_err(|e| e.to_string())?;
-                let lines: Vec<String> = text.lines().filter(|l| !l.trim().is_empty()).map(|l| l.to_string()).collect();
+                let lines: Vec<String> = text
+                    .lines()
+                    .filter(|l| !l.trim().is_empty())
+                    .map(|l| l.to_string())
+                    .collect();
                 let mut ok = true;
                 for r in inst.evaluate_batch(&lines, &eo) {
                     println!("{}", serde_json::to_string(&r).unwrap());
                     ok &= r.abort.is_none();
                 }
-                return Ok(if ok { ExitCode::SUCCESS } else { ExitCode::from(2) });
+                return Ok(if ok {
+                    ExitCode::SUCCESS
+                } else {
+                    ExitCode::from(2)
+                });
             }
             let inputs = read_arg(&inputs)?;
             let r = match &candidate {

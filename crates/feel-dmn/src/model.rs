@@ -87,17 +87,44 @@ pub struct FunctionDefinition {
 
 #[derive(Clone, Debug)]
 pub enum Boxed {
-    Literal { text: String, type_ref: Option<String> },
-    Context { entries: Vec<(Option<String>, Option<String>, Boxed)> },
+    Literal {
+        text: String,
+        type_ref: Option<String>,
+    },
+    Context {
+        entries: Vec<(Option<String>, Option<String>, Boxed)>,
+    },
     DecisionTable(Box<DecisionTable>),
-    Invocation { callee: Box<Boxed>, bindings: Vec<(String, Option<Boxed>)> },
-    Relation { columns: Vec<String>, rows: Vec<Vec<Boxed>> },
+    Invocation {
+        callee: Box<Boxed>,
+        bindings: Vec<(String, Option<Boxed>)>,
+    },
+    Relation {
+        columns: Vec<String>,
+        rows: Vec<Vec<Boxed>>,
+    },
     List(Vec<Boxed>),
     Function(FunctionDefinition),
-    Conditional { cond: Box<Boxed>, then: Box<Boxed>, els: Box<Boxed> },
-    Filter { input: Box<Boxed>, matcher: Box<Boxed> },
-    For { var: String, input: Box<Boxed>, ret: Box<Boxed> },
-    Quantified { every: bool, var: String, input: Box<Boxed>, satisfies: Box<Boxed> },
+    Conditional {
+        cond: Box<Boxed>,
+        then: Box<Boxed>,
+        els: Box<Boxed>,
+    },
+    Filter {
+        input: Box<Boxed>,
+        matcher: Box<Boxed>,
+    },
+    For {
+        var: String,
+        input: Box<Boxed>,
+        ret: Box<Boxed>,
+    },
+    Quantified {
+        every: bool,
+        var: String,
+        input: Box<Boxed>,
+        satisfies: Box<Boxed>,
+    },
     /// unsupported element (name)
     Unsupported(String),
 }
@@ -137,7 +164,8 @@ fn local<'a>(n: &Node<'a, 'a>) -> &'a str {
 }
 
 fn children<'a, 'i>(n: &Node<'a, 'i>, name: &'static str) -> impl Iterator<Item = Node<'a, 'i>> {
-    n.children().filter(move |c| c.is_element() && c.tag_name().name() == name)
+    n.children()
+        .filter(move |c| c.is_element() && c.tag_name().name() == name)
 }
 
 fn child<'a, 'i>(n: &Node<'a, 'i>, name: &'static str) -> Option<Node<'a, 'i>> {
@@ -161,11 +189,16 @@ fn href_id(n: &Node) -> String {
 
 /// Element id, falling back to the name for elements without an id.
 fn id_of(n: &Node) -> String {
-    n.attribute("id").or_else(|| n.attribute("name")).unwrap_or("").to_string()
+    n.attribute("id")
+        .or_else(|| n.attribute("name"))
+        .unwrap_or("")
+        .to_string()
 }
 
 fn var_type(n: &Node) -> Option<String> {
-    child(n, "variable").and_then(|v| v.attribute("typeRef")).map(|s| s.to_string())
+    child(n, "variable")
+        .and_then(|v| v.attribute("typeRef"))
+        .map(|s| s.to_string())
 }
 
 pub fn parse_definitions(xml: &str) -> Result<Definitions, String> {
@@ -212,7 +245,10 @@ pub fn parse_definitions(xml: &str) -> Result<Definitions, String> {
                         dec.required_knowledge.push(href_id(&x));
                     }
                 }
-                dec.expr = c.children().filter(|x| x.is_element()).find_map(|x| boxed(&x));
+                dec.expr = c
+                    .children()
+                    .filter(|x| x.is_element())
+                    .find_map(|x| boxed(&x));
                 d.decisions.push(dec);
             }
             "businessKnowledgeModel" => {
@@ -233,7 +269,9 @@ pub fn parse_definitions(xml: &str) -> Result<Definitions, String> {
                 d.bkms.push(b);
             }
             "decisionService" => {
-                let refs = |name: &'static str| children(&c, name).map(|x| href_id(&x)).collect::<Vec<_>>();
+                let refs = |name: &'static str| {
+                    children(&c, name).map(|x| href_id(&x)).collect::<Vec<_>>()
+                };
                 d.services.push(DecisionService {
                     id: id_of(&c),
                     name: c.attribute("name").unwrap_or("").to_string(),
@@ -251,14 +289,23 @@ pub fn parse_definitions(xml: &str) -> Result<Definitions, String> {
 }
 
 fn item_def(n: &Node) -> ItemDef {
-    let tr = child(n, "typeRef").and_then(|t| t.text()).map(|s| s.trim().to_string());
+    let tr = child(n, "typeRef")
+        .and_then(|t| t.text())
+        .map(|s| s.trim().to_string());
     let allowed = child(n, "allowedValues")
         .or_else(|| child(n, "typeConstraint"))
         .map(|a| text_of(&a))
         .filter(|s| !s.trim().is_empty());
     let fi = child(n, "functionItem").map(|f| FunctionItem {
         output_type_ref: f.attribute("outputTypeRef").map(|s| s.to_string()),
-        params: children(&f, "parameters").map(|p| (p.attribute("name").unwrap_or("").to_string(), p.attribute("typeRef").map(|s| s.to_string()))).collect(),
+        params: children(&f, "parameters")
+            .map(|p| {
+                (
+                    p.attribute("name").unwrap_or("").to_string(),
+                    p.attribute("typeRef").map(|s| s.to_string()),
+                )
+            })
+            .collect(),
     });
     ItemDef {
         name: n.attribute("name").unwrap_or("").to_string(),
@@ -274,7 +321,12 @@ fn function_def(n: &Node) -> FunctionDefinition {
     FunctionDefinition {
         kind: n.attribute("kind").unwrap_or("FEEL").to_string(),
         params: children(n, "formalParameter")
-            .map(|p| (p.attribute("name").unwrap_or("").to_string(), p.attribute("typeRef").map(|s| s.to_string())))
+            .map(|p| {
+                (
+                    p.attribute("name").unwrap_or("").to_string(),
+                    p.attribute("typeRef").map(|s| s.to_string()),
+                )
+            })
             .collect(),
         body: n
             .children()
@@ -285,20 +337,29 @@ fn function_def(n: &Node) -> FunctionDefinition {
 }
 
 fn expr_child(n: &Node) -> Option<Boxed> {
-    n.children().filter(|x| x.is_element()).find_map(|x| boxed(&x))
+    n.children()
+        .filter(|x| x.is_element())
+        .find_map(|x| boxed(&x))
 }
 
 fn boxed(n: &Node) -> Option<Boxed> {
     let b = match local(n) {
-        "literalExpression" => Boxed::Literal { text: text_of(n), type_ref: n.attribute("typeRef").map(|s| s.to_string()) },
+        "literalExpression" => Boxed::Literal {
+            text: text_of(n),
+            type_ref: n.attribute("typeRef").map(|s| s.to_string()),
+        },
         "context" => Boxed::Context {
             entries: children(n, "contextEntry")
                 .map(|e| {
                     let v = child(&e, "variable");
                     (
                         v.and_then(|v| v.attribute("name")).map(|s| s.to_string()),
-                        v.and_then(|v| v.attribute("typeRef")).map(|s| s.to_string()),
-                        expr_child(&e).unwrap_or(Boxed::Literal { text: "null".into(), type_ref: None }),
+                        v.and_then(|v| v.attribute("typeRef"))
+                            .map(|s| s.to_string()),
+                        expr_child(&e).unwrap_or(Boxed::Literal {
+                            text: "null".into(),
+                            type_ref: None,
+                        }),
                     )
                 })
                 .collect(),
@@ -313,7 +374,9 @@ fn boxed(n: &Node) -> Option<Boxed> {
                 let ie = child(&i, "inputExpression");
                 dt.inputs.push(DtInput {
                     expr: ie.map(|x| text_of(&x)).unwrap_or_default(),
-                    type_ref: ie.and_then(|x| x.attribute("typeRef")).map(|s| s.to_string()),
+                    type_ref: ie
+                        .and_then(|x| x.attribute("typeRef"))
+                        .map(|s| s.to_string()),
                     input_values: child(&i, "inputValues").map(|x| text_of(&x)),
                 });
             }
@@ -334,41 +397,94 @@ fn boxed(n: &Node) -> Option<Boxed> {
             Boxed::DecisionTable(Box::new(dt))
         }
         "invocation" => {
-            let callee = n.children().filter(|x| x.is_element() && local(x) != "binding").find_map(|x| boxed(&x))?;
+            let callee = n
+                .children()
+                .filter(|x| x.is_element() && local(x) != "binding")
+                .find_map(|x| boxed(&x))?;
             Boxed::Invocation {
                 callee: Box::new(callee),
                 bindings: children(n, "binding")
                     .map(|b| {
-                        let p = child(&b, "parameter").and_then(|p| p.attribute("name")).unwrap_or("").to_string();
-                        (p, b.children().filter(|x| x.is_element() && local(x) != "parameter").find_map(|x| boxed(&x)))
+                        let p = child(&b, "parameter")
+                            .and_then(|p| p.attribute("name"))
+                            .unwrap_or("")
+                            .to_string();
+                        (
+                            p,
+                            b.children()
+                                .filter(|x| x.is_element() && local(x) != "parameter")
+                                .find_map(|x| boxed(&x)),
+                        )
                     })
                     .collect(),
             }
         }
         "relation" => Boxed::Relation {
-            columns: children(n, "column").map(|c| c.attribute("name").unwrap_or("").to_string()).collect(),
-            rows: children(n, "row").map(|r| r.children().filter(|x| x.is_element()).filter_map(|x| boxed(&x)).collect()).collect(),
+            columns: children(n, "column")
+                .map(|c| c.attribute("name").unwrap_or("").to_string())
+                .collect(),
+            rows: children(n, "row")
+                .map(|r| {
+                    r.children()
+                        .filter(|x| x.is_element())
+                        .filter_map(|x| boxed(&x))
+                        .collect()
+                })
+                .collect(),
         },
-        "list" => Boxed::List(n.children().filter(|x| x.is_element()).filter_map(|x| boxed(&x)).collect()),
+        "list" => Boxed::List(
+            n.children()
+                .filter(|x| x.is_element())
+                .filter_map(|x| boxed(&x))
+                .collect(),
+        ),
         "functionDefinition" => Boxed::Function(function_def(n)),
         "conditional" => {
-            let part = |name: &'static str| child(n, name).and_then(|x| expr_child(&x)).map(Box::new);
-            Boxed::Conditional { cond: part("if")?, then: part("then")?, els: part("else")? }
+            let part =
+                |name: &'static str| child(n, name).and_then(|x| expr_child(&x)).map(Box::new);
+            Boxed::Conditional {
+                cond: part("if")?,
+                then: part("then")?,
+                els: part("else")?,
+            }
         }
         "filter" => {
-            let part = |name: &'static str| child(n, name).and_then(|x| expr_child(&x)).map(Box::new);
-            Boxed::Filter { input: part("in")?, matcher: part("match")? }
+            let part =
+                |name: &'static str| child(n, name).and_then(|x| expr_child(&x)).map(Box::new);
+            Boxed::Filter {
+                input: part("in")?,
+                matcher: part("match")?,
+            }
         }
         "for" | "some" | "every" => {
             let var = n.attribute("iteratorVariable").unwrap_or("").to_string();
-            let part = |name: &'static str| child(n, name).and_then(|x| expr_child(&x)).map(Box::new);
+            let part =
+                |name: &'static str| child(n, name).and_then(|x| expr_child(&x)).map(Box::new);
             match local(n) {
-                "for" => Boxed::For { var, input: part("in")?, ret: part("return")? },
-                q => Boxed::Quantified { every: q == "every", var, input: part("in")?, satisfies: part("satisfies")? },
+                "for" => Boxed::For {
+                    var,
+                    input: part("in")?,
+                    ret: part("return")?,
+                },
+                q => Boxed::Quantified {
+                    every: q == "every",
+                    var,
+                    input: part("in")?,
+                    satisfies: part("satisfies")?,
+                },
             }
         }
-        "variable" | "informationRequirement" | "knowledgeRequirement" | "authorityRequirement" | "description" | "extensionElements"
-        | "question" | "allowedAnswers" | "formalParameter" | "encapsulatedLogic" | "text" => return None,
+        "variable"
+        | "informationRequirement"
+        | "knowledgeRequirement"
+        | "authorityRequirement"
+        | "description"
+        | "extensionElements"
+        | "question"
+        | "allowedAnswers"
+        | "formalParameter"
+        | "encapsulatedLogic"
+        | "text" => return None,
         other => Boxed::Unsupported(other.to_string()),
     };
     Some(b)

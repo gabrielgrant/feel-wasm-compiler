@@ -34,7 +34,12 @@ enum Folded {
 
 impl<'a> Folder<'a> {
     pub fn new(consts: &'a mut ConstPool) -> Self {
-        Folder { consts, rt: Runtime::new(), folded: 0, fused: 0 }
+        Folder {
+            consts,
+            rt: Runtime::new(),
+            folded: 0,
+            fused: 0,
+        }
     }
 
     fn load(&mut self, ir: &Ir) -> Option<H> {
@@ -55,7 +60,13 @@ impl<'a> Folder<'a> {
             Value::Null => Some(Folded::Null),
             Value::Bool(true) => Some(Folded::True),
             Value::Bool(false) => Some(Folded::False),
-            Value::Num(_) | Value::Str(_) | Value::Date(_) | Value::Time(_) | Value::DateTime(_) | Value::Dtd(_) | Value::Ymd(_) => {
+            Value::Num(_)
+            | Value::Str(_)
+            | Value::Date(_)
+            | Value::Time(_)
+            | Value::DateTime(_)
+            | Value::Dtd(_)
+            | Value::Ymd(_) => {
                 let j = json::encode(&self.rt, h);
                 let j = match self.rt.get(h) {
                     // keep the scale of numbers exactly (plain notation loses negative scales)
@@ -197,8 +208,17 @@ impl<'a> Folder<'a> {
             }
             Ir::Path(base, key, site) => {
                 if let Ir::Filter { .. } = **base {
-                    if let Ir::Filter { list, item, pred, .. } = (**base).clone() {
-                        *ir = Ir::FilterPath { list, item, pred, key: *key, site: *site };
+                    if let Ir::Filter {
+                        list, item, pred, ..
+                    } = (**base).clone()
+                    {
+                        *ir = Ir::FilterPath {
+                            list,
+                            item,
+                            pred,
+                            key: *key,
+                            site: *site,
+                        };
                         self.fused += 1;
                     }
                 }
@@ -209,7 +229,15 @@ impl<'a> Folder<'a> {
 
     fn children(&mut self, ir: &mut Ir) {
         match ir {
-            Ir::Null | Ir::True | Ir::False | Ir::Const(_) | Ir::Local(_) | Ir::Slot(_) | Ir::BuiltinFn(_) | Ir::HostFn { .. } | Ir::Partial(_) => {}
+            Ir::Null
+            | Ir::True
+            | Ir::False
+            | Ir::Const(_)
+            | Ir::Local(_)
+            | Ir::Slot(_)
+            | Ir::BuiltinFn(_)
+            | Ir::HostFn { .. }
+            | Ir::Partial(_) => {}
             Ir::ItemField { fallback, .. } => self.run(fallback),
             Ir::Path(a, _, _)
             | Ir::Neg(a, _)
@@ -217,11 +245,13 @@ impl<'a> Folder<'a> {
             | Ir::Not(a, _)
             | Ir::InstanceOf(a, _)
             | Ir::Coerce(a, _, _)
-            | Ir::PointRange { value: a, .. } => {
-                self.run(a)
-            }
+            | Ir::PointRange { value: a, .. } => self.run(a),
             Ir::ExternalFn { mapping, .. } => self.run(mapping),
-            Ir::Bin(_, a, b, _) | Ir::Cmp(_, a, b, _) | Ir::And(a, b) | Ir::Or(a, b) | Ir::Index(a, b, _) => {
+            Ir::Bin(_, a, b, _)
+            | Ir::Cmp(_, a, b, _)
+            | Ir::And(a, b)
+            | Ir::Or(a, b)
+            | Ir::Index(a, b, _) => {
                 self.run(a);
                 self.run(b);
             }

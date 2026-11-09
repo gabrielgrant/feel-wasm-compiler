@@ -73,7 +73,8 @@ fn dur_nanos_dec(d: &tm::DayTimeDuration) -> Option<Decimal> {
 }
 
 fn dec_to_nanos(d: &Decimal) -> Option<i128> {
-    d.set_scale(0, RoundingMode::HalfEven).and_then(|x| x.to_i128())
+    d.set_scale(0, RoundingMode::HalfEven)
+        .and_then(|x| x.to_i128())
 }
 
 /// Implicit conversion date → date and time (10.3.2.3.5): UTC midnight.
@@ -84,15 +85,27 @@ pub fn date_to_datetime(d: &tm::Date) -> tm::DateTime {
 fn op_err(rt: &mut Runtime, site: u32, op: &str, a: H, b: H) -> H {
     let (ka, kb) = (rt.kind_name(a), rt.kind_name(b));
     if ka == "null" || kb == "null" {
-        rt.diag("FEEL-E301", site, format!("'{op}' with a null operand ({ka}, {kb}) yields null"));
+        rt.diag(
+            "FEEL-E301",
+            site,
+            format!("'{op}' with a null operand ({ka}, {kb}) yields null"),
+        );
     } else {
-        rt.diag("FEEL-E302", site, format!("'{op}' is not defined for {ka} and {kb}"));
+        rt.diag(
+            "FEEL-E302",
+            site,
+            format!("'{op}' is not defined for {ka} and {kb}"),
+        );
     }
     NULL
 }
 
 fn overflow(rt: &mut Runtime, site: u32, what: &str) -> H {
-    rt.diag("FEEL-E303", site, format!("{what}: result outside the FEEL number range"));
+    rt.diag(
+        "FEEL-E303",
+        site,
+        format!("{what}: result outside the FEEL number range"),
+    );
     NULL
 }
 
@@ -111,8 +124,14 @@ pub fn add(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
             s.push_str(y);
             return rt.string(s);
         }
-        (Ymd(x), Ymd(y)) => x.months.checked_add(y.months).map(|m| Ymd(tm::YearMonthDuration { months: m })),
-        (Dtd(x), Dtd(y)) => x.nanos.checked_add(y.nanos).map(|n| Dtd(tm::DayTimeDuration { nanos: n })),
+        (Ymd(x), Ymd(y)) => x
+            .months
+            .checked_add(y.months)
+            .map(|m| Ymd(tm::YearMonthDuration { months: m })),
+        (Dtd(x), Dtd(y)) => x
+            .nanos
+            .checked_add(y.nanos)
+            .map(|n| Dtd(tm::DayTimeDuration { nanos: n })),
         (DateTime(x), Ymd(y)) | (Ymd(y), DateTime(x)) => tm::datetime_add_ymd(x, y).map(DateTime),
         (DateTime(x), Dtd(y)) | (Dtd(y), DateTime(x)) => tm::datetime_add_dtd(x, y).map(DateTime),
         (Time(x), Dtd(y)) | (Dtd(y), Time(x)) => tm::time_add_dtd(x, y).map(Time),
@@ -136,35 +155,60 @@ pub fn sub(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
             Some(d) => return rt.num(d),
             None => return overflow(rt, site, "subtraction"),
         },
-        (Ymd(x), Ymd(y)) => x.months.checked_sub(y.months).map(|m| Ymd(tm::YearMonthDuration { months: m })),
-        (Dtd(x), Dtd(y)) => x.nanos.checked_sub(y.nanos).map(|n| Dtd(tm::DayTimeDuration { nanos: n })),
+        (Ymd(x), Ymd(y)) => x
+            .months
+            .checked_sub(y.months)
+            .map(|m| Ymd(tm::YearMonthDuration { months: m })),
+        (Dtd(x), Dtd(y)) => x
+            .nanos
+            .checked_sub(y.nanos)
+            .map(|n| Dtd(tm::DayTimeDuration { nanos: n })),
         (DateTime(x), DateTime(y)) => tm::datetime_sub(x, y).map(Dtd),
         (Date(x), Date(y)) => Some(Dtd(tm::date_sub(x, y))),
         (Date(x), DateTime(y)) => tm::date_sub_datetime(x, y).map(Dtd),
         (DateTime(x), Date(y)) => tm::datetime_sub_date(x, y).map(Dtd),
         (Time(x), Time(y)) => tm::time_sub(x, y).map(Dtd),
-        (DateTime(x), Ymd(y)) => tm::datetime_add_ymd(x, &tm::YearMonthDuration { months: -y.months }).map(DateTime),
-        (DateTime(x), Dtd(y)) => tm::datetime_add_dtd(x, &tm::DayTimeDuration { nanos: -y.nanos }).map(DateTime),
-        (Time(x), Dtd(y)) => tm::time_add_dtd(x, &tm::DayTimeDuration { nanos: -y.nanos }).map(Time),
-        (Date(x), Ymd(y)) => tm::date_add_ymd(x, &tm::YearMonthDuration { months: -y.months }).map(Date),
-        (Date(x), Dtd(y)) => tm::date_add_dtd(x, &tm::DayTimeDuration { nanos: -y.nanos }).map(Date),
+        (DateTime(x), Ymd(y)) => {
+            tm::datetime_add_ymd(x, &tm::YearMonthDuration { months: -y.months }).map(DateTime)
+        }
+        (DateTime(x), Dtd(y)) => {
+            tm::datetime_add_dtd(x, &tm::DayTimeDuration { nanos: -y.nanos }).map(DateTime)
+        }
+        (Time(x), Dtd(y)) => {
+            tm::time_add_dtd(x, &tm::DayTimeDuration { nanos: -y.nanos }).map(Time)
+        }
+        (Date(x), Ymd(y)) => {
+            tm::date_add_ymd(x, &tm::YearMonthDuration { months: -y.months }).map(Date)
+        }
+        (Date(x), Dtd(y)) => {
+            tm::date_add_dtd(x, &tm::DayTimeDuration { nanos: -y.nanos }).map(Date)
+        }
         _ => return op_err(rt, site, "-", a, b),
     };
     match r {
         Some(v) => rt.alloc(v),
         None => {
-            rt.diag("FEEL-E304", site, "temporal subtraction undefined or out of range");
+            rt.diag(
+                "FEEL-E304",
+                site,
+                "temporal subtraction undefined or out of range",
+            );
             NULL
         }
     }
 }
 
 fn ymd_scale(m: i64, d: &Decimal) -> Option<i64> {
-    Decimal::from_i64(m).mul(d).map(|x| x.trunc()).and_then(|x| x.to_i64())
+    Decimal::from_i64(m)
+        .mul(d)
+        .map(|x| x.trunc())
+        .and_then(|x| x.to_i64())
 }
 
 fn dtd_scale(n: i128, d: &Decimal) -> Option<i128> {
-    Decimal::from_i128(n).and_then(|x| x.mul(d)).and_then(|x| dec_to_nanos(&x))
+    Decimal::from_i128(n)
+        .and_then(|x| x.mul(d))
+        .and_then(|x| dec_to_nanos(&x))
 }
 
 pub fn mul(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
@@ -174,8 +218,12 @@ pub fn mul(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
             Some(d) => return rt.num(d),
             None => return overflow(rt, site, "multiplication"),
         },
-        (Ymd(x), Num(y)) | (Num(y), Ymd(x)) => ymd_scale(x.months, y).map(|m| Ymd(tm::YearMonthDuration { months: m })),
-        (Dtd(x), Num(y)) | (Num(y), Dtd(x)) => dtd_scale(x.nanos, y).map(|n| Dtd(tm::DayTimeDuration { nanos: n })),
+        (Ymd(x), Num(y)) | (Num(y), Ymd(x)) => {
+            ymd_scale(x.months, y).map(|m| Ymd(tm::YearMonthDuration { months: m }))
+        }
+        (Dtd(x), Num(y)) | (Num(y), Dtd(x)) => {
+            dtd_scale(x.nanos, y).map(|n| Dtd(tm::DayTimeDuration { nanos: n }))
+        }
         _ => return op_err(rt, site, "*", a, b),
     };
     match r {
@@ -224,7 +272,10 @@ pub fn div(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
                 rt.diag("FEEL-E305", site, "division by zero");
                 return NULL;
             }
-            dur_nanos_dec(x).and_then(|n| n.div(y)).and_then(|q| dec_to_nanos(&q)).map(|n| Dtd(tm::DayTimeDuration { nanos: n }))
+            dur_nanos_dec(x)
+                .and_then(|n| n.div(y))
+                .and_then(|q| dec_to_nanos(&q))
+                .map(|n| Dtd(tm::DayTimeDuration { nanos: n }))
         }
         (Dtd(x), Dtd(y)) => {
             if y.nanos == 0 {
@@ -250,14 +301,22 @@ pub fn pow(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
         (Value::Num(x), Value::Num(y)) => {
             let lim = Decimal::from_i64(999_999_999);
             if y.abs() > lim {
-                rt.diag("FEEL-E306", site, "exponent outside [-999,999,999..999,999,999]");
+                rt.diag(
+                    "FEEL-E306",
+                    site,
+                    "exponent outside [-999,999,999..999,999,999]",
+                );
                 return NULL;
             }
             let (x, y) = (*x, *y);
             match x.pow(&y) {
                 Some(d) => rt.num(d),
                 None => {
-                    rt.diag("FEEL-E303", site, "exponentiation result is not a FEEL number");
+                    rt.diag(
+                        "FEEL-E303",
+                        site,
+                        "exponentiation result is not a FEEL number",
+                    );
                     NULL
                 }
             }
@@ -286,7 +345,11 @@ pub fn neg(rt: &mut Runtime, a: H, site: u32) -> H {
         }
         _ => {
             let k = rt.kind_name(a);
-            rt.diag("FEEL-E302", site, format!("negation is not defined for {k}"));
+            rt.diag(
+                "FEEL-E302",
+                site,
+                format!("negation is not defined for {k}"),
+            );
             NULL
         }
     }
@@ -343,7 +406,11 @@ pub fn eq(rt: &Runtime, a: H, b: H) -> Option<bool> {
             res
         }
         (Range(x), Range(y)) => {
-            if x.start_incl != y.start_incl || x.end_incl != y.end_incl || x.ne != y.ne || x.eq != y.eq {
+            if x.start_incl != y.start_incl
+                || x.end_incl != y.end_incl
+                || x.ne != y.ne
+                || x.eq != y.eq
+            {
                 return Some(false);
             }
             let ep = |p: Option<H>, q: Option<H>| match (p, q) {
@@ -359,9 +426,14 @@ pub fn eq(rt: &Runtime, a: H, b: H) -> Option<bool> {
         }
         (Func(x), Func(y)) => Some(match (x, y) {
             (crate::value::Func::Builtin(p), crate::value::Func::Builtin(q)) => p == q,
-            (crate::value::Func::User { index: i, env: e, .. }, crate::value::Func::User { index: j, env: f, .. }) => {
-                i == j && (e == f || eq(rt, *e, *f) == Some(true))
-            }
+            (
+                crate::value::Func::User {
+                    index: i, env: e, ..
+                },
+                crate::value::Func::User {
+                    index: j, env: f, ..
+                },
+            ) => i == j && (e == f || eq(rt, *e, *f) == Some(true)),
             _ => a == b,
         }),
         _ => None,
@@ -388,9 +460,17 @@ pub fn cmp(rt: &Runtime, a: H, b: H) -> Option<Ordering> {
 pub fn cmp_diag(rt: &mut Runtime, a: H, b: H, op: &str, site: u32) {
     let (ka, kb) = (rt.kind_name(a), rt.kind_name(b));
     if ka == "null" || kb == "null" {
-        rt.diag("FEEL-E301", site, format!("'{op}' with a null operand yields null"));
+        rt.diag(
+            "FEEL-E301",
+            site,
+            format!("'{op}' with a null operand yields null"),
+        );
     } else {
-        rt.diag("FEEL-E307", site, format!("cannot compare {ka} with {kb} using '{op}'"));
+        rt.diag(
+            "FEEL-E307",
+            site,
+            format!("cannot compare {ka} with {kb} using '{op}'"),
+        );
     }
 }
 
@@ -450,7 +530,11 @@ pub fn eq_tri(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
     let r = eq(rt, a, b);
     if r.is_none() {
         let (ka, kb) = (rt.kind_name(a), rt.kind_name(b));
-        rt.diag("FEEL-E307", site, format!("cannot compare {ka} with {kb} using '='"));
+        rt.diag(
+            "FEEL-E307",
+            site,
+            format!("cannot compare {ka} with {kb} using '='"),
+        );
     }
     tri_of(r)
 }
@@ -465,14 +549,22 @@ pub fn range_contains(rt: &mut Runtime, r: &Range, x: H, site: u32) -> i32 {
     }
     let mut res = T_TRUE;
     if let Some(s) = r.start {
-        let t = if r.start_incl { ge(rt, x, s, site) } else { gt(rt, x, s, site) };
+        let t = if r.start_incl {
+            ge(rt, x, s, site)
+        } else {
+            gt(rt, x, s, site)
+        };
         res = tri_and(res, t);
         if res == T_FALSE {
             return res;
         }
     }
     if let Some(e) = r.end {
-        let t = if r.end_incl { le(rt, x, e, site) } else { lt(rt, x, e, site) };
+        let t = if r.end_incl {
+            le(rt, x, e, site)
+        } else {
+            lt(rt, x, e, site)
+        };
         res = tri_and(res, t);
     }
     res
@@ -549,16 +641,28 @@ pub fn make_range(rt: &mut Runtime, start: H, end: H, flags: i32, site: u32) -> 
     if let (Some(s), Some(e)) = (s, e) {
         let (ks, ke) = (rt.kind_name(s), rt.kind_name(e));
         if ks != ke {
-            rt.diag("FEEL-E308", site, format!("range endpoints must have the same type ({ks}, {ke})"));
+            rt.diag(
+                "FEEL-E308",
+                site,
+                format!("range endpoints must have the same type ({ks}, {ke})"),
+            );
             return NULL;
         }
         match cmp(rt, s, e) {
             None => {
-                rt.diag("FEEL-E308", site, format!("invalid range endpoints ({ks}, {ke})"));
+                rt.diag(
+                    "FEEL-E308",
+                    site,
+                    format!("invalid range endpoints ({ks}, {ke})"),
+                );
                 return NULL;
             }
             Some(Ordering::Greater) => {
-                rt.diag("FEEL-E308", site, "range start is greater than range end".to_string());
+                rt.diag(
+                    "FEEL-E308",
+                    site,
+                    "range start is greater than range end".to_string(),
+                );
                 return NULL;
             }
             _ => {}
@@ -568,7 +672,13 @@ pub fn make_range(rt: &mut Runtime, start: H, end: H, flags: i32, site: u32) -> 
         let k = rt.kind_name(p);
         if !matches!(
             k,
-            "number" | "string" | "date" | "time" | "date and time" | "days and time duration" | "years and months duration"
+            "number"
+                | "string"
+                | "date"
+                | "time"
+                | "date and time"
+                | "days and time duration"
+                | "years and months duration"
         ) {
             rt.diag("FEEL-E308", site, format!("invalid range endpoint ({k})"));
             return NULL;
@@ -591,10 +701,17 @@ fn dec_secs(nanos: i128) -> Option<Decimal> {
 }
 
 fn dtd_value(rt: &mut Runtime, secs: i64) -> H {
-    rt.alloc(Value::Dtd(tm::DayTimeDuration { nanos: secs as i128 * 1_000_000_000 }))
+    rt.alloc(Value::Dtd(tm::DayTimeDuration {
+        nanos: secs as i128 * 1_000_000_000,
+    }))
 }
 
-fn zone_props(rt: &mut Runtime, zone: &Option<tm::Zone>, offset: Option<i32>, key: &str) -> Option<H> {
+fn zone_props(
+    rt: &mut Runtime,
+    zone: &Option<tm::Zone>,
+    offset: Option<i32>,
+    key: &str,
+) -> Option<H> {
     match key {
         "time offset" => Some(match offset {
             Some(o) => dtd_value(rt, o as i64),
@@ -733,7 +850,11 @@ pub fn path_str(rt: &mut Runtime, v: H, k: &Rc<str>, site: u32) -> H {
     if r == ABSENT {
         let kind = rt.kind_name(v);
         if kind == "null" {
-            rt.diag("FEEL-E310", site, format!("selecting '{k}' from null yields null"));
+            rt.diag(
+                "FEEL-E310",
+                site,
+                format!("selecting '{k}' from null yields null"),
+            );
         } else if kind == "context" {
             rt.diag("FEEL-E311", site, format!("context has no entry '{k}'"));
         } else {
@@ -779,9 +900,19 @@ pub fn index(rt: &mut Runtime, l: H, n: H, site: u32) -> H {
     match rt.get(l) {
         Value::List(items) => {
             let len = items.len() as i64;
-            let p = if i > 0 { i - 1 } else if i < 0 { len + i } else { -1 };
+            let p = if i > 0 {
+                i - 1
+            } else if i < 0 {
+                len + i
+            } else {
+                -1
+            };
             if p < 0 || p >= len {
-                rt.diag("FEEL-E314", site, format!("list index {i} out of bounds (length {len})"));
+                rt.diag(
+                    "FEEL-E314",
+                    site,
+                    format!("list index {i} out of bounds (length {len})"),
+                );
                 NULL
             } else {
                 items[p as usize]
@@ -816,7 +947,11 @@ pub fn as_iter(rt: &mut Runtime, v: H, site: u32) -> H {
                     b = step(rt, e, -1);
                 }
                 if a == NULL || b == NULL {
-                    rt.diag("FEEL-E315", site, "only ranges of integers or dates can be iterated");
+                    rt.diag(
+                        "FEEL-E315",
+                        site,
+                        "only ranges of integers or dates can be iterated",
+                    );
                     return ABSENT;
                 }
                 if cmp(rt, a, b) == Some(Ordering::Greater) {
@@ -853,12 +988,19 @@ pub fn iter_range(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
     match (rt.get(a).clone(), rt.get(b).clone()) {
         (Value::Num(x), Value::Num(y)) => {
             let (Some(x), Some(y)) = (x.to_i128(), y.to_i128()) else {
-                rt.diag("FEEL-E315", site, "numeric iteration bounds must be integers");
+                rt.diag(
+                    "FEEL-E315",
+                    site,
+                    "numeric iteration bounds must be integers",
+                );
                 return ABSENT;
             };
             let n = (y - x).abs() + 1;
             if n > max {
-                rt.limit("FEEL-L402", format!("iteration range of {n} items exceeds the collection limit"));
+                rt.limit(
+                    "FEEL-L402",
+                    format!("iteration range of {n} items exceeds the collection limit"),
+                );
                 return NULL;
             }
             let s: i128 = if y >= x { 1 } else { -1 };
@@ -881,7 +1023,10 @@ pub fn iter_range(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
             let (dx, dy) = (x.days() as i128, y.days() as i128);
             let n = (dy - dx).abs() + 1;
             if n > max {
-                rt.limit("FEEL-L402", format!("iteration range of {n} items exceeds the collection limit"));
+                rt.limit(
+                    "FEEL-L402",
+                    format!("iteration range of {n} items exceeds the collection limit"),
+                );
                 return NULL;
             }
             let s: i64 = if dy >= dx { 1 } else { -1 };
@@ -902,7 +1047,11 @@ pub fn iter_range(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
         }
         _ => {
             let (ka, kb) = (rt.kind_name(a), rt.kind_name(b));
-            rt.diag("FEEL-E315", site, format!("cannot iterate from {ka} to {kb}"));
+            rt.diag(
+                "FEEL-E315",
+                site,
+                format!("cannot iterate from {ka} to {kb}"),
+            );
             ABSENT
         }
     }

@@ -18,8 +18,25 @@ use std::collections::HashSet;
 /// Words that are literal terminal symbols of the grammar. A name may not
 /// start with one (10.3.1.4); unknown multi-word names never contain one.
 pub const KEYWORDS: &[&str] = &[
-    "and", "or", "in", "for", "return", "if", "then", "else", "some", "every", "satisfies", "instance", "of",
-    "between", "function", "external", "null", "true", "false",
+    "and",
+    "or",
+    "in",
+    "for",
+    "return",
+    "if",
+    "then",
+    "else",
+    "some",
+    "every",
+    "satisfies",
+    "instance",
+    "of",
+    "between",
+    "function",
+    "external",
+    "null",
+    "true",
+    "false",
 ];
 
 pub fn is_keyword(w: &str) -> bool {
@@ -69,7 +86,11 @@ impl NameSet {
 /// white space if the text is not lexable.
 pub fn name_tokens(name: &str) -> Vec<String> {
     match tokenize(name) {
-        Ok(ts) => ts.into_iter().filter(|t| t.tok != Tok::Eof).map(|t| t.name_text()).collect(),
+        Ok(ts) => ts
+            .into_iter()
+            .filter(|t| t.tok != Tok::Eof)
+            .map(|t| t.name_text())
+            .collect(),
         Err(_) => name.split_whitespace().map(|s| s.to_string()).collect(),
     }
 }
@@ -103,9 +124,24 @@ type PResult<T> = Result<T, Diagnostic>;
 fn builtin_type_names() -> NameSet {
     let mut s = NameSet::new();
     for n in [
-        "number", "string", "boolean", "date", "time", "date and time", "dateTime", "days and time duration",
-        "years and months duration", "dayTimeDuration", "yearMonthDuration", "duration", "Any", "Null", "list", "context",
-        "range", "function",
+        "number",
+        "string",
+        "boolean",
+        "date",
+        "time",
+        "date and time",
+        "dateTime",
+        "days and time duration",
+        "years and months duration",
+        "dayTimeDuration",
+        "yearMonthDuration",
+        "duration",
+        "Any",
+        "Null",
+        "list",
+        "context",
+        "range",
+        "function",
     ] {
         s.insert(n);
     }
@@ -187,7 +223,11 @@ impl<'a> Parser<'a> {
             Tok::Str(_) => "string literal".to_string(),
             Tok::Sym(s) => format!("'{s}'"),
         };
-        Diagnostic::error("FEEL-S010", format!("expected {what}, found {found}"), t.span)
+        Diagnostic::error(
+            "FEEL-S010",
+            format!("expected {what}, found {found}"),
+            t.span,
+        )
     }
     fn mk(&mut self, kind: ExprKind, span: Span) -> Expr {
         let id = self.next_id;
@@ -212,7 +252,9 @@ impl<'a> Parser<'a> {
         self.scopes.last_mut().unwrap().insert_tokens(&n.tokens);
     }
     fn known_full(&self, toks: &[String]) -> bool {
-        self.scopes.iter().any(|s| s.contains(toks)) || self.global.names.contains(toks) || self.builtins.contains(toks)
+        self.scopes.iter().any(|s| s.contains(toks))
+            || self.global.names.contains(toks)
+            || self.builtins.contains(toks)
     }
     fn known_prefix(&self, toks: &[String]) -> bool {
         self.scopes.iter().any(|s| s.has_prefix(toks))
@@ -400,7 +442,11 @@ impl<'a> Parser<'a> {
 
     fn parse_quantified(&mut self) -> PResult<Expr> {
         let tok = self.bump();
-        let q = if tok.is_word("some") { Quantifier::Some } else { Quantifier::Every };
+        let q = if tok.is_word("some") {
+            Quantifier::Some
+        } else {
+            Quantifier::Every
+        };
         let mut its = Vec::new();
         self.push_scope();
         loop {
@@ -412,7 +458,9 @@ impl<'a> Parser<'a> {
             if self.eat_sym(",") {
                 continue;
             }
-            if matches!(self.peek().tok, Tok::Word(ref w) if !is_keyword(w)) && self.peek_at(1).is_word("in") {
+            if matches!(self.peek().tok, Tok::Word(ref w) if !is_keyword(w))
+                && self.peek_at(1).is_word("in")
+            {
                 continue;
             }
             break;
@@ -452,7 +500,13 @@ impl<'a> Parser<'a> {
         let span = toks[0].span.to(toks[toks.len() - 1].span);
         let raw = &self.src[span.start..span.end];
         let text = collapse_ws(raw);
-        (Name { text, tokens: toks.iter().map(|t| t.name_text()).collect() }, span)
+        (
+            Name {
+                text,
+                tokens: toks.iter().map(|t| t.name_text()).collect(),
+            },
+            span,
+        )
     }
 
     fn parse_function_def(&mut self) -> PResult<Expr> {
@@ -463,14 +517,26 @@ impl<'a> Parser<'a> {
         if !self.at_sym(")") {
             loop {
                 let mut toks = Vec::new();
-                while !(self.at_sym(":") || self.at_sym(",") || self.at_sym(")") || matches!(self.peek().tok, Tok::Eof)) {
+                while !(self.at_sym(":")
+                    || self.at_sym(",")
+                    || self.at_sym(")")
+                    || matches!(self.peek().tok, Tok::Eof))
+                {
                     toks.push(self.bump());
                 }
                 if toks.is_empty() {
-                    return Err(Diagnostic::error("FEEL-S011", "expected a parameter name", self.peek().span));
+                    return Err(Diagnostic::error(
+                        "FEEL-S011",
+                        "expected a parameter name",
+                        self.peek().span,
+                    ));
                 }
                 let (name, span) = self.name_from_tokens(&toks);
-                let ty = if self.eat_sym(":") { Some(self.parse_type()?) } else { None };
+                let ty = if self.eat_sym(":") {
+                    Some(self.parse_type()?)
+                } else {
+                    None
+                };
                 self.declare(&name);
                 params.push(Param { name, span, ty });
                 if !self.eat_sym(",") {
@@ -483,7 +549,14 @@ impl<'a> Parser<'a> {
         let body = self.parse_expr()?;
         self.pop_scope();
         let span = start.to(body.span);
-        Ok(self.mk(ExprKind::FunctionDef(FunctionDef { params, body: Box::new(body), external }), span))
+        Ok(self.mk(
+            ExprKind::FunctionDef(FunctionDef {
+                params,
+                body: Box::new(body),
+                external,
+            }),
+            span,
+        ))
     }
 
     fn parse_or(&mut self) -> PResult<Expr> {
@@ -534,7 +607,10 @@ impl<'a> Parser<'a> {
                 self.expect_word("and")?;
                 let hi = self.parse_additive()?;
                 let span = l.span.to(hi.span);
-                l = self.mk(ExprKind::Between(Box::new(l), Box::new(lo), Box::new(hi)), span);
+                l = self.mk(
+                    ExprKind::Between(Box::new(l), Box::new(lo), Box::new(hi)),
+                    span,
+                );
                 continue;
             }
             if self.at_word("in") {
@@ -736,7 +812,9 @@ impl<'a> Parser<'a> {
                 while k < self.toks.len() {
                     match &self.toks[k].tok {
                         Tok::Word(w) if k == start || !is_keyword(w) => k += 1,
-                        Tok::Number(n) if k > start && n.chars().all(|c| c.is_ascii_digit()) => k += 1,
+                        Tok::Number(n) if k > start && n.chars().all(|c| c.is_ascii_digit()) => {
+                            k += 1
+                        }
                         _ => break,
                     }
                 }
@@ -886,7 +964,12 @@ impl<'a> Parser<'a> {
                 Ok(self.mk(ExprKind::List(items), t.span.to(end)))
             }
             Tok::Sym("{") => self.parse_context(),
-            Tok::Sym("<") | Tok::Sym("<=") | Tok::Sym(">") | Tok::Sym(">=") | Tok::Sym("=") | Tok::Sym("!=") => {
+            Tok::Sym("<")
+            | Tok::Sym("<=")
+            | Tok::Sym(">")
+            | Tok::Sym(">=")
+            | Tok::Sym("=")
+            | Tok::Sym("!=") => {
                 let op = match &t.tok {
                     Tok::Sym("<") => CmpOp::Lt,
                     Tok::Sym("<=") => CmpOp::Le,
@@ -926,7 +1009,12 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn finish_interval(&mut self, start_span: Span, start_incl: bool, first: Expr) -> PResult<Expr> {
+    fn finish_interval(
+        &mut self,
+        start_span: Span,
+        start_incl: bool,
+        first: Expr,
+    ) -> PResult<Expr> {
         self.expect_sym("..")?;
         self.no_bracket_postfix += 1;
         let second = self.parse_expr();
@@ -941,7 +1029,12 @@ impl<'a> Parser<'a> {
         };
         let end = self.bump().span;
         let span = start_span.to(end);
-        let iv = Interval { start: first, end: second, start_incl, end_incl };
+        let iv = Interval {
+            start: first,
+            end: second,
+            start_incl,
+            end_incl,
+        };
         Ok(self.mk(ExprKind::Interval(Box::new(iv)), span))
     }
 
@@ -959,11 +1052,21 @@ impl<'a> Parser<'a> {
                 let kt = self.peek().clone();
                 let (key, key_span, key_name) = if let Tok::Str(s) = &kt.tok {
                     self.bump();
-                    (s.clone(), kt.span, Name { text: s.clone(), tokens: name_tokens(s) })
+                    (
+                        s.clone(),
+                        kt.span,
+                        Name {
+                            text: s.clone(),
+                            tokens: name_tokens(s),
+                        },
+                    )
                 } else {
                     let mut toks = Vec::new();
                     while !self.at_sym(":") {
-                        if matches!(self.peek().tok, Tok::Eof) || self.at_sym("}") || self.at_sym(",") {
+                        if matches!(self.peek().tok, Tok::Eof)
+                            || self.at_sym("}")
+                            || self.at_sym(",")
+                        {
                             return Err(self.err_expected("':' after context key"));
                         }
                         toks.push(self.bump());
@@ -984,7 +1087,11 @@ impl<'a> Parser<'a> {
                     ));
                 }
                 self.declare(&key_name);
-                entries.push(ContextEntry { key, key_span, value });
+                entries.push(ContextEntry {
+                    key,
+                    key_span,
+                    value,
+                });
                 if !self.eat_sym(",") {
                     break;
                 }
@@ -1026,7 +1133,9 @@ impl<'a> Parser<'a> {
                 while k < self.toks.len() {
                     match &self.toks[k].tok {
                         Tok::Word(w) if !is_keyword(w) => k += 1,
-                        Tok::Number(n) if k > start && n.chars().all(|c| c.is_ascii_digit()) => k += 1,
+                        Tok::Number(n) if k > start && n.chars().all(|c| c.is_ascii_digit()) => {
+                            k += 1
+                        }
                         _ => break,
                     }
                 }

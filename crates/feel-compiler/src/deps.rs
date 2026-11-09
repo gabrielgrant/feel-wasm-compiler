@@ -73,7 +73,8 @@ impl Walk<'_> {
         }
         match ir {
             Ir::ItemField { fallback, .. } => {
-                self.uncertain.insert("implicit filter item names may shadow inputs".into());
+                self.uncertain
+                    .insert("implicit filter item names may shadow inputs".into());
                 self.walk(fallback);
             }
             Ir::CallBuiltin { id, args, .. } => {
@@ -81,10 +82,9 @@ impl Walk<'_> {
                 if matches!(name, "now" | "today") {
                     self.clock = true;
                 }
-                if name == "get value" {
-                    if !matches!(args.get(1), Some(Ir::Const(_))) {
-                        self.uncertain.insert("get value with a computed key".into());
-                    }
+                if name == "get value" && !matches!(args.get(1), Some(Ir::Const(_))) {
+                    self.uncertain
+                        .insert("get value with a computed key".into());
                 }
                 args.iter().for_each(|a| self.walk(a));
             }
@@ -106,7 +106,8 @@ impl Walk<'_> {
                 self.host.insert(const_str(self.consts, *name));
             }
             Ir::ExternalFn { mapping, .. } => {
-                self.uncertain.insert("calls an externally defined function".into());
+                self.uncertain
+                    .insert("calls an externally defined function".into());
                 self.walk(mapping);
             }
             Ir::BuiltinFn(id) => {
@@ -114,17 +115,25 @@ impl Walk<'_> {
                     self.clock = true;
                 }
             }
-            Ir::Null | Ir::True | Ir::False | Ir::Const(_) | Ir::Local(_) | Ir::Slot(_) | Ir::Partial(_) => {}
+            Ir::Null
+            | Ir::True
+            | Ir::False
+            | Ir::Const(_)
+            | Ir::Local(_)
+            | Ir::Slot(_)
+            | Ir::Partial(_) => {}
             Ir::Path(a, _, _)
             | Ir::Neg(a, _)
             | Ir::IsNull(a, _)
             | Ir::Not(a, _)
             | Ir::InstanceOf(a, _)
             | Ir::Coerce(a, _, _)
-            | Ir::PointRange { value: a, .. } => {
-                self.walk(a)
-            }
-            Ir::Bin(_, a, b, _) | Ir::Cmp(_, a, b, _) | Ir::And(a, b) | Ir::Or(a, b) | Ir::Index(a, b, _) => {
+            | Ir::PointRange { value: a, .. } => self.walk(a),
+            Ir::Bin(_, a, b, _)
+            | Ir::Cmp(_, a, b, _)
+            | Ir::And(a, b)
+            | Ir::Or(a, b)
+            | Ir::Index(a, b, _) => {
                 self.walk(a);
                 self.walk(b);
             }
@@ -187,7 +196,8 @@ impl Walk<'_> {
         match f {
             Ir::HostFn { .. } | Ir::BuiltinFn(_) => self.walk(f),
             _ => {
-                self.uncertain.insert("invokes a function value computed at runtime".into());
+                self.uncertain
+                    .insert("invokes a function value computed at runtime".into());
                 self.walk(f);
             }
         }

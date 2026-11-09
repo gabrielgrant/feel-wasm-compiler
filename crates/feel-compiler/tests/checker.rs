@@ -21,7 +21,11 @@ const SCHEMA: &str = r#"{
 }"#;
 
 fn codes(src: &str, mode: CheckMode) -> Vec<String> {
-    check(src, &opts(SCHEMA, mode)).diagnostics.iter().map(|d| d.code.clone()).collect()
+    check(src, &opts(SCHEMA, mode))
+        .diagnostics
+        .iter()
+        .map(|d| d.code.clone())
+        .collect()
 }
 
 #[test]
@@ -50,12 +54,21 @@ fn reports_stable_codes_spans_and_suggestions() {
     assert_eq!(d.suggestion.as_deref(), Some("did you mean 'age'?"));
     let c = check("aplicant.age", &o);
     assert_eq!(c.diagnostics[0].code, "FEEL-C101");
-    assert_eq!(c.diagnostics[0].suggestion.as_deref(), Some("did you mean 'applicant'?"));
+    assert_eq!(
+        c.diagnostics[0].suggestion.as_deref(),
+        Some("did you mean 'applicant'?")
+    );
     assert!(codes("applicant.name * 2", CheckMode::Strict).contains(&"FEEL-C103".to_string()));
     assert!(codes("applicant.name < 3", CheckMode::Strict).contains(&"FEEL-C107".to_string()));
     assert!(codes("substring(\"abc\")", CheckMode::Strict).contains(&"FEEL-C104".to_string()));
-    assert!(codes("substring(\"abc\", \"x\")", CheckMode::Strict).contains(&"FEEL-C105".to_string()));
-    assert!(codes("substring(strin: \"abc\", start position: 1)", CheckMode::Strict).contains(&"FEEL-C104".to_string()));
+    assert!(
+        codes("substring(\"abc\", \"x\")", CheckMode::Strict).contains(&"FEEL-C105".to_string())
+    );
+    assert!(codes(
+        "substring(strin: \"abc\", start position: 1)",
+        CheckMode::Strict
+    )
+    .contains(&"FEEL-C104".to_string()));
     assert!(codes("if rate then 1 else 2", CheckMode::Strict).contains(&"FEEL-C106".to_string()));
     assert!(codes("rate(1)", CheckMode::Strict).contains(&"FEEL-C110".to_string()));
     assert!(codes("1 instance of tUnknown", CheckMode::Strict).contains(&"FEEL-C111".to_string()));
@@ -75,20 +88,40 @@ fn strict_vs_permissive_policies() {
     let out = compile("applicant.name * 2", &opts(SCHEMA, CheckMode::Strict));
     assert!(out.wasm.is_none());
     // checking disabled: no findings at all
-    assert!(compile("applicant.name * 2", &opts(SCHEMA, CheckMode::Off)).diagnostics.is_empty());
+    assert!(compile("applicant.name * 2", &opts(SCHEMA, CheckMode::Off))
+        .diagnostics
+        .is_empty());
 }
 
 #[test]
 fn nullable_narrowing_through_guards() {
     let o = opts(SCHEMA, CheckMode::Strict);
-    let w = |s: &str| check(s, &o).diagnostics.iter().filter(|d| d.code == "FEEL-W210").count();
+    let w = |s: &str| {
+        check(s, &o)
+            .diagnostics
+            .iter()
+            .filter(|d| d.code == "FEEL-W210")
+            .count()
+    };
     assert_eq!(w("score + 1"), 1, "score is nullable");
     assert_eq!(w("if score != null then score + 1 else 0"), 0);
     assert_eq!(w("score != null and score > 600"), 0);
     assert_eq!(w("if score = null then 0 else score * 2"), 0);
-    assert_eq!(w("if applicant.spouse != null then applicant.spouse.name else \"\""), 0);
-    assert_eq!(check("if score != null then score + 1 else 0", &o).result_type.as_deref(), Some("number"));
-    let d = check("score + 1", &o).diagnostics.into_iter().find(|d| d.code == "FEEL-W210").unwrap();
+    assert_eq!(
+        w("if applicant.spouse != null then applicant.spouse.name else \"\""),
+        0
+    );
+    assert_eq!(
+        check("if score != null then score + 1 else 0", &o)
+            .result_type
+            .as_deref(),
+        Some("number")
+    );
+    let d = check("score + 1", &o)
+        .diagnostics
+        .into_iter()
+        .find(|d| d.code == "FEEL-W210")
+        .unwrap();
     assert_eq!(d.suggestion.as_deref(), Some("guard with `score != null`"));
 }
 
@@ -96,9 +129,15 @@ fn nullable_narrowing_through_guards() {
 fn optional_is_distinct_from_nullable() {
     let o = opts(SCHEMA, CheckMode::Strict);
     // optional field: selecting is allowed and yields a nullable type
-    assert_eq!(check("applicant.email", &o).result_type.as_deref(), Some("string?"));
+    assert_eq!(
+        check("applicant.email", &o).result_type.as_deref(),
+        Some("string?")
+    );
     // a non-optional field is non-null
-    assert_eq!(check("applicant.name", &o).result_type.as_deref(), Some("string"));
+    assert_eq!(
+        check("applicant.name", &o).result_type.as_deref(),
+        Some("string")
+    );
 }
 
 #[test]
@@ -119,10 +158,19 @@ fn expected_type_and_candidate_type() {
 #[test]
 fn checker_never_changes_values() {
     // strict and permissive compiles of the same valid program produce identical modules
-    let a = compile("for l in loans return l.amount * l.rate", &opts(SCHEMA, CheckMode::Strict));
-    let b = compile("for l in loans return l.amount * l.rate", &opts(SCHEMA, CheckMode::Off));
+    let a = compile(
+        "for l in loans return l.amount * l.rate",
+        &opts(SCHEMA, CheckMode::Strict),
+    );
+    let b = compile(
+        "for l in loans return l.amount * l.rate",
+        &opts(SCHEMA, CheckMode::Off),
+    );
     let strip = |w: &Vec<u8>| feel_host_free_code(w);
-    assert_eq!(strip(a.wasm.as_ref().unwrap()), strip(b.wasm.as_ref().unwrap()));
+    assert_eq!(
+        strip(a.wasm.as_ref().unwrap()),
+        strip(b.wasm.as_ref().unwrap())
+    );
 }
 
 /// The code section of a module (ignoring custom sections).
@@ -140,20 +188,41 @@ fn feel_host_free_code(w: &[u8]) -> Vec<u8> {
 #[test]
 fn dependency_extraction() {
     let o = opts(SCHEMA, CheckMode::Permissive);
-    let d = compile("applicant.age >= 18 and applicant.name != \"\" and sum(loans.amount) < 1000", &o).metadata.unwrap().dependencies;
+    let d = compile(
+        "applicant.age >= 18 and applicant.name != \"\" and sum(loans.amount) < 1000",
+        &o,
+    )
+    .metadata
+    .unwrap()
+    .dependencies;
     let a = d.inputs.iter().find(|i| i.name == "applicant").unwrap();
     assert!(!a.whole);
-    assert_eq!(a.paths, vec![vec!["age".to_string()], vec!["name".to_string()]]);
+    assert_eq!(
+        a.paths,
+        vec![vec!["age".to_string()], vec!["name".to_string()]]
+    );
     let l = d.inputs.iter().find(|i| i.name == "loans").unwrap();
     assert_eq!(l.paths, vec![vec!["amount".to_string()]]);
     assert!(d.exact && !d.clock);
     // dynamic lookups and clock access are reported
-    let d = compile("get value(applicant, k) + today()", &CompileOptions::default()).metadata.unwrap().dependencies;
+    let d = compile(
+        "get value(applicant, k) + today()",
+        &CompileOptions::default(),
+    )
+    .metadata
+    .unwrap()
+    .dependencies;
     assert!(d.clock && !d.exact);
     assert!(d.uncertain.iter().any(|u| u.contains("computed key")));
-    let d = compile("loans[amount > rate]", &opts(SCHEMA, CheckMode::Permissive)).metadata.unwrap().dependencies;
+    let d = compile("loans[amount > rate]", &opts(SCHEMA, CheckMode::Permissive))
+        .metadata
+        .unwrap()
+        .dependencies;
     assert!(!d.exact, "implicit filter names may shadow inputs");
-    let d = compile("f(1)", &CompileOptions::default()).metadata.unwrap().dependencies;
+    let d = compile("f(1)", &CompileOptions::default())
+        .metadata
+        .unwrap()
+        .dependencies;
     assert!(d.uncertain.iter().any(|u| u.contains("function value")));
 }
 

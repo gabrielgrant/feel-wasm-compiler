@@ -26,7 +26,11 @@ fn wasmi_parser(bytes: &[u8]) -> Vec<String> {
             for e in &s.exports {
                 v.push(format!("export {e}"));
             }
-            v.push(format!("defined functions: {} (code bytes: {:?})", s.code_sizes.len(), s.code_sizes));
+            v.push(format!(
+                "defined functions: {} (code bytes: {:?})",
+                s.code_sizes.len(),
+                s.code_sizes
+            ));
             for c in &s.custom {
                 v.push(format!("custom section {c}"));
             }
@@ -78,7 +82,8 @@ impl ModuleSummary {
                 0 => {
                     let (nl, k) = leb(body);
                     let name = String::from_utf8_lossy(&body[k..k + nl]).to_string();
-                    s.custom.push(format!("{name} ({} bytes)", body.len() - k - nl));
+                    s.custom
+                        .push(format!("{name} ({} bytes)", body.len() - k - nl));
                 }
                 5 => s.has_memory = true,
                 10 => {

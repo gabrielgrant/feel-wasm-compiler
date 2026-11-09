@@ -52,7 +52,14 @@ pub fn parse_range(rt: &mut Runtime, s: &str) -> Option<H> {
             _ => {}
         }
     }
-    Some(rt.alloc(Value::Range(Range { start, end, start_incl: start.is_some() && start_incl, end_incl: end.is_some() && end_incl, ne: false, eq: false })))
+    Some(rt.alloc(Value::Range(Range {
+        start,
+        end,
+        start_incl: start.is_some() && start_incl,
+        end_incl: end.is_some() && end_incl,
+        ne: false,
+        eq: false,
+    })))
 }
 
 /// Position of the `..` separator outside string literals.
@@ -134,7 +141,9 @@ fn endpoint(rt: &mut Runtime, s: &str) -> Option<H> {
             if rest.starts_with('(') && rest.ends_with(')') {
                 let st = string_lit(&rest[1..rest.len() - 1])?;
                 return match f {
-                    "date and time" => tm::DateTime::parse(&st).map(|d| rt.alloc(Value::DateTime(d))),
+                    "date and time" => {
+                        tm::DateTime::parse(&st).map(|d| rt.alloc(Value::DateTime(d)))
+                    }
                     "date" => tm::Date::parse(&st).map(|d| rt.alloc(Value::Date(d))),
                     "time" => tm::Time::parse(&st).map(|d| rt.alloc(Value::Time(d))),
                     _ => match tm::parse_duration(&st)? {

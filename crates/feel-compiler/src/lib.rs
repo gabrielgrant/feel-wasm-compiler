@@ -100,14 +100,22 @@ impl CompileOptions {
         if json.trim().is_empty() {
             return Ok(CompileOptions::default());
         }
-        let mut v: serde_json::Value = serde_json::from_str(json).map_err(|e| format!("options: {e}"))?;
+        let mut v: serde_json::Value =
+            serde_json::from_str(json).map_err(|e| format!("options: {e}"))?;
         if let Some(schema) = v.get_mut("schema") {
             if let Some(obj) = schema.get("inputs").and_then(|x| x.as_object()).cloned() {
-                schema["inputs"] =
-                    serde_json::Value::Array(obj.into_iter().map(|(k, t)| serde_json::json!({"name": k, "type": t})).collect());
+                schema["inputs"] = serde_json::Value::Array(
+                    obj.into_iter()
+                        .map(|(k, t)| serde_json::json!({"name": k, "type": t}))
+                        .collect(),
+                );
             }
             if let Some(obj) = schema.get("types").and_then(|x| x.as_object()).cloned() {
-                schema["types"] = serde_json::Value::Array(obj.into_iter().map(|(k, t)| serde_json::json!([k, t])).collect());
+                schema["types"] = serde_json::Value::Array(
+                    obj.into_iter()
+                        .map(|(k, t)| serde_json::json!([k, t]))
+                        .collect(),
+                );
             }
         }
         serde_json::from_value(v).map_err(|e| format!("options: {e}"))
@@ -188,12 +196,21 @@ impl Env {
             let ty = match &i.ty {
                 Some(t) => Some(
                     types::parse_schema_type(t, &aliases)
-                        .map_err(|e| Diagnostic::error("FEEL-B501", format!("schema: input '{}': {e}", i.name), Span::default()))?
+                        .map_err(|e| {
+                            Diagnostic::error(
+                                "FEEL-B501",
+                                format!("schema: input '{}': {e}", i.name),
+                                Span::default(),
+                            )
+                        })?
                         .to_runtime_string(),
                 ),
                 None => None,
             };
-            inputs.push(InputDecl { name: i.name.clone(), ty: if o.validate_inputs { ty } else { None } });
+            inputs.push(InputDecl {
+                name: i.name.clone(),
+                ty: if o.validate_inputs { ty } else { None },
+            });
         }
         let mut host_functions = Vec::new();
         for f in &o.schema.functions {
@@ -202,20 +219,38 @@ impl Env {
                 let t = match &p.ty {
                     Some(t) => Some(
                         types::parse_schema_type(t, &aliases)
-                            .map_err(|e| Diagnostic::error("FEEL-B501", format!("schema: function '{}': {e}", f.name), Span::default()))?
+                            .map_err(|e| {
+                                Diagnostic::error(
+                                    "FEEL-B501",
+                                    format!("schema: function '{}': {e}", f.name),
+                                    Span::default(),
+                                )
+                            })?
                             .to_runtime_string(),
                     ),
                     None => None,
                 };
                 ps.push((p.name.clone(), t));
             }
-            host_functions.push(HostFnDecl { name: f.name.clone(), params: ps });
+            host_functions.push(HostFnDecl {
+                name: f.name.clone(),
+                params: ps,
+            });
         }
         let candidate_type = match &o.schema.candidate {
-            Some(t) if o.validate_inputs => types::parse_schema_type(t, &aliases).ok().map(|t| t.to_runtime_string()),
+            Some(t) if o.validate_inputs => types::parse_schema_type(t, &aliases)
+                .ok()
+                .map(|t| t.to_runtime_string()),
             _ => None,
         };
-        Ok(Env { inputs, host_functions, auto_inputs: !o.schema.closed, extensions: o.extension_flags(), candidate_type, aliases })
+        Ok(Env {
+            inputs,
+            host_functions,
+            auto_inputs: !o.schema.closed,
+            extensions: o.extension_flags(),
+            candidate_type,
+            aliases,
+        })
     }
 }
 
@@ -293,10 +328,11 @@ pub fn parse(source: &str, opts: &CompileOptions) -> ParseOutput {
                 Entry::Expression => p.parse_expression_program().map(Program::Expression),
                 Entry::UnaryTests => {
                     let span = Span::new(0, source.len());
-                    p.parse_unary_tests_program().map(|t| Program::UnaryTests(t, span))
+                    p.parse_unary_tests_program()
+                        .map(|t| Program::UnaryTests(t, span))
                 }
             };
-            diags.extend(p.diagnostics.drain(..));
+            diags.append(&mut p.diagnostics);
             match r {
                 Ok(prog) => Some(prog),
                 Err(d) => {
@@ -309,7 +345,14 @@ pub fn parse(source: &str, opts: &CompileOptions) -> ParseOutput {
     for d in diags.iter_mut() {
         d.locate(source);
     }
-    ParseOutput { program: if diags.iter().any(|d| d.is_error()) { None } else { program }, diagnostics: diags }
+    ParseOutput {
+        program: if diags.iter().any(|d| d.is_error()) {
+            None
+        } else {
+            program
+        },
+        diagnostics: diags,
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -325,9 +368,17 @@ pub fn check(source: &str, opts: &CompileOptions) -> CheckOutput {
     let p = parse(source, opts);
     let mut diags = p.diagnostics;
     let Some(prog) = p.program else {
-        return CheckOutput { ok: false, result_type: None, diagnostics: diags };
+        return CheckOutput {
+            ok: false,
+            result_type: None,
+            diagnostics: diags,
+        };
     };
-    let mode = if opts.check == CheckMode::Off { CheckMode::Permissive } else { opts.check };
+    let mode = if opts.check == CheckMode::Off {
+        CheckMode::Permissive
+    } else {
+        opts.check
+    };
     let rt = match check::env_from_schema(&opts.schema, mode, opts.extension_flags()) {
         Ok(env) => {
             let out = check::check_program(&prog, &env);
@@ -342,7 +393,11 @@ pub fn check(source: &str, opts: &CompileOptions) -> CheckOutput {
     for d in diags.iter_mut() {
         d.locate(source);
     }
-    CheckOutput { ok: !diags.iter().any(|d| d.is_error()), result_type: rt, diagnostics: diags }
+    CheckOutput {
+        ok: !diags.iter().any(|d| d.is_error()),
+        result_type: rt,
+        diagnostics: diags,
+    }
 }
 
 /// Module metadata, also embedded in the `feel.meta` custom section.
@@ -400,14 +455,21 @@ impl CompileOutput {
         self.wasm.is_some()
     }
     pub fn errors(&self) -> impl Iterator<Item = &Diagnostic> {
-        self.diagnostics.iter().filter(|d| d.severity == Severity::Error)
+        self.diagnostics
+            .iter()
+            .filter(|d| d.severity == Severity::Error)
     }
 }
 
 /// Lower to IR only (for inspection and tests).
-pub fn lower(source: &str, opts: &CompileOptions) -> Result<(ir::ProgramIr, lower::ConstPool, Vec<String>), Vec<Diagnostic>> {
+pub fn lower(
+    source: &str,
+    opts: &CompileOptions,
+) -> Result<(ir::ProgramIr, lower::ConstPool, Vec<String>), Vec<Diagnostic>> {
     let p = parse(source, opts);
-    let Some(prog) = p.program else { return Err(p.diagnostics) };
+    let Some(prog) = p.program else {
+        return Err(p.diagnostics);
+    };
     let env = Env::from_options(opts).map_err(|d| vec![d])?;
     let mut l = lower::Lowerer::new(&env);
     let mut ir = l.lower_program(&prog);
@@ -426,22 +488,39 @@ pub fn compile(source: &str, opts: &CompileOptions) -> CompileOutput {
         for d in diagnostics.iter_mut() {
             d.locate(source);
         }
-        CompileOutput { wasm: None, diagnostics, metadata: None, constants: None }
+        CompileOutput {
+            wasm: None,
+            diagnostics,
+            metadata: None,
+            constants: None,
+        }
     };
     let p = parse(source, opts);
     let diags = p.diagnostics;
-    let Some(prog) = p.program else { return fail(diags) };
+    let Some(prog) = p.program else {
+        return fail(diags);
+    };
     compile_program(&prog, source, diags, opts)
 }
 
 /// Compile an already-parsed (or programmatically constructed) program.
 /// `source` is only used for diagnostics positions and the source hash.
-pub fn compile_program(prog: &Program, source: &str, mut diags: Vec<Diagnostic>, opts: &CompileOptions) -> CompileOutput {
+pub fn compile_program(
+    prog: &Program,
+    source: &str,
+    mut diags: Vec<Diagnostic>,
+    opts: &CompileOptions,
+) -> CompileOutput {
     let fail = |mut diagnostics: Vec<Diagnostic>| {
         for d in diagnostics.iter_mut() {
             d.locate(source);
         }
-        CompileOutput { wasm: None, diagnostics, metadata: None, constants: None }
+        CompileOutput {
+            wasm: None,
+            diagnostics,
+            metadata: None,
+            constants: None,
+        }
     };
     let mut result_type = None;
     if opts.check != CheckMode::Off {
@@ -467,14 +546,26 @@ pub fn compile_program(prog: &Program, source: &str, mut diags: Vec<Diagnostic>,
     let mut l = lower::Lowerer::new(&env);
     let mut ir = l.lower_program(prog);
     if !l.diags.is_empty() {
-        diags.extend(l.diags.drain(..));
+        diags.append(&mut l.diags);
         return fail(diags);
     }
-    let (folded, fused) = if opts.optimize { opt::optimize(&mut ir, &mut l.consts) } else { (0, 0) };
+    let (folded, fused) = if opts.optimize {
+        opt::optimize(&mut ir, &mut l.consts)
+    } else {
+        (0, 0)
+    };
     let deps = deps::extract(&ir, &l.slots, &l.consts.items);
     let consts_json = l.consts.to_json();
-    let inputs: Vec<SlotInfo> =
-        l.slots.iter().enumerate().map(|(i, n)| SlotInfo { name: n.clone(), slot: i as u32, ty: l.slot_types[i].clone() }).collect();
+    let inputs: Vec<SlotInfo> = l
+        .slots
+        .iter()
+        .enumerate()
+        .map(|(i, n)| SlotInfo {
+            name: n.clone(),
+            slot: i as u32,
+            ty: l.slot_types[i].clone(),
+        })
+        .collect();
     let candidate_slot = l.slots.iter().position(|s| s == "?").map(|i| i as u32);
     let mut meta = Metadata {
         format: "feel-wasm-module".into(),
@@ -506,14 +597,27 @@ pub fn compile_program(prog: &Program, source: &str, mut diags: Vec<Diagnostic>,
     };
     // the import list is only known after emission; emit twice is avoided by
     // computing it from a first emission
-    let first = codegen::emit_module(&codegen::EmitInput { prog: &ir, consts_json: &consts_json, meta_json: "{}" });
+    let first = codegen::emit_module(&codegen::EmitInput {
+        prog: &ir,
+        consts_json: &consts_json,
+        meta_json: "{}",
+    });
     meta.imports = first.imports.clone();
     let meta_json = serde_json::to_string(&meta).unwrap();
-    let emitted = codegen::emit_module(&codegen::EmitInput { prog: &ir, consts_json: &consts_json, meta_json: &meta_json });
+    let emitted = codegen::emit_module(&codegen::EmitInput {
+        prog: &ir,
+        consts_json: &consts_json,
+        meta_json: &meta_json,
+    });
     for d in diags.iter_mut() {
         d.locate(source);
     }
-    CompileOutput { wasm: Some(emitted.bytes), diagnostics: diags, metadata: Some(meta), constants: Some(consts_json) }
+    CompileOutput {
+        wasm: Some(emitted.bytes),
+        diagnostics: diags,
+        metadata: Some(meta),
+        constants: Some(consts_json),
+    }
 }
 
 /// Read the metadata and constant pool from a compiled module's custom

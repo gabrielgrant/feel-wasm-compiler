@@ -15,9 +15,9 @@ use feel_runtime::abi::{import_name, ABI_FUNCS, ABI_MODULE};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
 use wasm_encoder::{
-    BlockType, CodeSection, ConstExpr, CustomSection, ElementSection, Elements, EntityType, ExportKind, ExportSection,
-    Function, FunctionSection, GlobalSection, GlobalType, ImportSection, Instruction as I, Module, RefType, TableSection,
-    TableType, TypeSection, ValType,
+    BlockType, CodeSection, ConstExpr, CustomSection, ElementSection, Elements, EntityType,
+    ExportKind, ExportSection, Function, FunctionSection, GlobalSection, GlobalType, ImportSection,
+    Instruction as I, Module, RefType, TableSection, TableType, TypeSection, ValType,
 };
 
 const G_FUEL: u32 = 0;
@@ -78,7 +78,13 @@ struct FnBuilder<'a> {
 }
 
 impl<'a> FnBuilder<'a> {
-    fn new(nparams: u32, nlocals: u32, imports: &'a mut Imports, n_imports: u32, main: bool) -> Self {
+    fn new(
+        nparams: u32,
+        nlocals: u32,
+        imports: &'a mut Imports,
+        n_imports: u32,
+        main: bool,
+    ) -> Self {
         FnBuilder {
             code: Vec::new(),
             next_local: nlocals.max(nparams),
@@ -132,7 +138,11 @@ impl<'a> FnBuilder<'a> {
         self.code.push(I::Else);
     }
     fn depth_of(&self, label: u32) -> u32 {
-        let pos = self.labels.iter().rposition(|l| *l == label).expect("label in scope");
+        let pos = self
+            .labels
+            .iter()
+            .rposition(|l| *l == label)
+            .expect("label in scope");
         (self.labels.len() - 1 - pos) as u32
     }
     fn br(&mut self, label: u32) {
@@ -183,7 +193,11 @@ impl<'a> FnBuilder<'a> {
                     self.rt("slot");
                 }
             }
-            Ir::ItemField { item, key, fallback } => {
+            Ir::ItemField {
+                item,
+                key,
+                fallback,
+            } => {
                 let t = self.tmp();
                 self.get(*item);
                 self.c(RESERVED + *key as i32);
@@ -262,7 +276,11 @@ impl<'a> FnBuilder<'a> {
             }
             Ir::Context(entries) => {
                 for (_, l, v) in entries {
-                    if let Ir::Closure { self_local: Some(_), .. } = v {
+                    if let Ir::Closure {
+                        self_local: Some(_),
+                        ..
+                    } = v
+                    {
                         self.emit_h(v);
                         self.i(I::Drop);
                     } else {
@@ -282,7 +300,13 @@ impl<'a> FnBuilder<'a> {
                 }
                 self.get(t);
             }
-            Ir::Range { start, end, start_incl, end_incl, site } => {
+            Ir::Range {
+                start,
+                end,
+                start_incl,
+                end_incl,
+                site,
+            } => {
                 let mut flags = 0;
                 match start {
                     Some(s) => self.emit_h(s),
@@ -317,15 +341,31 @@ impl<'a> FnBuilder<'a> {
                 self.c(*site as i32);
                 self.rt("range");
             }
-            Ir::Filter { list, item, pred, site } => self.emit_filter(list, *item, pred, None, *site),
-            Ir::FilterPath { list, item, pred, key, site } => self.emit_filter(list, *item, pred, Some(*key), *site),
+            Ir::Filter {
+                list,
+                item,
+                pred,
+                site,
+            } => self.emit_filter(list, *item, pred, None, *site),
+            Ir::FilterPath {
+                list,
+                item,
+                pred,
+                key,
+                site,
+            } => self.emit_filter(list, *item, pred, Some(*key), *site),
             Ir::Index(l, n, site) => {
                 self.emit_h(l);
                 self.emit_h(n);
                 self.c(*site as i32);
                 self.rt("index");
             }
-            Ir::For { iters, partial, body, site } => self.emit_for(iters, *partial, body, *site),
+            Ir::For {
+                iters,
+                partial,
+                body,
+                site,
+            } => self.emit_for(iters, *partial, body, *site),
             Ir::CallBuiltin { id, args, site } => {
                 self.c(*id as i32);
                 self.emit_list(args);
@@ -352,7 +392,12 @@ impl<'a> FnBuilder<'a> {
                 self.c(*site as i32);
                 self.call_defined(F_INVOKE);
             }
-            Ir::Closure { func, captures, sig, self_local } => {
+            Ir::Closure {
+                func,
+                captures,
+                sig,
+                self_local,
+            } => {
                 let env = self.tmp();
                 let fv = self.tmp();
                 self.c(captures.len() as i32);
@@ -522,7 +567,11 @@ impl<'a> FnBuilder<'a> {
                     self.rt("not_bool");
                 }
             }
-            Ir::In { cand, tests, negated } => {
+            Ir::In {
+                cand,
+                tests,
+                negated,
+            } => {
                 let acc = self.tmp();
                 let tt = self.tmp();
                 self.c(0);
@@ -566,7 +615,12 @@ impl<'a> FnBuilder<'a> {
                 self.c(RESERVED + *ty as i32);
                 self.rt("instance_of");
             }
-            Ir::Quant { every, iters, body, site } => self.emit_quant(*every, iters, body, *site),
+            Ir::Quant {
+                every,
+                iters,
+                body,
+                site,
+            } => self.emit_quant(*every, iters, body, *site),
             Ir::If(c, t, f) => {
                 self.emit_t(c);
                 self.c(1);
@@ -623,12 +677,32 @@ impl<'a> FnBuilder<'a> {
                     CmpOp::Ge => "ge",
                 });
             }
-            TestIr::Interval { start, end, start_incl, end_incl, site } => {
-                let a = Ir::Cmp(if *start_incl { CmpOp::Ge } else { CmpOp::Gt }, Box::new(Ir::Local(cand)), Box::new(start.clone()), *site);
-                let b = Ir::Cmp(if *end_incl { CmpOp::Le } else { CmpOp::Lt }, Box::new(Ir::Local(cand)), Box::new(end.clone()), *site);
+            TestIr::Interval {
+                start,
+                end,
+                start_incl,
+                end_incl,
+                site,
+            } => {
+                let a = Ir::Cmp(
+                    if *start_incl { CmpOp::Ge } else { CmpOp::Gt },
+                    Box::new(Ir::Local(cand)),
+                    Box::new(start.clone()),
+                    *site,
+                );
+                let b = Ir::Cmp(
+                    if *end_incl { CmpOp::Le } else { CmpOp::Lt },
+                    Box::new(Ir::Local(cand)),
+                    Box::new(end.clone()),
+                    *site,
+                );
                 self.emit_t(&Ir::And(Box::new(a), Box::new(b)));
             }
-            TestIr::Value { value, uses_q, site } => {
+            TestIr::Value {
+                value,
+                uses_q,
+                site,
+            } => {
                 match value {
                     // `null` test: candidate is null
                     Ir::Null => {
@@ -756,8 +830,14 @@ impl<'a> FnBuilder<'a> {
     /// Emit nested loops over `iters`, running `inner` for each combination.
     /// `exit` is the label to jump to when an iteration source is null (the
     /// caller must have set the result beforehand).
-    fn emit_nested<F>(&mut self, iters: &[(Local, IterIr)], exit: u32, null_result: Option<(u32, i32)>, site: Site, inner: &mut F)
-    where
+    fn emit_nested<F>(
+        &mut self,
+        iters: &[(Local, IterIr)],
+        exit: u32,
+        null_result: Option<(u32, i32)>,
+        site: Site,
+        inner: &mut F,
+    ) where
         F: FnMut(&mut Self),
     {
         if iters.is_empty() {
@@ -840,7 +920,10 @@ impl<'a> FnBuilder<'a> {
         self.c(if every { 1 } else { 0 });
         self.set(acc);
         let exit = self.open(I::Block(BlockType::Empty));
-        let its: Vec<(Local, IterIr)> = iters.iter().map(|(l, e)| (*l, IterIr::Expr(e.clone()))).collect();
+        let its: Vec<(Local, IterIr)> = iters
+            .iter()
+            .map(|(l, e)| (*l, IterIr::Expr(e.clone())))
+            .collect();
         let body = body.clone();
         self.emit_nested(&its, exit, Some((acc, 2)), site, &mut |s: &mut Self| {
             s.emit_t(&body);
@@ -890,7 +973,9 @@ impl<'a> FnBuilder<'a> {
         // prologue for the main function: load cached input slots
         for (slot, l) in &cache {
             f.instruction(&I::I32Const(*slot as i32));
-            f.instruction(&I::Call(*self.imports.used.get("slot").expect("slot import")));
+            f.instruction(&I::Call(
+                *self.imports.used.get("slot").expect("slot import"),
+            ));
             f.instruction(&I::LocalSet(*l));
         }
         for ins in &self.code {
@@ -935,7 +1020,10 @@ fn build_bodies(prog: &ProgramIr, imports: &mut Imports, n_imports: u32) -> Bodi
         b.get(1);
         b.get(0);
         b.rt("fn_index");
-        b.i(I::CallIndirect { type_index: 0, table_index: 0 });
+        b.i(I::CallIndirect {
+            type_index: 0,
+            table_index: 0,
+        });
         funcs.push(b.finish().0);
     }
     // __feel_invoke(f, args, named, site)
@@ -963,7 +1051,10 @@ fn build_bodies(prog: &ProgramIr, imports: &mut Imports, n_imports: u32) -> Bodi
         b.get(bound);
         b.get(0);
         b.rt("fn_index");
-        b.i(I::CallIndirect { type_index: 0, table_index: 0 });
+        b.i(I::CallIndirect {
+            type_index: 0,
+            table_index: 0,
+        });
         b.end();
         b.else_();
         b.get(0);
@@ -1026,12 +1117,25 @@ fn build_bodies(prog: &ProgramIr, imports: &mut Imports, n_imports: u32) -> Bodi
 
 pub fn emit_module(input: &EmitInput) -> Emitted {
     // pass 1: discover the imports actually used
-    let mut probe = Imports { used: BTreeMap::new(), order: Vec::new(), frozen: false };
+    let mut probe = Imports {
+        used: BTreeMap::new(),
+        order: Vec::new(),
+        frozen: false,
+    };
     let _ = build_bodies(input.prog, &mut probe, 0);
     // deterministic import order: ABI declaration order
     let mut order: Vec<&'static str> = probe.order.clone();
-    order.sort_by_key(|n| ABI_FUNCS.iter().position(|f| f.0 == *n).unwrap_or(usize::MAX));
-    let mut imports = Imports { used: BTreeMap::new(), order: Vec::new(), frozen: false };
+    order.sort_by_key(|n| {
+        ABI_FUNCS
+            .iter()
+            .position(|f| f.0 == *n)
+            .unwrap_or(usize::MAX)
+    });
+    let mut imports = Imports {
+        used: BTreeMap::new(),
+        order: Vec::new(),
+        frozen: false,
+    };
     for n in &order {
         imports.idx(n);
     }
@@ -1044,14 +1148,18 @@ pub fn emit_module(input: &EmitInput) -> Emitted {
     // types: 0 = (i32,i32)->i32 (user functions, apply); then import shapes
     let mut types = TypeSection::new();
     let mut type_ids: BTreeMap<(usize, usize), u32> = BTreeMap::new();
-    types.ty().function([ValType::I32, ValType::I32], [ValType::I32]);
+    types
+        .ty()
+        .function([ValType::I32, ValType::I32], [ValType::I32]);
     type_ids.insert((2, 1), 0);
     let mut next_type = 1u32;
     let mut shape = |n: usize, r: usize, types: &mut TypeSection| -> u32 {
         if let Some(t) = type_ids.get(&(n, r)) {
             return *t;
         }
-        types.ty().function(vec![ValType::I32; n], vec![ValType::I32; r]);
+        types
+            .ty()
+            .function(vec![ValType::I32; n], vec![ValType::I32; r]);
         let t = next_type;
         next_type += 1;
         type_ids.insert((n, r), t);
@@ -1059,7 +1167,10 @@ pub fn emit_module(input: &EmitInput) -> Emitted {
     };
     let mut import_sec = ImportSection::new();
     for name in &imports.order {
-        let (_, n, r) = ABI_FUNCS.iter().find(|f| f.0 == *name).expect("abi function");
+        let (_, n, r) = ABI_FUNCS
+            .iter()
+            .find(|f| f.0 == *name)
+            .expect("abi function");
         let t = shape(*n, *r, &mut types);
         import_sec.import(ABI_MODULE, &import_name(name), EntityType::Function(t));
     }
@@ -1079,23 +1190,67 @@ pub fn emit_module(input: &EmitInput) -> Emitted {
 
     let nfuncs = input.prog.funcs.len() as u64;
     let mut tables = TableSection::new();
-    tables.table(TableType { element_type: RefType::FUNCREF, table64: false, minimum: nfuncs, maximum: Some(nfuncs), shared: false });
+    tables.table(TableType {
+        element_type: RefType::FUNCREF,
+        table64: false,
+        minimum: nfuncs,
+        maximum: Some(nfuncs),
+        shared: false,
+    });
 
     let mut globals = GlobalSection::new();
-    globals.global(GlobalType { val_type: ValType::I64, mutable: true, shared: false }, &ConstExpr::i64_const(0));
-    globals.global(GlobalType { val_type: ValType::I32, mutable: true, shared: false }, &ConstExpr::i32_const(0));
-    globals.global(GlobalType { val_type: ValType::I64, mutable: true, shared: false }, &ConstExpr::i64_const(50_000_000));
-    globals.global(GlobalType { val_type: ValType::I32, mutable: true, shared: false }, &ConstExpr::i32_const(512));
+    globals.global(
+        GlobalType {
+            val_type: ValType::I64,
+            mutable: true,
+            shared: false,
+        },
+        &ConstExpr::i64_const(0),
+    );
+    globals.global(
+        GlobalType {
+            val_type: ValType::I32,
+            mutable: true,
+            shared: false,
+        },
+        &ConstExpr::i32_const(0),
+    );
+    globals.global(
+        GlobalType {
+            val_type: ValType::I64,
+            mutable: true,
+            shared: false,
+        },
+        &ConstExpr::i64_const(50_000_000),
+    );
+    globals.global(
+        GlobalType {
+            val_type: ValType::I32,
+            mutable: true,
+            shared: false,
+        },
+        &ConstExpr::i32_const(512),
+    );
 
     let mut exports = ExportSection::new();
     exports.export("evaluate", ExportKind::Func, n_imports + F_EVALUATE);
     exports.export("__feel_apply", ExportKind::Func, n_imports + F_APPLY);
-    exports.export("__feel_set_limits", ExportKind::Func, n_imports + F_SET_LIMITS);
+    exports.export(
+        "__feel_set_limits",
+        ExportKind::Func,
+        n_imports + F_SET_LIMITS,
+    );
 
     let mut elems = ElementSection::new();
     if nfuncs > 0 {
-        let idxs: Vec<u32> = (0..nfuncs as u32).map(|k| n_imports + F_USER0 + k).collect();
-        elems.active(Some(0), &ConstExpr::i32_const(0), Elements::Functions(Cow::Owned(idxs)));
+        let idxs: Vec<u32> = (0..nfuncs as u32)
+            .map(|k| n_imports + F_USER0 + k)
+            .collect();
+        elems.active(
+            Some(0),
+            &ConstExpr::i32_const(0),
+            Elements::Functions(Cow::Owned(idxs)),
+        );
     }
 
     let mut code = CodeSection::new();
@@ -1113,7 +1268,16 @@ pub fn emit_module(input: &EmitInput) -> Emitted {
         module.section(&elems);
     }
     module.section(&code);
-    module.section(&CustomSection { name: Cow::Borrowed("feel.meta"), data: Cow::Borrowed(input.meta_json.as_bytes()) });
-    module.section(&CustomSection { name: Cow::Borrowed("feel.consts"), data: Cow::Borrowed(input.consts_json.as_bytes()) });
-    Emitted { bytes: module.finish(), imports: imports.order.iter().map(|s| s.to_string()).collect() }
+    module.section(&CustomSection {
+        name: Cow::Borrowed("feel.meta"),
+        data: Cow::Borrowed(input.meta_json.as_bytes()),
+    });
+    module.section(&CustomSection {
+        name: Cow::Borrowed("feel.consts"),
+        data: Cow::Borrowed(input.consts_json.as_bytes()),
+    });
+    Emitted {
+        bytes: module.finish(),
+        imports: imports.order.iter().map(|s| s.to_string()).collect(),
+    }
 }

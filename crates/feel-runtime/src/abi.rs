@@ -244,7 +244,11 @@ pub fn is_number(cx: &mut dyn Cx, x: i32) -> i32 {
     matches!(cx.rt().get(h(x)), Value::Num(_)) as i32
 }
 pub fn make_closure(cx: &mut dyn Cx, idx: i32, env: i32, sig: i32) -> i32 {
-    r(cx.rt().alloc(Value::Func(Func::User { index: idx as u32, env: h(env), sig: h(sig) })))
+    r(cx.rt().alloc(Value::Func(Func::User {
+        index: idx as u32,
+        env: h(env),
+        sig: h(sig),
+    })))
 }
 pub fn fn_kind(cx: &mut dyn Cx, f: i32) -> i32 {
     match cx.rt().get(h(f)) {
@@ -267,10 +271,22 @@ pub fn fn_env(cx: &mut dyn Cx, f: i32) -> i32 {
     }
 }
 pub fn bind_args(cx: &mut dyn Cx, f: i32, args: i32, named: i32, site: i32) -> i32 {
-    r(builtins::bind_args(cx.rt(), h(f), h(args), named != 0, site as u32))
+    r(builtins::bind_args(
+        cx.rt(),
+        h(f),
+        h(args),
+        named != 0,
+        site as u32,
+    ))
 }
 pub fn call_value(cx: &mut dyn Cx, f: i32, args: i32, named: i32, site: i32) -> i32 {
-    r(builtins::call_value(cx, h(f), h(args), named != 0, site as u32))
+    r(builtins::call_value(
+        cx,
+        h(f),
+        h(args),
+        named != 0,
+        site as u32,
+    ))
 }
 pub fn call_builtin(cx: &mut dyn Cx, id: i32, args: i32, site: i32) -> i32 {
     let a = cx.rt().list_items(h(args)).unwrap_or_default();
@@ -285,10 +301,16 @@ pub fn builtin_fn(cx: &mut dyn Cx, id: i32) -> i32 {
 pub fn host_fn(cx: &mut dyn Cx, name: i32, sig: i32) -> i32 {
     let rt = cx.rt();
     let n = rt.as_str(h(name)).unwrap_or_else(|| std::rc::Rc::from(""));
-    r(rt.alloc(Value::Func(Func::Host { name: n, sig: h(sig) })))
+    r(rt.alloc(Value::Func(Func::Host {
+        name: n,
+        sig: h(sig),
+    })))
 }
 pub fn external_fn(cx: &mut dyn Cx, mapping: i32, sig: i32) -> i32 {
-    r(cx.rt().alloc(Value::Func(Func::External { mapping: h(mapping), sig: h(sig) })))
+    r(cx.rt().alloc(Value::Func(Func::External {
+        mapping: h(mapping),
+        sig: h(sig),
+    })))
 }
 pub fn instance_of(cx: &mut dyn Cx, v: i32, ty: i32) -> i32 {
     let rt = cx.rt();
@@ -306,7 +328,11 @@ pub fn not_bool(cx: &mut dyn Cx, x: i32, site: i32) -> i32 {
     let t = ops::truth(rt, h(x));
     if t == ops::T_NULL && !rt.is_null(h(x)) {
         let k = rt.kind_name(h(x));
-        rt.diag("FEEL-E341", site as u32, format!("not() of a {k} yields null"));
+        rt.diag(
+            "FEEL-E341",
+            site as u32,
+            format!("not() of a {k} yields null"),
+        );
     }
     ops::tri_not(t)
 }
@@ -314,7 +340,11 @@ pub fn not_bool(cx: &mut dyn Cx, x: i32, site: i32) -> i32 {
 pub fn cond_diag(cx: &mut dyn Cx, x: i32, site: i32) -> i32 {
     let rt = cx.rt();
     let k = rt.kind_name(h(x));
-    rt.diag("FEEL-E342", site as u32, format!("condition is {k}, not a boolean; treated as false"));
+    rt.diag(
+        "FEEL-E342",
+        site as u32,
+        format!("condition is {k}, not a boolean; treated as false"),
+    );
     0
 }
 pub fn fuel_exhausted(cx: &mut dyn Cx) -> i32 {
@@ -364,7 +394,11 @@ pub fn bind_inputs(
                 Some(v) => v,
                 None => {
                     if !quiet.get(i).copied().unwrap_or(false) {
-                        rt.diag("FEEL-E350", 0, format!("input '{n}' was not provided; it evaluates to null"));
+                        rt.diag(
+                            "FEEL-E350",
+                            0,
+                            format!("input '{n}' was not provided; it evaluates to null"),
+                        );
                     }
                     NULL
                 }
@@ -375,7 +409,9 @@ pub fn bind_inputs(
                 let ty = crate::types::parse_type(t);
                 if crate::types::value_conforms(rt, v, &ty) == Some(false) {
                     let k = rt.kind_name(v);
-                    return Err(format!("input '{n}' of type {k} does not conform to the declared type {ty}"));
+                    return Err(format!(
+                        "input '{n}' of type {k} does not conform to the declared type {ty}"
+                    ));
                 }
             }
         }

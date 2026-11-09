@@ -72,8 +72,14 @@ enum Binding {
 
 #[derive(Clone, Debug)]
 enum Frame {
-    Lex { level: usize, names: Vec<(Vec<String>, Binding)> },
-    Item { level: usize, item: Local },
+    Lex {
+        level: usize,
+        names: Vec<(Vec<String>, Binding)>,
+    },
+    Item {
+        level: usize,
+        item: Local,
+    },
 }
 
 #[derive(Default, Debug)]
@@ -112,7 +118,11 @@ impl<'a> Lowerer<'a> {
         let mut l = Lowerer {
             env,
             consts: ConstPool::default(),
-            sites: vec![SiteInfo { start: 0, end: 0, what: "module".into() }],
+            sites: vec![SiteInfo {
+                start: 0,
+                end: 0,
+                what: "module".into(),
+            }],
             slots: Vec::new(),
             slot_types: Vec::new(),
             slot_quiet: Vec::new(),
@@ -151,7 +161,11 @@ impl<'a> Lowerer<'a> {
     }
 
     pub fn site(&mut self, span: Span, what: &str) -> Site {
-        self.sites.push(SiteInfo { start: span.start, end: span.end, what: what.to_string() });
+        self.sites.push(SiteInfo {
+            start: span.start,
+            end: span.end,
+            what: what.to_string(),
+        });
         (self.sites.len() - 1) as Site
     }
 
@@ -201,7 +215,10 @@ impl<'a> Lowerer<'a> {
 
     fn push_lex(&mut self) {
         let level = self.level();
-        self.frames.push(Frame::Lex { level, names: Vec::new() });
+        self.frames.push(Frame::Lex {
+            level,
+            names: Vec::new(),
+        });
     }
     fn pop_frame(&mut self) {
         self.frames.pop();
@@ -219,7 +236,11 @@ impl<'a> Lowerer<'a> {
             return src_local;
         }
         let key = (src_level, src_local);
-        if let Some((_, l)) = self.fstack[level].capture_map.iter().find(|(k, _)| *k == key) {
+        if let Some((_, l)) = self.fstack[level]
+            .capture_map
+            .iter()
+            .find(|(k, _)| *k == key)
+        {
             return *l;
         }
         let outer = self.local_at_level(level - 1, src_level, src_local);
@@ -256,7 +277,11 @@ impl<'a> Lowerer<'a> {
                         self.in_item_fallback -= 1;
                         r
                     };
-                    return Ir::ItemField { item: item_l, key, fallback: Box::new(fallback) };
+                    return Ir::ItemField {
+                        item: item_l,
+                        key,
+                        fallback: Box::new(fallback),
+                    };
                 }
             }
         }
@@ -269,10 +294,20 @@ impl<'a> Lowerer<'a> {
             let ty = inp.ty.clone();
             return Ir::Slot(self.slot_index(&name, ty));
         }
-        if let Some(h) = self.env.host_functions.iter().find(|h| tokens_of(&h.name) == toks) {
+        if let Some(h) = self
+            .env
+            .host_functions
+            .iter()
+            .find(|h| tokens_of(&h.name) == toks)
+        {
             let h = h.clone();
             let name = self.consts.str(&h.name);
-            let sig = self.sig_const(&h.params.iter().map(|(n, t)| (n.clone(), t.clone())).collect::<Vec<_>>());
+            let sig = self.sig_const(
+                &h.params
+                    .iter()
+                    .map(|(n, t)| (n.clone(), t.clone()))
+                    .collect::<Vec<_>>(),
+            );
             return Ir::HostFn { name, sig };
         }
         let joined = toks.join(" ");
@@ -287,7 +322,11 @@ impl<'a> Lowerer<'a> {
             // item can supply it
             return Ir::Null;
         }
-        self.diags.push(Diagnostic::error("FEEL-C101", format!("unknown name '{text}'"), span));
+        self.diags.push(Diagnostic::error(
+            "FEEL-C101",
+            format!("unknown name '{text}'"),
+            span,
+        ));
         Ir::Null
     }
 
@@ -306,7 +345,11 @@ impl<'a> Lowerer<'a> {
             Frame::Lex { names, .. } => names.iter().any(|(n, _)| n.as_slice() == toks),
             Frame::Item { .. } => false,
         }) || self.env.inputs.iter().any(|i| tokens_of(&i.name) == toks)
-            || self.env.host_functions.iter().any(|h| tokens_of(&h.name) == toks)
+            || self
+                .env
+                .host_functions
+                .iter()
+                .any(|h| tokens_of(&h.name) == toks)
     }
 
     fn sig_const(&mut self, params: &[(String, Option<String>)]) -> ConstId {
@@ -345,14 +388,30 @@ impl<'a> Lowerer<'a> {
         };
         let main_locals = self.fstack[0].next_local;
         self.finish_consts();
-        ProgramIr { main, main_locals, funcs: self.funcs.iter().map(|f| f.clone().expect("function lowered")).collect() }
+        ProgramIr {
+            main,
+            main_locals,
+            funcs: self
+                .funcs
+                .iter()
+                .map(|f| f.clone().expect("function lowered"))
+                .collect(),
+        }
     }
 
     fn lower_unary_tests(&mut self, cand: Local, t: &UnaryTests, _span: Span) -> Ir {
         match t {
             UnaryTests::Any => Ir::True,
-            UnaryTests::Positive(ts) => Ir::In { cand, tests: self.lower_tests(ts), negated: false },
-            UnaryTests::Negated(ts) => Ir::In { cand, tests: self.lower_tests(ts), negated: true },
+            UnaryTests::Positive(ts) => Ir::In {
+                cand,
+                tests: self.lower_tests(ts),
+                negated: false,
+            },
+            UnaryTests::Negated(ts) => Ir::In {
+                cand,
+                tests: self.lower_tests(ts),
+                negated: true,
+            },
         }
     }
 
@@ -375,7 +434,11 @@ impl<'a> Lowerer<'a> {
                 }
                 UnaryTest::Expr(e, q) => {
                     let site = self.site(e.span, "unary test");
-                    TestIr::Value { value: self.lower(e), uses_q: *q, site }
+                    TestIr::Value {
+                        value: self.lower(e),
+                        uses_q: *q,
+                        site,
+                    }
                 }
             })
             .collect()
@@ -462,7 +525,15 @@ impl<'a> Lowerer<'a> {
                 self.declare(vec!["?".into()], Binding::Local(cand));
                 let ts = self.lower_tests(tests);
                 self.pop_frame();
-                Ir::Let(cand, Box::new(xv), Box::new(Ir::In { cand, tests: ts, negated: false }))
+                Ir::Let(
+                    cand,
+                    Box::new(xv),
+                    Box::new(Ir::In {
+                        cand,
+                        tests: ts,
+                        negated: false,
+                    }),
+                )
             }
             ExprKind::Tests(x, tests) => {
                 let cand = self.new_local();
@@ -484,9 +555,11 @@ impl<'a> Lowerer<'a> {
                 let site = self.site(e.span, "binding");
                 Ir::Coerce(Box::new(xv), t, site)
             }
-            ExprKind::If(c, t, f) => {
-                Ir::If(Box::new(self.lower(c)), Box::new(self.lower(t)), Box::new(self.lower(f)))
-            }
+            ExprKind::If(c, t, f) => Ir::If(
+                Box::new(self.lower(c)),
+                Box::new(self.lower(t)),
+                Box::new(self.lower(f)),
+            ),
             ExprKind::For(its, body) => {
                 let site = self.site(e.span, "for");
                 self.push_lex();
@@ -504,10 +577,22 @@ impl<'a> Lowerer<'a> {
                 self.declare(vec!["partial".into()], Binding::Partial(partial));
                 let b = self.lower(body);
                 self.pop_frame();
-                Ir::For { iters, partial, body: Box::new(b), site }
+                Ir::For {
+                    iters,
+                    partial,
+                    body: Box::new(b),
+                    site,
+                }
             }
             ExprKind::Quantified(q, its, body) => {
-                let site = self.site(e.span, if *q == Quantifier::Some { "some" } else { "every" });
+                let site = self.site(
+                    e.span,
+                    if *q == Quantifier::Some {
+                        "some"
+                    } else {
+                        "every"
+                    },
+                );
                 self.push_lex();
                 let mut iters = Vec::new();
                 for (n, _, x) in its {
@@ -518,7 +603,12 @@ impl<'a> Lowerer<'a> {
                 }
                 let b = self.lower(body);
                 self.pop_frame();
-                Ir::Quant { every: *q == Quantifier::Every, iters, body: Box::new(b), site }
+                Ir::Quant {
+                    every: *q == Quantifier::Every,
+                    iters,
+                    body: Box::new(b),
+                    site,
+                }
             }
             ExprKind::List(items) => Ir::List(items.iter().map(|x| self.lower(x)).collect()),
             ExprKind::Context(entries) => {
@@ -555,14 +645,42 @@ impl<'a> Lowerer<'a> {
             }
             ExprKind::UnaryRange(op, x) => {
                 let site = self.site(e.span, "range");
-                let v = Some(Box::new(self.lower(x)));
+                let b = Box::new(self.lower(x));
+                let v = Some(b.clone());
                 match op {
-                    CmpOp::Eq => Ir::PointRange { value: v.unwrap(), ne: false, site },
-                    CmpOp::Ne => Ir::PointRange { value: v.unwrap(), ne: true, site },
-                    CmpOp::Lt => Ir::Range { start: None, end: v, start_incl: false, end_incl: false, site },
-                    CmpOp::Le => Ir::Range { start: None, end: v, start_incl: false, end_incl: true, site },
-                    CmpOp::Gt => Ir::Range { start: v, end: None, start_incl: false, end_incl: false, site },
-                    _ => Ir::Range { start: v, end: None, start_incl: true, end_incl: false, site },
+                    CmpOp::Eq | CmpOp::Ne => Ir::PointRange {
+                        value: b,
+                        ne: *op == CmpOp::Ne,
+                        site,
+                    },
+                    CmpOp::Lt => Ir::Range {
+                        start: None,
+                        end: v,
+                        start_incl: false,
+                        end_incl: false,
+                        site,
+                    },
+                    CmpOp::Le => Ir::Range {
+                        start: None,
+                        end: v,
+                        start_incl: false,
+                        end_incl: true,
+                        site,
+                    },
+                    CmpOp::Gt => Ir::Range {
+                        start: v,
+                        end: None,
+                        start_incl: false,
+                        end_incl: false,
+                        site,
+                    },
+                    _ => Ir::Range {
+                        start: v,
+                        end: None,
+                        start_incl: true,
+                        end_incl: false,
+                        site,
+                    },
                 }
             }
         }
@@ -583,8 +701,12 @@ impl<'a> Lowerer<'a> {
             Some(self.consts.tagged("@time", &t.to_string()))
         } else {
             match tm::parse_duration(s) {
-                Some(tm::Duration::DayTime(d)) => Some(self.consts.tagged("@duration", &d.to_string())),
-                Some(tm::Duration::YearMonth(d)) => Some(self.consts.tagged("@duration", &d.to_string())),
+                Some(tm::Duration::DayTime(d)) => {
+                    Some(self.consts.tagged("@duration", &d.to_string()))
+                }
+                Some(tm::Duration::YearMonth(d)) => {
+                    Some(self.consts.tagged("@duration", &d.to_string()))
+                }
                 None => None,
             }
         };
@@ -593,7 +715,9 @@ impl<'a> Lowerer<'a> {
             None => {
                 self.diags.push(Diagnostic::error(
                     "FEEL-S031",
-                    format!("@\"{s}\" is not a valid date, time, date and time or duration literal"),
+                    format!(
+                        "@\"{s}\" is not a valid date, time, date and time or duration literal"
+                    ),
                     span,
                 ));
                 Ir::Null
@@ -620,7 +744,12 @@ impl<'a> Lowerer<'a> {
         self.frames.push(Frame::Item { level, item });
         let pv = self.lower(p);
         self.pop_frame();
-        Ir::Filter { list: Box::new(lv), item, pred: Box::new(pv), site }
+        Ir::Filter {
+            list: Box::new(lv),
+            item,
+            pred: Box::new(pv),
+            site,
+        }
     }
 
     fn lower_call(&mut self, f: &Expr, args: &Args, span: Span) -> Ir {
@@ -636,9 +765,11 @@ impl<'a> Lowerer<'a> {
                         }
                     }
                     return match args {
-                        Args::Positional(a) => {
-                            Ir::CallBuiltin { id, args: a.iter().map(|x| self.lower(x)).collect(), site }
-                        }
+                        Args::Positional(a) => Ir::CallBuiltin {
+                            id,
+                            args: a.iter().map(|x| self.lower(x)).collect(),
+                            site,
+                        },
                         Args::Named(a) => {
                             let mut v = Vec::new();
                             for (pn, _, x) in a {
@@ -653,30 +784,53 @@ impl<'a> Lowerer<'a> {
         }
         let fv = self.lower(f);
         match args {
-            Args::Positional(a) => Ir::CallValue { f: Box::new(fv), args: a.iter().map(|x| self.lower(x)).collect(), site },
+            Args::Positional(a) => Ir::CallValue {
+                f: Box::new(fv),
+                args: a.iter().map(|x| self.lower(x)).collect(),
+                site,
+            },
             Args::Named(a) => {
                 let mut v = Vec::new();
                 for (pn, _, x) in a {
                     let k = self.consts.str(&pn.text);
                     v.push((k, self.lower(x)));
                 }
-                Ir::CallValueNamed { f: Box::new(fv), args: v, site }
+                Ir::CallValueNamed {
+                    f: Box::new(fv),
+                    args: v,
+                    site,
+                }
             }
         }
     }
 
     fn lower_function(&mut self, fd: &FunctionDef, _span: Span, self_local: Option<Local>) -> Ir {
-        let params: Vec<(String, Option<String>)> =
-            fd.params.iter().map(|p| (p.name.text.clone(), p.ty.as_ref().map(|t| self.env.resolve_type_name(&t.to_string())))).collect();
+        let params: Vec<(String, Option<String>)> = fd
+            .params
+            .iter()
+            .map(|p| {
+                (
+                    p.name.text.clone(),
+                    p.ty.as_ref()
+                        .map(|t| self.env.resolve_type_name(&t.to_string())),
+                )
+            })
+            .collect();
         let sig = self.sig_const(&params);
         if fd.external {
             let m = self.lower(&fd.body);
-            return Ir::ExternalFn { mapping: Box::new(m), sig };
+            return Ir::ExternalFn {
+                mapping: Box::new(m),
+                sig,
+            };
         }
         let idx = self.funcs.len() as u32;
         self.funcs.push(None);
         // new function context: locals 0 and 1 are the wasm params (env, args)
-        self.fstack.push(FnCtx { next_local: 2, ..Default::default() });
+        self.fstack.push(FnCtx {
+            next_local: 2,
+            ..Default::default()
+        });
         self.push_lex();
         let mut plocals = Vec::new();
         for p in &fd.params {
@@ -689,8 +843,18 @@ impl<'a> Lowerer<'a> {
         let ctx = self.fstack.pop().unwrap();
         let captures: Vec<Local> = ctx.captures.iter().map(|(l, _)| *l).collect();
         let outer: Vec<Ir> = ctx.captures.iter().map(|(_, o)| Ir::Local(*o)).collect();
-        self.funcs[idx as usize] =
-            Some(FuncIr { name: format!("fn{idx}"), params: plocals, captures, body, nlocals: ctx.next_local });
-        Ir::Closure { func: idx, captures: outer, sig, self_local }
+        self.funcs[idx as usize] = Some(FuncIr {
+            name: format!("fn{idx}"),
+            params: plocals,
+            captures,
+            body,
+            nlocals: ctx.next_local,
+        });
+        Ir::Closure {
+            func: idx,
+            captures: outer,
+            sig,
+            self_local,
+        }
     }
 }

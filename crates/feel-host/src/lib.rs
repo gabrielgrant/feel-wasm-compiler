@@ -18,6 +18,7 @@
 
 pub mod bindings;
 pub mod inspect;
+pub mod recalc;
 
 use feel_compiler::{read_module_sections, validate_module, Metadata};
 use feel_runtime::abi::{self, ABI_MODULE};
@@ -43,7 +44,11 @@ impl HostFunctions {
     pub fn new() -> Self {
         Self::default()
     }
-    pub fn add(&mut self, name: &str, f: impl Fn(&[String]) -> Result<String, String> + 'static) -> &mut Self {
+    pub fn add(
+        &mut self,
+        name: &str,
+        f: impl Fn(&[String]) -> Result<String, String> + 'static,
+    ) -> &mut Self {
         self.functions.insert(name.to_string(), Rc::new(f));
         self
     }
@@ -131,7 +136,9 @@ impl Default for Engine {
 
 impl Engine {
     pub fn new() -> Self {
-        Engine { engine: wasmi::Engine::default() }
+        Engine {
+            engine: wasmi::Engine::default(),
+        }
     }
 
     /// Validate and compile a FEEL module.
@@ -139,17 +146,28 @@ impl Engine {
         validate_module(bytes).map_err(HostError::InvalidModule)?;
         let (meta, consts) = read_module_sections(bytes).map_err(HostError::Incompatible)?;
         // the module may import only feel_rt_v1 functions
-        let module = Module::new(&self.engine, bytes).map_err(|e| HostError::InvalidModule(e.to_string()))?;
+        let module = Module::new(&self.engine, bytes)
+            .map_err(|e| HostError::InvalidModule(e.to_string()))?;
         for imp in module.imports() {
             if imp.module() != ABI_MODULE {
-                return Err(HostError::Incompatible(format!("unexpected import module '{}'", imp.module())));
+                return Err(HostError::Incompatible(format!(
+                    "unexpected import module '{}'",
+                    imp.module()
+                )));
             }
             let name = imp.name().strip_prefix("f_").unwrap_or("");
             if abi::abi_index(name).is_none() {
-                return Err(HostError::Incompatible(format!("unknown runtime import '{}'", imp.name())));
+                return Err(HostError::Incompatible(format!(
+                    "unknown runtime import '{}'",
+                    imp.name()
+                )));
             }
         }
-        Ok(Program { module, meta, consts })
+        Ok(Program {
+            module,
+            meta,
+            consts,
+        })
     }
 }
 
@@ -174,7 +192,9 @@ impl Cx for NativeCx<'_, '_> {
         &mut self.caller.data_mut().rt
     }
     fn apply(&mut self, f: H, args: H) -> H {
-        let Some(apply) = self.caller.data().apply else { return NULL };
+        let Some(apply) = self.caller.data().apply else {
+            return NULL;
+        };
         match apply.call(&mut *self.caller, (f as i32, args as i32)) {
             Ok(h) => h as u32,
             Err(e) => {
@@ -200,15 +220,28 @@ pub fn call_host_impl(rt: &mut Runtime, host: &HostFunctions, f: H, args: H) -> 
         _ => return NULL,
     };
     let Some(func) = host.functions.get(&key).cloned() else {
-        rt.diag("FEEL-E360", 0, format!("no host binding for external function '{key}'"));
+        rt.diag(
+            "FEEL-E360",
+            0,
+            format!("no host binding for external function '{key}'"),
+        );
         return NULL;
     };
-    let arg_json: Vec<String> = rt.list_items(args).unwrap_or_default().iter().map(|h| json::encode(rt, *h)).collect();
+    let arg_json: Vec<String> = rt
+        .list_items(args)
+        .unwrap_or_default()
+        .iter()
+        .map(|h| json::encode(rt, *h))
+        .collect();
     match func(&arg_json) {
         Ok(r) => match json::decode(rt, &r) {
             Ok(h) => h,
             Err(e) => {
-                rt.diag("FEEL-E361", 0, format!("host function '{key}' returned invalid FEEL-JSON: {e}"));
+                rt.diag(
+                    "FEEL-E361",
+                    0,
+                    format!("host function '{key}' returned invalid FEEL-JSON: {e}"),
+                );
                 NULL
             }
         },
@@ -221,16 +254,34 @@ pub fn call_host_impl(rt: &mut Runtime, host: &HostFunctions, f: H, args: H) -> 
 
 /// Binding key for `function(..) external {java: {class: c, method signature: m}}`.
 pub fn external_key(rt: &Runtime, mapping: H) -> String {
-    let Some(c) = rt.as_ctx(mapping) else { return String::new() };
+    let Some(c) = rt.as_ctx(mapping) else {
+        return String::new();
+    };
     if let Some(j) = c.get("java").and_then(|h| rt.as_ctx(h)) {
-        let class = j.get("class").and_then(|h| rt.as_str(h)).map(|s| s.to_string()).unwrap_or_default();
-        let sig = j.get("method signature").and_then(|h| rt.as_str(h)).map(|s| s.to_string()).unwrap_or_default();
+        let class = j
+            .get("class")
+            .and_then(|h| rt.as_str(h))
+            .map(|s| s.to_string())
+            .unwrap_or_default();
+        let sig = j
+            .get("method signature")
+            .and_then(|h| rt.as_str(h))
+            .map(|s| s.to_string())
+            .unwrap_or_default();
         let sig: String = sig.chars().filter(|c| !c.is_whitespace()).collect();
         return format!("java:{class}.{sig}");
     }
     if let Some(p) = c.get("pmml").and_then(|h| rt.as_ctx(h)) {
-        let doc = p.get("document").and_then(|h| rt.as_str(h)).map(|s| s.to_string()).unwrap_or_default();
-        let model = p.get("model").and_then(|h| rt.as_str(h)).map(|s| s.to_string()).unwrap_or_default();
+        let doc = p
+            .get("document")
+            .and_then(|h| rt.as_str(h))
+            .map(|s| s.to_string())
+            .unwrap_or_default();
+        let model = p
+            .get("model")
+            .and_then(|h| rt.as_str(h))
+            .map(|s| s.to_string())
+            .unwrap_or_default();
         return format!("pmml:{doc}#{model}");
     }
     String::new()
@@ -270,15 +321,25 @@ fn link(engine: &wasmi::Engine) -> Result<Linker<HostState>, wasmi::Error> {
 impl Program {
     /// Create an isolated instance: its own runtime (value arena, limits,
     /// clock, host bindings) and its own module instance.
-    pub fn instantiate(&self, engine: &Engine, opts: InstanceOptions) -> Result<Instance, HostError> {
+    pub fn instantiate(
+        &self,
+        engine: &Engine,
+        opts: InstanceOptions,
+    ) -> Result<Instance, HostError> {
         let mut rt = Runtime::new();
         rt.limits = opts.limits.clone();
         rt.extensions = self.meta.extension_flags;
         feel_runtime::load_constants(&mut rt, &self.consts).map_err(HostError::InvalidModule)?;
-        let state = HostState { rt, apply: None, host: opts.host.clone() };
+        let state = HostState {
+            rt,
+            apply: None,
+            host: opts.host.clone(),
+        };
         let mut store = Store::new(&engine.engine, state);
         let linker = link(&engine.engine).map_err(|e| HostError::Link(e.to_string()))?;
-        let instance = linker.instantiate_and_start(&mut store, &self.module).map_err(|e| HostError::Link(e.to_string()))?;
+        let instance = linker
+            .instantiate_and_start(&mut store, &self.module)
+            .map_err(|e| HostError::Link(e.to_string()))?;
         let evaluate = instance
             .get_typed_func::<(), i32>(&store, "evaluate")
             .map_err(|e| HostError::Incompatible(format!("missing evaluate export: {e}")))?;
@@ -287,12 +348,22 @@ impl Program {
             .map_err(|e| HostError::Incompatible(format!("missing __feel_apply export: {e}")))?;
         let set_limits = instance
             .get_typed_func::<(i64, i32), ()>(&store, "__feel_set_limits")
-            .map_err(|e| HostError::Incompatible(format!("missing __feel_set_limits export: {e}")))?;
+            .map_err(|e| {
+                HostError::Incompatible(format!("missing __feel_set_limits export: {e}"))
+            })?;
         set_limits
-            .call(&mut store, (opts.limits.max_steps as i64, opts.limits.max_depth as i32))
+            .call(
+                &mut store,
+                (opts.limits.max_steps as i64, opts.limits.max_depth as i32),
+            )
             .map_err(|e| HostError::Link(e.to_string()))?;
         store.data_mut().apply = Some(apply);
-        Ok(Instance { store, evaluate, meta: self.meta.clone(), evaluations: 0 })
+        Ok(Instance {
+            store,
+            evaluate,
+            meta: self.meta.clone(),
+            evaluations: 0,
+        })
     }
 }
 
@@ -305,9 +376,14 @@ pub struct Instance {
 
 fn system_now() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
-    let d = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
+    let d = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default();
     let nanos = d.as_millis() as i128 * 1_000_000;
-    match feel_runtime::temporal::DateTime::from_epoch_nanos(nanos, feel_runtime::temporal::Zone::utc()) {
+    match feel_runtime::temporal::DateTime::from_epoch_nanos(
+        nanos,
+        feel_runtime::temporal::Zone::utc(),
+    ) {
         Some(dt) => dt.to_string(),
         None => "1970-01-01T00:00:00Z".to_string(),
     }
@@ -320,7 +396,12 @@ impl Instance {
     }
 
     /// Evaluate a unary-tests module against `candidate_json` (`?`).
-    pub fn evaluate_unary(&mut self, candidate_json: &str, inputs_json: &str, opts: &EvalOptions) -> Evaluation {
+    pub fn evaluate_unary(
+        &mut self,
+        candidate_json: &str,
+        inputs_json: &str,
+        opts: &EvalOptions,
+    ) -> Evaluation {
         self.run(inputs_json, Some(candidate_json), opts)
     }
 
@@ -341,11 +422,20 @@ impl Instance {
         Evaluation {
             result: None,
             diagnostics: Vec::new(),
-            abort: Some(AbortInfo { kind: "boundary".into(), code: code.into(), message }),
+            abort: Some(AbortInfo {
+                kind: "boundary".into(),
+                code: code.into(),
+                message,
+            }),
         }
     }
 
-    fn run(&mut self, inputs_json: &str, candidate: Option<&str>, opts: &EvalOptions) -> Evaluation {
+    fn run(
+        &mut self,
+        inputs_json: &str,
+        candidate: Option<&str>,
+        opts: &EvalOptions,
+    ) -> Evaluation {
         self.evaluations += 1;
         let names: Vec<String> = self.meta.inputs.iter().map(|s| s.name.clone()).collect();
         let types: Vec<Option<String>> = self.meta.inputs.iter().map(|s| s.ty.clone()).collect();
@@ -364,14 +454,23 @@ impl Instance {
                     }
                 }
             }
-            let inputs = match json::decode(rt, if inputs_json.trim().is_empty() { "{}" } else { inputs_json }) {
+            let inputs = match json::decode(
+                rt,
+                if inputs_json.trim().is_empty() {
+                    "{}"
+                } else {
+                    inputs_json
+                },
+            ) {
                 Ok(h) => h,
                 Err(e) => return Self::boundary("FEEL-B505", format!("invalid inputs: {e}")),
             };
             let cand = match candidate {
                 Some(c) => match json::decode(rt, c) {
                     Ok(h) => Some(h),
-                    Err(e) => return Self::boundary("FEEL-B505", format!("invalid candidate: {e}")),
+                    Err(e) => {
+                        return Self::boundary("FEEL-B505", format!("invalid candidate: {e}"))
+                    }
                 },
                 None => None,
             };
@@ -398,16 +497,32 @@ impl Instance {
         match r {
             Ok(h) => {
                 if let Some(a) = &rt.abort {
-                    return Evaluation { result: None, diagnostics, abort: Some(abort_info(a)) };
+                    return Evaluation {
+                        result: None,
+                        diagnostics,
+                        abort: Some(abort_info(a)),
+                    };
                 }
-                Evaluation { result: Some(json::encode(rt, h as u32)), diagnostics, abort: None }
+                Evaluation {
+                    result: Some(json::encode(rt, h as u32)),
+                    diagnostics,
+                    abort: None,
+                }
             }
             Err(e) => {
                 let abort = match &rt.abort {
                     Some(a) => abort_info(a),
-                    None => AbortInfo { kind: "boundary".into(), code: "FEEL-B503".into(), message: format!("trap: {e}") },
+                    None => AbortInfo {
+                        kind: "boundary".into(),
+                        code: "FEEL-B503".into(),
+                        message: format!("trap: {e}"),
+                    },
                 };
-                Evaluation { result: None, diagnostics, abort: Some(abort) }
+                Evaluation {
+                    result: None,
+                    diagnostics,
+                    abort: Some(abort),
+                }
             }
         }
     }
@@ -425,13 +540,29 @@ fn abort_info(a: &feel_runtime::Abort) -> AbortInfo {
 }
 
 /// Convenience: compile + instantiate + evaluate once.
-pub fn eval_once(source: &str, inputs_json: &str, opts: &feel_compiler::CompileOptions) -> Result<Evaluation, String> {
+pub fn eval_once(
+    source: &str,
+    inputs_json: &str,
+    opts: &feel_compiler::CompileOptions,
+) -> Result<Evaluation, String> {
     let out = feel_compiler::compile(source, opts);
     let Some(wasm) = out.wasm else {
-        return Err(out.diagnostics.iter().map(|d| d.to_string()).collect::<Vec<_>>().join("\n"));
+        return Err(out
+            .diagnostics
+            .iter()
+            .map(|d| d.to_string())
+            .collect::<Vec<_>>()
+            .join("\n"));
     };
     let engine = Engine::new();
     let p = engine.load(&wasm).map_err(|e| e.to_string())?;
-    let mut i = p.instantiate(&engine, InstanceOptions::default()).map_err(|e| e.to_string())?;
-    Ok(i.evaluate(inputs_json, &EvalOptions { clock: ClockSpec::Fixed("2024-01-01T12:00:00Z".into()) }))
+    let mut i = p
+        .instantiate(&engine, InstanceOptions::default())
+        .map_err(|e| e.to_string())?;
+    Ok(i.evaluate(
+        inputs_json,
+        &EvalOptions {
+            clock: ClockSpec::Fixed("2024-01-01T12:00:00Z".into()),
+        },
+    ))
 }

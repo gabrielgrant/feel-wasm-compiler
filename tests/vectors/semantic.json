@@ -1832,5 +1832,857 @@
   "limits": {
    "maxSteps": 5000
   }
+ },
+ {
+  "id": "t78-000",
+  "clause": "Table 78",
+  "expr": "before( 1, 10 )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-001",
+  "clause": "Table 78",
+  "expr": "before( 10, 1 )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-002",
+  "clause": "Table 78",
+  "expr": "before( 1, [1..10] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-003",
+  "clause": "Table 78",
+  "expr": "before( 1, (1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-004",
+  "clause": "Table 78",
+  "expr": "before( 1, [5..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-005",
+  "clause": "Table 78",
+  "expr": "before( [1..10], 10 )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-006",
+  "clause": "Table 78",
+  "expr": "before( [1..10), 10 )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-007",
+  "clause": "Table 78",
+  "expr": "before( [1..10], 15 )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-008",
+  "clause": "Table 78",
+  "expr": "before( [1..10], [15..20] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-009",
+  "clause": "Table 78",
+  "expr": "before( [1..10], [10..20] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-010",
+  "clause": "Table 78",
+  "expr": "before( [1..10), [10..20] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-011",
+  "clause": "Table 78",
+  "expr": "before( [1..10], (10..20] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-012",
+  "clause": "Table 78",
+  "expr": "after( 10, 5 )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-013",
+  "clause": "Table 78",
+  "expr": "after( 5, 10 )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-014",
+  "clause": "Table 78",
+  "expr": "after( 12, [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-015",
+  "clause": "Table 78",
+  "expr": "after( 10, [1..10) )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-016",
+  "clause": "Table 78",
+  "expr": "after( 10, [1..10] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-017",
+  "clause": "Table 78",
+  "expr": "after( [11..20], 12 )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-018",
+  "clause": "Table 78",
+  "expr": "after( [11..20], 10 )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-019",
+  "clause": "Table 78",
+  "expr": "after( (11..20], 11 )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-020",
+  "clause": "Table 78",
+  "expr": "after( [11..20], 11 )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-021",
+  "clause": "Table 78",
+  "expr": "after( [11..20], [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-022",
+  "clause": "Table 78",
+  "expr": "after( [1..10], [11..20] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-023",
+  "clause": "Table 78",
+  "expr": "after( [11..20], [1..11) )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-024",
+  "clause": "Table 78",
+  "expr": "after( (11..20], [1..11] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-025",
+  "clause": "Table 78",
+  "expr": "meets( [1..5], [5..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-026",
+  "clause": "Table 78",
+  "expr": "meets( [1..5), [5..10] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-027",
+  "clause": "Table 78",
+  "expr": "meets( [1..5], (5..10] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-028",
+  "clause": "Table 78",
+  "expr": "meets( [1..5], [6..10] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-029",
+  "clause": "Table 78",
+  "expr": "met by( [5..10], [1..5] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-030",
+  "clause": "Table 78",
+  "expr": "met by( [5..10], [1..5) )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-031",
+  "clause": "Table 78",
+  "expr": "met by( (5..10], [1..5] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-032",
+  "clause": "Table 78",
+  "expr": "met by( [6..10], [1..5] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-033",
+  "clause": "Table 78",
+  "expr": "overlaps( [1..5], [3..8] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-034",
+  "clause": "Table 78",
+  "expr": "overlaps( [3..8], [1..5] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-035",
+  "clause": "Table 78",
+  "expr": "overlaps( [1..8], [3..5] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-036",
+  "clause": "Table 78",
+  "expr": "overlaps( [3..5], [1..8] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-037",
+  "clause": "Table 78",
+  "expr": "overlaps( [1..5], [6..8] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-038",
+  "clause": "Table 78",
+  "expr": "overlaps( [6..8], [1..5] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-039",
+  "clause": "Table 78",
+  "expr": "overlaps( [1..5], [5..8] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-040",
+  "clause": "Table 78",
+  "expr": "overlaps( [1..5], (5..8] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-041",
+  "clause": "Table 78",
+  "expr": "overlaps( [1..5), [5..8] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-042",
+  "clause": "Table 78",
+  "expr": "overlaps( [1..5), (5..8] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-043",
+  "clause": "Table 78",
+  "expr": "overlaps( [5..8], [1..5] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-044",
+  "clause": "Table 78",
+  "expr": "overlaps( (5..8], [1..5] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-045",
+  "clause": "Table 78",
+  "expr": "overlaps( [5..8], [1..5) )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-046",
+  "clause": "Table 78",
+  "expr": "overlaps( (5..8], [1..5) )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-047",
+  "clause": "Table 78",
+  "expr": "overlaps before( [1..5], [3..8] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-048",
+  "clause": "Table 78",
+  "expr": "overlaps before( [1..5], [6..8] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-049",
+  "clause": "Table 78",
+  "expr": "overlaps before( [1..5], [5..8] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-050",
+  "clause": "Table 78",
+  "expr": "overlaps before( [1..5], (5..8] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-051",
+  "clause": "Table 78",
+  "expr": "overlaps before( [1..5), [5..8] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-052",
+  "clause": "Table 78",
+  "expr": "overlaps before( [1..5), (1..5] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-053",
+  "clause": "Table 78",
+  "expr": "overlaps before( [1..5], (1..5] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-054",
+  "clause": "Table 78",
+  "expr": "overlaps before( [1..5), [1..5] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-055",
+  "clause": "Table 78",
+  "expr": "overlaps before( [1..5], [1..5] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-056",
+  "clause": "Table 78",
+  "expr": "overlaps after( [3..8], [1..5])",
+  "expect": "true"
+ },
+ {
+  "id": "t78-057",
+  "clause": "Table 78",
+  "expr": "overlaps after( [6..8], [1..5])",
+  "expect": "false"
+ },
+ {
+  "id": "t78-058",
+  "clause": "Table 78",
+  "expr": "overlaps after( [5..8], [1..5])",
+  "expect": "true"
+ },
+ {
+  "id": "t78-059",
+  "clause": "Table 78",
+  "expr": "overlaps after( (5..8], [1..5])",
+  "expect": "false"
+ },
+ {
+  "id": "t78-060",
+  "clause": "Table 78",
+  "expr": "overlaps after( [5..8], [1..5))",
+  "expect": "false"
+ },
+ {
+  "id": "t78-061",
+  "clause": "Table 78",
+  "expr": "overlaps after( (1..5], [1..5) )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-062",
+  "clause": "Table 78",
+  "expr": "overlaps after( (1..5], [1..5] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-063",
+  "clause": "Table 78",
+  "expr": "overlaps after( [1..5], [1..5) )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-064",
+  "clause": "Table 78",
+  "expr": "overlaps after( [1..5], [1..5] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-065",
+  "clause": "Table 78",
+  "expr": "finishes( 10, [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-066",
+  "clause": "Table 78",
+  "expr": "finishes( 10, [1..10) )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-067",
+  "clause": "Table 78",
+  "expr": "finishes( [5..10], [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-068",
+  "clause": "Table 78",
+  "expr": "finishes( [5..10), [1..10] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-069",
+  "clause": "Table 78",
+  "expr": "finishes( [5..10), [1..10) )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-070",
+  "clause": "Table 78",
+  "expr": "finishes( [1..10], [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-071",
+  "clause": "Table 78",
+  "expr": "finishes( (1..10], [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-072",
+  "clause": "Table 78",
+  "expr": "finished by( [1..10], 10 )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-073",
+  "clause": "Table 78",
+  "expr": "finished by( [1..10), 10 )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-074",
+  "clause": "Table 78",
+  "expr": "finished by( [1..10], [5..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-075",
+  "clause": "Table 78",
+  "expr": "finished by( [1..10], [5..10) )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-076",
+  "clause": "Table 78",
+  "expr": "finished by( [1..10), [5..10) )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-077",
+  "clause": "Table 78",
+  "expr": "finished by( [1..10], [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-078",
+  "clause": "Table 78",
+  "expr": "finished by( [1..10], (1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-079",
+  "clause": "Table 78",
+  "expr": "includes( [1..10], 5 )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-080",
+  "clause": "Table 78",
+  "expr": "includes( [1..10], 12 )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-081",
+  "clause": "Table 78",
+  "expr": "includes( [1..10], 1 )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-082",
+  "clause": "Table 78",
+  "expr": "includes( [1..10], 10 )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-083",
+  "clause": "Table 78",
+  "expr": "includes( (1..10], 1 )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-084",
+  "clause": "Table 78",
+  "expr": "includes( [1..10), 10 )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-085",
+  "clause": "Table 78",
+  "expr": "includes( [1..10], [4..6] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-086",
+  "clause": "Table 78",
+  "expr": "includes( [1..10], [1..5] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-087",
+  "clause": "Table 78",
+  "expr": "includes( (1..10], (1..5] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-088",
+  "clause": "Table 78",
+  "expr": "includes( [1..10], (1..10) )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-089",
+  "clause": "Table 78",
+  "expr": "includes( [1..10), [5..10) )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-090",
+  "clause": "Table 78",
+  "expr": "includes( [1..10], [1..10) )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-091",
+  "clause": "Table 78",
+  "expr": "includes( [1..10], (1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-092",
+  "clause": "Table 78",
+  "expr": "includes( [1..10], [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-093",
+  "clause": "Table 78",
+  "expr": "during( 5, [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-094",
+  "clause": "Table 78",
+  "expr": "during( 12, [1..10] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-095",
+  "clause": "Table 78",
+  "expr": "during( 1, [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-096",
+  "clause": "Table 78",
+  "expr": "during( 10, [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-097",
+  "clause": "Table 78",
+  "expr": "during( 1, (1..10] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-098",
+  "clause": "Table 78",
+  "expr": "during( 10, [1..10) )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-099",
+  "clause": "Table 78",
+  "expr": "during( [4..6], [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-100",
+  "clause": "Table 78",
+  "expr": "during( [1..5], [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-101",
+  "clause": "Table 78",
+  "expr": "during( (1..5], (1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-102",
+  "clause": "Table 78",
+  "expr": "during( (1..10), [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-103",
+  "clause": "Table 78",
+  "expr": "during( [5..10), [1..10) )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-104",
+  "clause": "Table 78",
+  "expr": "during( [1..10), [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-105",
+  "clause": "Table 78",
+  "expr": "during( (1..10], [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-106",
+  "clause": "Table 78",
+  "expr": "during( [1..10], [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-107",
+  "clause": "Table 78",
+  "expr": "starts( 1, [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-108",
+  "clause": "Table 78",
+  "expr": "starts( 1, (1..10] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-109",
+  "clause": "Table 78",
+  "expr": "starts( 2, [1..10] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-110",
+  "clause": "Table 78",
+  "expr": "starts( [1..5], [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-111",
+  "clause": "Table 78",
+  "expr": "starts( (1..5], (1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-112",
+  "clause": "Table 78",
+  "expr": "starts( (1..5], [1..10] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-113",
+  "clause": "Table 78",
+  "expr": "starts( [1..5], (1..10] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-114",
+  "clause": "Table 78",
+  "expr": "starts( [1..10], [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-115",
+  "clause": "Table 78",
+  "expr": "starts( [1..10), [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-116",
+  "clause": "Table 78",
+  "expr": "starts( (1..10), (1..10) )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-117",
+  "clause": "Table 78",
+  "expr": "started by( [1..10], 1 )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-118",
+  "clause": "Table 78",
+  "expr": "started by( (1..10], 1 )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-119",
+  "clause": "Table 78",
+  "expr": "started by( [1..10], 2 )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-120",
+  "clause": "Table 78",
+  "expr": "started by( [1..10], [1..5] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-121",
+  "clause": "Table 78",
+  "expr": "started by( (1..10], (1..5] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-122",
+  "clause": "Table 78",
+  "expr": "started by( [1..10], (1..5] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-123",
+  "clause": "Table 78",
+  "expr": "started by( (1..10], [1..5] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-124",
+  "clause": "Table 78",
+  "expr": "started by( [1..10], [1..10] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-125",
+  "clause": "Table 78",
+  "expr": "started by( [1..10], [1..10) )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-126",
+  "clause": "Table 78",
+  "expr": "started by( (1..10), (1..10) )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-127",
+  "clause": "Table 78",
+  "expr": "coincides( 5, 5 )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-128",
+  "clause": "Table 78",
+  "expr": "coincides( 3, 4 )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-129",
+  "clause": "Table 78",
+  "expr": "coincides( [1..5], [1..5] )",
+  "expect": "true"
+ },
+ {
+  "id": "t78-130",
+  "clause": "Table 78",
+  "expr": "coincides( (1..5), [1..5] )",
+  "expect": "false"
+ },
+ {
+  "id": "t78-131",
+  "clause": "Table 78",
+  "expr": "coincides( [1..5], [2..6] )",
+  "expect": "false"
+ },
+ {
+  "id": "t74-000",
+  "clause": "Table 74",
+  "expr": "starts with(\"foobar\", \"fo\")",
+  "expect": "true"
+ },
+ {
+  "id": "t74-001",
+  "clause": "Table 74",
+  "expr": "ends with(\"foobar\", \"r\")",
+  "expect": "true"
+ },
+ {
+  "id": "t74-002",
+  "clause": "Table 74",
+  "expr": "lower case(\"aBc4\")",
+  "expect": "\"abc4\""
+ },
+ {
+  "id": "t74-003",
+  "clause": "Table 74",
+  "expr": "substring(\"foobar\", 3, 3)",
+  "expect": "\"oba\""
+ },
+ {
+  "id": "t74-004",
+  "clause": "Table 74",
+  "expr": "string length(\"foo\")",
+  "expect": "3"
+ },
+ {
+  "id": "t74-005",
+  "clause": "Table 74",
+  "expr": "replace(\"banana\", \"a\", \"o\")",
+  "expect": "\"bonono\""
+ },
+ {
+  "id": "t74-006",
+  "clause": "Table 74",
+  "expr": "split(\"John Doe\", \"\\\\s\")",
+  "expect": "[\"John\",\"Doe\"]"
+ },
+ {
+  "id": "t74-007",
+  "clause": "Table 74",
+  "expr": "string join([\"a\",\"b\",\"c\"], \"_and_\")",
+  "expect": "\"a_and_b_and_c\""
+ },
+ {
+  "id": "t74-008",
+  "clause": "Table 74",
+  "expr": "string join([])",
+  "expect": "\"\""
+ },
+ {
+  "id": "t74-009",
+  "clause": "Table 74",
+  "expr": "substring after(\"foobar\", \"ob\")",
+  "expect": "\"ar\""
  }
 ]

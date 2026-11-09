@@ -66,12 +66,20 @@ impl TP<'_> {
         let start = self.i;
         while self.i < self.s.len() {
             let c = self.s[self.i..].chars().next().unwrap();
-            if c == '<' || c == '>' || c == ',' || c == ':' || c == '-' && self.s[self.i..].starts_with("->") {
+            if c == '<'
+                || c == '>'
+                || c == ','
+                || c == ':'
+                || c == '-' && self.s[self.i..].starts_with("->")
+            {
                 break;
             }
             self.i += c.len_utf8();
         }
-        self.s[start..self.i].split_whitespace().collect::<Vec<_>>().join(" ")
+        self.s[start..self.i]
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
     }
     fn ty(&mut self) -> RtType {
         let n = self.name();
@@ -114,7 +122,11 @@ impl TP<'_> {
                     }
                     self.eat(">");
                 }
-                let r = if self.eat("->") { self.ty() } else { RtType::Any };
+                let r = if self.eat("->") {
+                    self.ty()
+                } else {
+                    RtType::Any
+                };
                 RtType::Function(ps, Box::new(r))
             }
             _ => named_type(&n),
@@ -126,18 +138,22 @@ pub fn named_type(n: &str) -> RtType {
     match n {
         "Any" | "any" => RtType::Any,
         "Null" => RtType::Null,
-        "number" | "feel:number" | "decimal" | "integer" | "double" | "long" | "int" => RtType::Number,
+        "number" | "feel:number" | "decimal" | "integer" | "double" | "long" | "int" => {
+            RtType::Number
+        }
         "string" | "feel:string" => RtType::String,
         "boolean" | "feel:boolean" => RtType::Boolean,
         "date" | "feel:date" => RtType::Date,
         "time" | "feel:time" => RtType::Time,
         "date and time" | "dateTime" | "feel:date and time" | "feel:dateTime" => RtType::DateTime,
-        "days and time duration" | "dayTimeDuration" | "feel:days and time duration" | "feel:dayTimeDuration" => {
-            RtType::Dtd
-        }
-        "years and months duration" | "yearMonthDuration" | "feel:years and months duration" | "feel:yearMonthDuration" => {
-            RtType::Ymd
-        }
+        "days and time duration"
+        | "dayTimeDuration"
+        | "feel:days and time duration"
+        | "feel:dayTimeDuration" => RtType::Dtd,
+        "years and months duration"
+        | "yearMonthDuration"
+        | "feel:years and months duration"
+        | "feel:yearMonthDuration" => RtType::Ymd,
         "duration" => RtType::Duration,
         "list" => RtType::List(Box::new(RtType::Any)),
         "context" => RtType::Context(Vec::new()),
@@ -270,7 +286,11 @@ pub fn value_conforms(rt: &Runtime, h: H, t: &RtType) -> Option<bool> {
                     // value must accept the requested parameter types
                     for (i, p) in ps.iter().enumerate() {
                         let pair = rt.list_items(sig_items[i]).unwrap_or_default();
-                        let declared = pair.get(1).and_then(|h| rt.as_str(*h)).map(|s| parse_type(&s)).unwrap_or(T::Any);
+                        let declared = pair
+                            .get(1)
+                            .and_then(|h| rt.as_str(*h))
+                            .map(|s| parse_type(&s))
+                            .unwrap_or(T::Any);
                         if !type_conforms(p, &declared) {
                             return Some(false);
                         }
@@ -293,9 +313,13 @@ pub fn type_conforms(s: &RtType, t: &RtType) -> bool {
         (T::Dtd | T::Ymd, T::Duration) => true,
         (T::List(a), T::List(b)) => type_conforms(a, b),
         (T::Range(a), T::Range(b)) => type_conforms(a, b),
-        (T::Context(a), T::Context(b)) => b.iter().all(|(k, tb)| a.iter().any(|(ka, ta)| ka == k && type_conforms(ta, tb))),
+        (T::Context(a), T::Context(b)) => b
+            .iter()
+            .all(|(k, tb)| a.iter().any(|(ka, ta)| ka == k && type_conforms(ta, tb))),
         (T::Function(pa, ra), T::Function(pb, rb)) => {
-            pa.len() == pb.len() && pa.iter().zip(pb.iter()).all(|(x, y)| type_conforms(y, x)) && type_conforms(ra, rb)
+            pa.len() == pb.len()
+                && pa.iter().zip(pb.iter()).all(|(x, y)| type_conforms(y, x))
+                && type_conforms(ra, rb)
         }
         (a, b) => a == b,
     }
@@ -361,7 +385,11 @@ pub fn coerce(rt: &mut Runtime, h: H, t: &RtType, site: u32) -> H {
         x
     } else {
         let k = rt.kind_name(h);
-        rt.diag("FEEL-E330", site, format!("value of type {k} does not conform to {t}; bound to null"));
+        rt.diag(
+            "FEEL-E330",
+            site,
+            format!("value of type {k} does not conform to {t}; bound to null"),
+        );
         NULL
     }
 }

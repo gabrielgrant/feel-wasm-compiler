@@ -21,7 +21,11 @@ pub enum Ir {
     Slot(u32),
     /// An implicit name inside a filter: the entry `key` of the current item
     /// if it is a context with that entry, otherwise `fallback`.
-    ItemField { item: Local, key: ConstId, fallback: Box<Ir> },
+    ItemField {
+        item: Local,
+        key: ConstId,
+        fallback: Box<Ir>,
+    },
     Path(Box<Ir>, ConstId, Site),
     Bin(BinOp, Box<Ir>, Box<Ir>, Site),
     Neg(Box<Ir>, Site),
@@ -40,28 +44,90 @@ pub enum Ir {
     List(Vec<Ir>),
     /// entries are evaluated in order into their locals, then the context is built
     Context(Vec<(ConstId, Local, Ir)>),
-    Range { start: Option<Box<Ir>>, end: Option<Box<Ir>>, start_incl: bool, end_incl: bool, site: Site },
+    Range {
+        start: Option<Box<Ir>>,
+        end: Option<Box<Ir>>,
+        start_incl: bool,
+        end_incl: bool,
+        site: Site,
+    },
     /// `= e` / `!= e` used as a range value
-    PointRange { value: Box<Ir>, ne: bool, site: Site },
+    PointRange {
+        value: Box<Ir>,
+        ne: bool,
+        site: Site,
+    },
     /// tri: `cand in (tests)` — `cand` is a local holding the candidate
-    In { cand: Local, tests: Vec<TestIr>, negated: bool },
+    In {
+        cand: Local,
+        tests: Vec<TestIr>,
+        negated: bool,
+    },
     /// tri
     InstanceOf(Box<Ir>, ConstId),
-    Filter { list: Box<Ir>, item: Local, pred: Box<Ir>, site: Site },
+    Filter {
+        list: Box<Ir>,
+        item: Local,
+        pred: Box<Ir>,
+        site: Site,
+    },
     /// Fused `list[pred].key` (optimization; see `opt.rs`).
-    FilterPath { list: Box<Ir>, item: Local, pred: Box<Ir>, key: ConstId, site: Site },
+    FilterPath {
+        list: Box<Ir>,
+        item: Local,
+        pred: Box<Ir>,
+        key: ConstId,
+        site: Site,
+    },
     Index(Box<Ir>, Box<Ir>, Site),
-    For { iters: Vec<(Local, IterIr)>, partial: Local, body: Box<Ir>, site: Site },
+    For {
+        iters: Vec<(Local, IterIr)>,
+        partial: Local,
+        body: Box<Ir>,
+        site: Site,
+    },
     /// tri
-    Quant { every: bool, iters: Vec<(Local, Ir)>, body: Box<Ir>, site: Site },
-    CallBuiltin { id: u16, args: Vec<Ir>, site: Site },
-    CallBuiltinNamed { id: u16, args: Vec<(ConstId, Ir)>, site: Site },
-    CallValue { f: Box<Ir>, args: Vec<Ir>, site: Site },
-    CallValueNamed { f: Box<Ir>, args: Vec<(ConstId, Ir)>, site: Site },
-    Closure { func: u32, captures: Vec<Ir>, sig: ConstId, self_local: Option<Local> },
+    Quant {
+        every: bool,
+        iters: Vec<(Local, Ir)>,
+        body: Box<Ir>,
+        site: Site,
+    },
+    CallBuiltin {
+        id: u16,
+        args: Vec<Ir>,
+        site: Site,
+    },
+    CallBuiltinNamed {
+        id: u16,
+        args: Vec<(ConstId, Ir)>,
+        site: Site,
+    },
+    CallValue {
+        f: Box<Ir>,
+        args: Vec<Ir>,
+        site: Site,
+    },
+    CallValueNamed {
+        f: Box<Ir>,
+        args: Vec<(ConstId, Ir)>,
+        site: Site,
+    },
+    Closure {
+        func: u32,
+        captures: Vec<Ir>,
+        sig: ConstId,
+        self_local: Option<Local>,
+    },
     BuiltinFn(u16),
-    HostFn { name: ConstId, sig: ConstId },
-    ExternalFn { mapping: Box<Ir>, sig: ConstId },
+    HostFn {
+        name: ConstId,
+        sig: ConstId,
+    },
+    ExternalFn {
+        mapping: Box<Ir>,
+        sig: ConstId,
+    },
     Coerce(Box<Ir>, ConstId, Site),
     /// A snapshot of the `partial` list of the enclosing `for`.
     Partial(Local),
@@ -76,16 +142,33 @@ pub enum IterIr {
 #[derive(Clone, Debug, PartialEq)]
 pub enum TestIr {
     Cmp(CmpOp, Ir, Site),
-    Interval { start: Ir, end: Ir, start_incl: bool, end_incl: bool, site: Site },
+    Interval {
+        start: Ir,
+        end: Ir,
+        start_incl: bool,
+        end_incl: bool,
+        site: Site,
+    },
     /// a general positive unary test expression evaluated with `?` bound
-    Value { value: Ir, uses_q: bool, site: Site },
+    Value {
+        value: Ir,
+        uses_q: bool,
+        site: Site,
+    },
 }
 
 impl Ir {
     pub fn is_tri(&self) -> bool {
         matches!(
             self,
-            Ir::Cmp(..) | Ir::IsNull(..) | Ir::And(..) | Ir::Or(..) | Ir::Not(..) | Ir::In { .. } | Ir::InstanceOf(..) | Ir::Quant { .. }
+            Ir::Cmp(..)
+                | Ir::IsNull(..)
+                | Ir::And(..)
+                | Ir::Or(..)
+                | Ir::Not(..)
+                | Ir::In { .. }
+                | Ir::InstanceOf(..)
+                | Ir::Quant { .. }
         )
     }
 }

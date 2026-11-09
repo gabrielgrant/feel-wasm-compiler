@@ -12,7 +12,10 @@ use crate::HostFunctions;
 
 fn num_arg(a: &str) -> Result<f64, String> {
     let t = a.trim();
-    let t = t.strip_prefix("{\"@number\":\"").and_then(|x| x.strip_suffix("\"}")).unwrap_or(t);
+    let t = t
+        .strip_prefix("{\"@number\":\"")
+        .and_then(|x| x.strip_suffix("\"}"))
+        .unwrap_or(t);
     t.parse::<f64>().map_err(|_| format!("not a number: {a}"))
 }
 
@@ -120,44 +123,58 @@ pub fn test_bindings() -> HostFunctions {
     h.add("java:java.lang.Integer.valueOf(java.lang.String)", |a| {
         arity(a, 1)?;
         let s = str_arg(&a[0])?;
-        let x: i32 = s.trim().parse().map_err(|_| "NumberFormatException".to_string())?;
+        let x: i32 = s
+            .trim()
+            .parse()
+            .map_err(|_| "NumberFormatException".to_string())?;
         Ok(x.to_string())
     });
     h.add("java:java.lang.Float.valueOf(java.lang.String)", |a| {
         arity(a, 1)?;
         let s = str_arg(&a[0])?;
-        let x: f32 = s.trim().parse().map_err(|_| "NumberFormatException".to_string())?;
+        let x: f32 = s
+            .trim()
+            .parse()
+            .map_err(|_| "NumberFormatException".to_string())?;
         Ok(format!("{x}"))
     });
     h.add("java:java.lang.Double.valueOf(java.lang.String)", |a| {
         arity(a, 1)?;
         let s = str_arg(&a[0])?;
-        let x: f64 = s.trim().parse().map_err(|_| "NumberFormatException".to_string())?;
+        let x: f64 = s
+            .trim()
+            .parse()
+            .map_err(|_| "NumberFormatException".to_string())?;
         num_out(x)
     });
-    h.add("java:java.lang.String.format(java.lang.String,[Ljava.lang.Object;)", |a| {
-        if a.is_empty() {
-            return Err("missing format".into());
-        }
-        let fmt = str_arg(&a[0])?;
-        let mut out = String::new();
-        let mut args = a[1..].iter();
-        let mut chars = fmt.chars().peekable();
-        while let Some(c) = chars.next() {
-            if c == '%' {
-                match chars.next() {
-                    Some('s') => {
-                        let v = args.next().ok_or("missing argument")?;
-                        out.push_str(&serde_json::from_str::<String>(v).unwrap_or_else(|_| v.clone()));
-                    }
-                    Some('%') => out.push('%'),
-                    _ => return Err("unsupported format".into()),
-                }
-            } else {
-                out.push(c);
+    h.add(
+        "java:java.lang.String.format(java.lang.String,[Ljava.lang.Object;)",
+        |a| {
+            if a.is_empty() {
+                return Err("missing format".into());
             }
-        }
-        Ok(str_out(&out))
-    });
+            let fmt = str_arg(&a[0])?;
+            let mut out = String::new();
+            let mut args = a[1..].iter();
+            let mut chars = fmt.chars().peekable();
+            while let Some(c) = chars.next() {
+                if c == '%' {
+                    match chars.next() {
+                        Some('s') => {
+                            let v = args.next().ok_or("missing argument")?;
+                            out.push_str(
+                                &serde_json::from_str::<String>(v).unwrap_or_else(|_| v.clone()),
+                            );
+                        }
+                        Some('%') => out.push('%'),
+                        _ => return Err("unsupported format".into()),
+                    }
+                } else {
+                    out.push(c);
+                }
+            }
+            Ok(str_out(&out))
+        },
+    );
     h
 }

@@ -159,7 +159,13 @@ pub extern "C" fn rt_load_consts(ptr: i32, len: i32) -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn rt_set_limits(max_values: i32, max_collection: i32, max_string: i32, max_diags: i32, max_depth: i32) {
+pub extern "C" fn rt_set_limits(
+    max_values: i32,
+    max_collection: i32,
+    max_string: i32,
+    max_diags: i32,
+    max_depth: i32,
+) {
     let r = rt();
     r.limits.max_values = max_values as u32;
     r.limits.max_collection = max_collection as u32;
@@ -206,13 +212,31 @@ pub extern "C" fn rt_decode(ptr: i32, len: i32) -> i32 {
 /// handle or -1. Returns 1 on success, 0 on a boundary error (message in the
 /// output buffer).
 #[no_mangle]
-pub extern "C" fn rt_bind_inputs(inputs: i32, candidate: i32, names_h: i32, types_h: i32, validate: i32) -> i32 {
+pub extern "C" fn rt_bind_inputs(
+    inputs: i32,
+    candidate: i32,
+    names_h: i32,
+    types_h: i32,
+    validate: i32,
+) -> i32 {
     let r = rt();
-    let names: Vec<String> =
-        r.list_items(names_h as u32).unwrap_or_default().iter().map(|h| r.as_str(*h).map(|s| s.to_string()).unwrap_or_default()).collect();
-    let types: Vec<Option<String>> =
-        r.list_items(types_h as u32).unwrap_or_default().iter().map(|h| r.as_str(*h).map(|s| s.to_string())).collect();
-    let cand = if candidate < 0 { None } else { Some(candidate as u32) };
+    let names: Vec<String> = r
+        .list_items(names_h as u32)
+        .unwrap_or_default()
+        .iter()
+        .map(|h| r.as_str(*h).map(|s| s.to_string()).unwrap_or_default())
+        .collect();
+    let types: Vec<Option<String>> = r
+        .list_items(types_h as u32)
+        .unwrap_or_default()
+        .iter()
+        .map(|h| r.as_str(*h).map(|s| s.to_string()))
+        .collect();
+    let cand = if candidate < 0 {
+        None
+    } else {
+        Some(candidate as u32)
+    };
     match abi::bind_inputs(r, inputs as u32, cand, &names, &types, validate != 0) {
         Ok(()) => 1,
         Err(e) => {

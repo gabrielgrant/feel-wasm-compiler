@@ -26,7 +26,12 @@ fn run(v: &Value, optimize: bool) -> Outcome {
     opts.optimize = optimize;
     let out = compile(expr, &opts);
     let Some(wasm) = out.wasm else {
-        return Outcome { result: None, abort: None, compile_error: out.diagnostics.iter().map(|d| d.code.clone()).collect(), diags: vec![] };
+        return Outcome {
+            result: None,
+            abort: None,
+            compile_error: out.diagnostics.iter().map(|d| d.code.clone()).collect(),
+            diags: vec![],
+        };
     };
     feel_compiler::validate_module(&wasm).expect("emitted module validates");
     let engine = Engine::new();
@@ -47,11 +52,22 @@ fn run(v: &Value, optimize: bool) -> Outcome {
         }
     }
     let mut inst = program.instantiate(&engine, io).expect("instantiate");
-    let inputs = v.get("inputs").map(|i| i.to_string()).unwrap_or_else(|| "{}".into());
-    let clock = ClockSpec::Fixed(v.get("clock").and_then(|c| c.as_str()).unwrap_or("2024-01-01T10:00:00Z").to_string());
+    let inputs = v
+        .get("inputs")
+        .map(|i| i.to_string())
+        .unwrap_or_else(|| "{}".into());
+    let clock = ClockSpec::Fixed(
+        v.get("clock")
+            .and_then(|c| c.as_str())
+            .unwrap_or("2024-01-01T10:00:00Z")
+            .to_string(),
+    );
     let eo = EvalOptions { clock };
     let ev = if opts.entry == Entry::UnaryTests {
-        let cand = v.get("candidate").map(|c| c.to_string()).unwrap_or_else(|| "null".into());
+        let cand = v
+            .get("candidate")
+            .map(|c| c.to_string())
+            .unwrap_or_else(|| "null".into());
         inst.evaluate_unary(&cand, &inputs, &eo)
     } else {
         inst.evaluate(&inputs, &eo)
@@ -73,7 +89,10 @@ fn check(v: &Value, o: &Outcome) -> Result<(), String> {
         return Ok(());
     }
     if !o.compile_error.is_empty() {
-        return Err(format!("{id}: unexpected compile error {:?}", o.compile_error));
+        return Err(format!(
+            "{id}: unexpected compile error {:?}",
+            o.compile_error
+        ));
     }
     if let Some(code) = v.get("expectAbort").and_then(|c| c.as_str()) {
         if o.abort.as_deref() != Some(code) {
@@ -83,7 +102,10 @@ fn check(v: &Value, o: &Outcome) -> Result<(), String> {
     }
     let exp = v["expect"].as_str().unwrap();
     if o.result.as_deref() != Some(exp) {
-        return Err(format!("{id}: expected {exp}, got {:?} (abort {:?}, diags {:?})", o.result, o.abort, o.diags));
+        return Err(format!(
+            "{id}: expected {exp}, got {:?} (abort {:?}, diags {:?})",
+            o.result, o.abort, o.diags
+        ));
     }
     if let Some(ds) = v.get("expectDiag").and_then(|d| d.as_array()) {
         for d in ds {
@@ -98,7 +120,10 @@ fn check(v: &Value, o: &Outcome) -> Result<(), String> {
 
 #[test]
 fn semantic_vectors() {
-    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../tests/vectors/semantic.json");
+    let path = concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/../../tests/vectors/semantic.json"
+    );
     let text = std::fs::read_to_string(path).unwrap();
     let vs: Vec<Value> = serde_json::from_str(&text).unwrap();
     let mut failures = Vec::new();
@@ -112,12 +137,23 @@ fn semantic_vectors() {
             failures.push(format!("[no-opt] {e}"));
         }
         if a.result != b.result || a.abort != b.abort || a.diags != b.diags {
-            failures.push(format!("[differential] {}: opt {a:?} vs no-opt {b:?}", v["id"]));
+            failures.push(format!(
+                "[differential] {}: opt {a:?} vs no-opt {b:?}",
+                v["id"]
+            ));
         }
     }
     for f in &failures {
         eprintln!("{f}");
     }
-    assert!(failures.is_empty(), "{} of {} vector checks failed", failures.len(), vs.len());
-    eprintln!("{} semantic vectors passed (optimized + unoptimized)", vs.len());
+    assert!(
+        failures.is_empty(),
+        "{} of {} vector checks failed",
+        failures.len(),
+        vs.len()
+    );
+    eprintln!(
+        "{} semantic vectors passed (optimized + unoptimized)",
+        vs.len()
+    );
 }

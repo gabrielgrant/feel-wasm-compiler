@@ -32,11 +32,19 @@ impl Cx for NoCallbacks<'_> {
         self.0
     }
     fn apply(&mut self, _f: H, _args: H) -> H {
-        self.0.diag("FEEL-E321", 0, "user function call not available in this context");
+        self.0.diag(
+            "FEEL-E321",
+            0,
+            "user function call not available in this context",
+        );
         NULL
     }
     fn call_host(&mut self, _f: H, _args: H) -> H {
-        self.0.diag("FEEL-E321", 0, "host function call not available in this context");
+        self.0.diag(
+            "FEEL-E321",
+            0,
+            "host function call not available in this context",
+        );
         NULL
     }
 }
@@ -55,7 +63,13 @@ pub struct Builtin {
 
 macro_rules! b {
     ($n:expr, $s:expr, $f:expr) => {
-        Builtin { name: $n, spec: $s, imp: $f, deterministic: true, extension: 0 }
+        Builtin {
+            name: $n,
+            spec: $s,
+            imp: $f,
+            deterministic: true,
+            extension: 0,
+        }
     };
 }
 
@@ -212,7 +226,10 @@ pub static BUILTINS: &[Builtin] = &[
 ];
 
 pub fn lookup(name: &str) -> Option<u16> {
-    BUILTINS.iter().position(|b| b.name == name).map(|i| i as u16)
+    BUILTINS
+        .iter()
+        .position(|b| b.name == name)
+        .map(|i| i as u16)
 }
 
 pub fn name_of(id: u16) -> &'static str {
@@ -299,10 +316,18 @@ pub fn parse_spec(spec: &str) -> Vec<Overload> {
                     Some(x) => (x.trim().to_string(), true),
                     None => (t, false),
                 };
-                params.push(SigParam { name: n, ty: t, optional, variadic });
+                params.push(SigParam {
+                    name: n,
+                    ty: t,
+                    optional,
+                    variadic,
+                });
             }
         }
-        res.push(Overload { params, ret: ret.to_string() });
+        res.push(Overload {
+            params,
+            ret: ret.to_string(),
+        });
     }
     res
 }
@@ -345,12 +370,18 @@ pub fn call(cx: &mut dyn Cx, id: u16, args: &[H], site: u32) -> H {
         return NULL;
     };
     if b.extension != 0 && cx.rt().extensions & b.extension == 0 {
-        cx.rt().diag("FEEL-E322", site, format!("builtin '{}' is an extension that is not enabled", b.name));
+        cx.rt().diag(
+            "FEEL-E322",
+            site,
+            format!("builtin '{}' is an extension that is not enabled", b.name),
+        );
         return NULL;
     }
     let ovs = overloads(id);
     let n = args.len();
-    let ok = ovs.iter().any(|o| n >= o.min_args() && o.max_args().map(|m| n <= m).unwrap_or(true));
+    let ok = ovs
+        .iter()
+        .any(|o| n >= o.min_args() && o.max_args().map(|m| n <= m).unwrap_or(true));
     if !ok {
         cx.rt().diag(
             "FEEL-E320",
@@ -363,15 +394,24 @@ pub fn call(cx: &mut dyn Cx, id: u16, args: &[H], site: u32) -> H {
     // every overload of this arity expects a non-list there
     let mut conv: Vec<H> = args.to_vec();
     for (i, a) in conv.iter_mut().enumerate() {
-        let all_scalar = ovs.iter().filter(|o| n >= o.min_args() && o.max_args().map(|m| n <= m).unwrap_or(true)).all(|o| {
-            let p = o.params.get(i).or_else(|| o.params.last().filter(|p| p.variadic));
-            match p {
-                Some(p) => !is_list_type(&p.ty) && p.ty != "Any",
-                None => false,
-            }
-        });
+        let all_scalar = ovs
+            .iter()
+            .filter(|o| n >= o.min_args() && o.max_args().map(|m| n <= m).unwrap_or(true))
+            .all(|o| {
+                let p = o
+                    .params
+                    .get(i)
+                    .or_else(|| o.params.last().filter(|p| p.variadic));
+                match p {
+                    Some(p) => !is_list_type(&p.ty) && p.ty != "Any",
+                    None => false,
+                }
+            });
         if all_scalar {
-            let single = cx.rt().as_list(*a).and_then(|l| if l.len() == 1 { Some(l[0]) } else { None });
+            let single = cx
+                .rt()
+                .as_list(*a)
+                .and_then(|l| if l.len() == 1 { Some(l[0]) } else { None });
             if let Some(x) = single {
                 *a = x;
             }
@@ -379,13 +419,19 @@ pub fn call(cx: &mut dyn Cx, id: u16, args: &[H], site: u32) -> H {
     }
     // implicit conversion "to singleton list" for list parameters
     for (i, a) in conv.iter_mut().enumerate() {
-        let all_list = ovs.iter().filter(|o| n >= o.min_args() && o.max_args().map(|m| n <= m).unwrap_or(true)).all(|o| {
-            let p = o.params.get(i).or_else(|| o.params.last().filter(|p| p.variadic));
-            match p {
-                Some(p) => is_list_type(&p.ty) && !p.variadic,
-                None => false,
-            }
-        });
+        let all_list = ovs
+            .iter()
+            .filter(|o| n >= o.min_args() && o.max_args().map(|m| n <= m).unwrap_or(true))
+            .all(|o| {
+                let p = o
+                    .params
+                    .get(i)
+                    .or_else(|| o.params.last().filter(|p| p.variadic));
+                match p {
+                    Some(p) => is_list_type(&p.ty) && !p.variadic,
+                    None => false,
+                }
+            });
         if all_list && !matches!(cx.rt().get(*a), Value::List(_) | Value::Null) {
             let l = cx.rt().list(vec![*a]);
             *a = l;
@@ -404,7 +450,9 @@ fn arg_conforms(rt: &mut Runtime, h: H, ty: &str) -> bool {
     }
     // implicit singleton conversions
     match (&t, rt.get(h).clone()) {
-        (RtType::List(et), v) if !matches!(v, Value::List(_)) => types::value_conforms(rt, h, et) == Some(true),
+        (RtType::List(et), v) if !matches!(v, Value::List(_)) => {
+            types::value_conforms(rt, h, et) == Some(true)
+        }
         (t, Value::List(items)) if items.len() == 1 && !matches!(t, RtType::List(_)) => {
             types::value_conforms(rt, items[0], t) == Some(true)
         }
@@ -423,7 +471,14 @@ pub fn call_named(cx: &mut dyn Cx, id: u16, named: H, site: u32) -> H {
         None => return NULL,
     };
     let ovs = overloads(id);
-    let name_match: Vec<&Overload> = ovs.iter().filter(|o| ctx.keys.iter().all(|k| o.params.iter().any(|p| p.name == **k))).collect();
+    let name_match: Vec<&Overload> = ovs
+        .iter()
+        .filter(|o| {
+            ctx.keys
+                .iter()
+                .all(|k| o.params.iter().any(|p| p.name == **k))
+        })
+        .collect();
     // prefer an overload whose parameter types accept the named arguments
     let typed: Vec<&Overload> = name_match
         .iter()
@@ -436,12 +491,19 @@ pub fn call_named(cx: &mut dyn Cx, id: u16, named: H, site: u32) -> H {
         })
         .collect();
     if typed.is_empty() && !name_match.is_empty() {
-        cx.rt().diag("FEEL-E325", site, format!("named arguments of '{}' do not conform to its parameter types", b.name));
+        cx.rt().diag(
+            "FEEL-E325",
+            site,
+            format!(
+                "named arguments of '{}' do not conform to its parameter types",
+                b.name
+            ),
+        );
         return NULL;
     }
-    for o in typed {
+    if let Some(o) = typed.first() {
         {
-            // required params must be supplied? Unsupplied are bound to null.
+            // unsupplied parameters are bound to null (10.3.2.13.5)
             let mut args = Vec::new();
             let last_supplied = o.params.iter().rposition(|p| ctx.get(&p.name).is_some());
             for (i, p) in o.params.iter().enumerate() {
@@ -462,7 +524,11 @@ pub fn call_named(cx: &mut dyn Cx, id: u16, named: H, site: u32) -> H {
     cx.rt().diag(
         "FEEL-E323",
         site,
-        format!("builtin '{}' has no parameters named {}", b.name, names.join(", ")),
+        format!(
+            "builtin '{}' has no parameters named {}",
+            b.name,
+            names.join(", ")
+        ),
     );
     NULL
 }
@@ -473,7 +539,11 @@ pub fn call_value(cx: &mut dyn Cx, f: H, args: H, named: bool, site: u32) -> H {
         Value::Func(fv) => fv.clone(),
         _ => {
             let k = cx.rt().kind_name(f);
-            cx.rt().diag("FEEL-E324", site, format!("cannot invoke a value of type {k}"));
+            cx.rt().diag(
+                "FEEL-E324",
+                site,
+                format!("cannot invoke a value of type {k}"),
+            );
             return NULL;
         }
     };
@@ -509,9 +579,9 @@ pub fn call_value(cx: &mut dyn Cx, f: H, args: H, named: bool, site: u32) -> H {
 /// invocation must yield null.
 pub fn bind_args(rt: &mut Runtime, f: H, args: H, named: bool, site: u32) -> H {
     let sig = match rt.get(f) {
-        Value::Func(Func::User { sig, .. }) | Value::Func(Func::External { sig, .. }) | Value::Func(Func::Host { sig, .. }) => {
-            *sig
-        }
+        Value::Func(Func::User { sig, .. })
+        | Value::Func(Func::External { sig, .. })
+        | Value::Func(Func::Host { sig, .. }) => *sig,
         _ => return ABSENT,
     };
     let params: Vec<(Rc<str>, Option<Rc<str>>)> = rt
@@ -520,7 +590,10 @@ pub fn bind_args(rt: &mut Runtime, f: H, args: H, named: bool, site: u32) -> H {
         .iter()
         .map(|p| {
             let pair = rt.list_items(*p).unwrap_or_default();
-            let n = pair.first().and_then(|h| rt.as_str(*h)).unwrap_or_else(|| Rc::from(""));
+            let n = pair
+                .first()
+                .and_then(|h| rt.as_str(*h))
+                .unwrap_or_else(|| Rc::from(""));
             let t = pair.get(1).and_then(|h| rt.as_str(*h));
             (n, t)
         })
@@ -533,7 +606,11 @@ pub fn bind_args(rt: &mut Runtime, f: H, args: H, named: bool, site: u32) -> H {
         };
         for k in &ctx.keys {
             if !params.iter().any(|(n, _)| n == k) {
-                rt.diag("FEEL-E323", site, format!("function has no parameter named '{k}'"));
+                rt.diag(
+                    "FEEL-E323",
+                    site,
+                    format!("function has no parameter named '{k}'"),
+                );
                 return ABSENT;
             }
         }
@@ -546,7 +623,11 @@ pub fn bind_args(rt: &mut Runtime, f: H, args: H, named: bool, site: u32) -> H {
             rt.diag(
                 "FEEL-E320",
                 site,
-                format!("function expects {} arguments but {} were given", params.len(), items.len()),
+                format!(
+                    "function expects {} arguments but {} were given",
+                    params.len(),
+                    items.len()
+                ),
             );
             return ABSENT;
         }
@@ -691,10 +772,20 @@ fn bi_time(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
         };
     }
     let (Some(h), Some(m), Some(sec)) = (int(cx, a[0]), int(cx, a[1]), num(cx, a[2])) else {
-        return bad(cx, site, "time", "hour and minute must be integers and second a number");
+        return bad(
+            cx,
+            site,
+            "time",
+            "hour and minute must be integers and second a number",
+        );
     };
-    let nanos = sec.mul(&Decimal::from_i64(1_000_000_000)).and_then(|x| x.set_scale(0, RoundingMode::Down)).and_then(|x| x.to_i64());
-    let Some(nanos) = nanos else { return bad(cx, site, "time", "invalid second") };
+    let nanos = sec
+        .mul(&Decimal::from_i64(1_000_000_000))
+        .and_then(|x| x.set_scale(0, RoundingMode::Down))
+        .and_then(|x| x.to_i64());
+    let Some(nanos) = nanos else {
+        return bad(cx, site, "time", "invalid second");
+    };
     let zone = if a.len() > 3 {
         match cx.rt().get(a[3]).clone() {
             Value::Null => None,
@@ -716,7 +807,9 @@ fn bi_time(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_number(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(from) = s(cx, a[0]) else { return bad(cx, site, "number", "from must be a string") };
+    let Some(from) = s(cx, a[0]) else {
+        return bad(cx, site, "number", "from must be a string");
+    };
     let sep = |cx: &mut dyn Cx, i: usize| -> Result<Option<Rc<str>>, ()> {
         if i >= a.len() || cx.rt().is_null(a[i]) {
             Ok(None)
@@ -732,16 +825,31 @@ fn bi_number(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
     };
     if let Some(g) = &g {
         if !matches!(&**g, " " | "," | ".") {
-            return bad(cx, site, "number", "grouping separator must be one of space, comma or period");
+            return bad(
+                cx,
+                site,
+                "number",
+                "grouping separator must be one of space, comma or period",
+            );
         }
     }
     if let Some(d) = &d {
         if !matches!(&**d, "," | ".") {
-            return bad(cx, site, "number", "decimal separator must be comma or period");
+            return bad(
+                cx,
+                site,
+                "number",
+                "decimal separator must be comma or period",
+            );
         }
     }
     if g.is_some() && g == d {
-        return bad(cx, site, "number", "grouping and decimal separators must differ");
+        return bad(
+            cx,
+            site,
+            "number",
+            "grouping and decimal separators must differ",
+        );
     }
     let mut t = from.to_string();
     if let Some(g) = &g {
@@ -755,7 +863,9 @@ fn bi_number(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
             t = t.replace(&**d, ".");
         }
     }
-    let ok = !t.is_empty() && t.chars().all(|c| c.is_ascii_digit() || matches!(c, '.' | '-' | '+' | 'e' | 'E'));
+    let ok = !t.is_empty()
+        && t.chars()
+            .all(|c| c.is_ascii_digit() || matches!(c, '.' | '-' | '+' | 'e' | 'E'));
     match if ok { Decimal::parse(&t) } else { None } {
         Some(x) => cx.rt().num(x),
         None => bad(cx, site, "number", "not a number"),
@@ -783,19 +893,34 @@ pub fn to_feel_string(rt: &Runtime, h: H, top: bool) -> String {
         Value::Dtd(d) => d.to_string(),
         Value::Ymd(d) => d.to_string(),
         Value::List(items) => {
-            let parts: Vec<String> = items.iter().map(|x| to_feel_string(rt, *x, false)).collect();
+            let parts: Vec<String> = items
+                .iter()
+                .map(|x| to_feel_string(rt, *x, false))
+                .collect();
             format!("[{}]", parts.join(", "))
         }
         Value::Ctx(c) => {
-            let parts: Vec<String> =
-                c.keys.iter().zip(c.vals.iter()).map(|(k, v)| format!("{}: {}", k, to_feel_string(rt, *v, false))).collect();
+            let parts: Vec<String> = c
+                .keys
+                .iter()
+                .zip(c.vals.iter())
+                .map(|(k, v)| format!("{}: {}", k, to_feel_string(rt, *v, false)))
+                .collect();
             format!("{{{}}}", parts.join(", "))
         }
         Value::Range(r) => {
             let ep = |x: Option<H>| x.map(|h| to_feel_string(rt, h, false)).unwrap_or_default();
             match (r.start, r.end) {
-                (None, Some(e)) => format!("{} {}", if r.end_incl { "<=" } else { "<" }, to_feel_string(rt, e, false)),
-                (Some(s), None) => format!("{} {}", if r.start_incl { ">=" } else { ">" }, to_feel_string(rt, s, false)),
+                (None, Some(e)) => format!(
+                    "{} {}",
+                    if r.end_incl { "<=" } else { "<" },
+                    to_feel_string(rt, e, false)
+                ),
+                (Some(s), None) => format!(
+                    "{} {}",
+                    if r.start_incl { ">=" } else { ">" },
+                    to_feel_string(rt, s, false)
+                ),
                 _ => format!(
                     "{}{}..{}{}",
                     if r.start_incl { "[" } else { "(" },
@@ -818,7 +943,9 @@ fn bi_string(cx: &mut dyn Cx, a: &[H], _site: u32) -> H {
 }
 
 fn bi_duration(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(x) = s(cx, a[0]) else { return bad(cx, site, "duration", "from must be a string") };
+    let Some(x) = s(cx, a[0]) else {
+        return bad(cx, site, "duration", "from must be a string");
+    };
     match tm::parse_duration(&x) {
         Some(tm::Duration::DayTime(d)) => cx.rt().alloc(Value::Dtd(d)),
         Some(tm::Duration::YearMonth(d)) => cx.rt().alloc(Value::Ymd(d)),
@@ -842,12 +969,19 @@ fn bi_ymd(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
             Some(d) => cx.rt().alloc(Value::Ymd(d)),
             None => bad(cx, site, "years and months duration", "out of range"),
         },
-        _ => bad(cx, site, "years and months duration", "arguments must be dates or date and times"),
+        _ => bad(
+            cx,
+            site,
+            "years and months duration",
+            "arguments must be dates or date and times",
+        ),
     }
 }
 
 fn bi_range(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(x) = s(cx, a[0]) else { return bad(cx, site, "range", "from must be a string") };
+    let Some(x) = s(cx, a[0]) else {
+        return bad(cx, site, "range", "from must be a string");
+    };
     match crate::rangelit::parse_range(cx.rt(), &x) {
         Some(h) => h,
         None => bad(cx, site, "range", "invalid range literal"),
@@ -867,8 +1001,12 @@ fn bi_not(cx: &mut dyn Cx, a: &[H], _site: u32) -> H {
 // ------------------------------------------------------------------ strings
 
 fn bi_substring(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(st) = s(cx, a[0]) else { return bad(cx, site, "substring", "string expected") };
-    let Some(start) = num(cx, a[1]) else { return bad(cx, site, "substring", "start position must be a number") };
+    let Some(st) = s(cx, a[0]) else {
+        return bad(cx, site, "substring", "string expected");
+    };
+    let Some(start) = num(cx, a[1]) else {
+        return bad(cx, site, "substring", "start position must be a number");
+    };
     let chars: Vec<char> = st.chars().collect();
     let len = chars.len() as i64;
     let start = match start.trunc().to_i64() {
@@ -880,7 +1018,9 @@ fn bi_substring(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
     }
     let from = if start > 0 { start - 1 } else { len + start };
     let to = if a.len() > 2 && !cx.rt().is_null(a[2]) {
-        let Some(l) = num(cx, a[2]) else { return bad(cx, site, "substring", "length must be a number") };
+        let Some(l) = num(cx, a[2]) else {
+            return bad(cx, site, "substring", "length must be a number");
+        };
         let l = match l.trunc().to_i64() {
             Some(x) => x,
             None => return bad(cx, site, "substring", "invalid length"),
@@ -931,7 +1071,9 @@ fn two_strings(cx: &mut dyn Cx, a: &[H]) -> Option<(Rc<str>, Rc<str>)> {
 }
 
 fn bi_substring_before(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some((x, m)) = two_strings(cx, a) else { return bad(cx, site, "substring before", "strings expected") };
+    let Some((x, m)) = two_strings(cx, a) else {
+        return bad(cx, site, "substring before", "strings expected");
+    };
     let r = match x.find(&*m) {
         Some(i) => x[..i].to_string(),
         None => String::new(),
@@ -940,7 +1082,9 @@ fn bi_substring_before(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_substring_after(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some((x, m)) = two_strings(cx, a) else { return bad(cx, site, "substring after", "strings expected") };
+    let Some((x, m)) = two_strings(cx, a) else {
+        return bad(cx, site, "substring after", "strings expected");
+    };
     let r = match x.find(&*m) {
         Some(i) => x[i + m.len()..].to_string(),
         None => String::new(),
@@ -949,15 +1093,21 @@ fn bi_substring_after(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_contains(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some((x, m)) = two_strings(cx, a) else { return bad(cx, site, "contains", "strings expected") };
+    let Some((x, m)) = two_strings(cx, a) else {
+        return bad(cx, site, "contains", "strings expected");
+    };
     cx.rt().bool(x.contains(&*m))
 }
 fn bi_starts_with(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some((x, m)) = two_strings(cx, a) else { return bad(cx, site, "starts with", "strings expected") };
+    let Some((x, m)) = two_strings(cx, a) else {
+        return bad(cx, site, "starts with", "strings expected");
+    };
     cx.rt().bool(x.starts_with(&*m))
 }
 fn bi_ends_with(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some((x, m)) = two_strings(cx, a) else { return bad(cx, site, "ends with", "strings expected") };
+    let Some((x, m)) = two_strings(cx, a) else {
+        return bad(cx, site, "ends with", "strings expected");
+    };
     cx.rt().bool(x.ends_with(&*m))
 }
 
@@ -968,19 +1118,26 @@ fn regex_arg(cx: &mut dyn Cx, pat: H, flags: Option<H>) -> Option<Rc<fancy_regex
         _ => Rc::from(""),
     };
     let rt = cx.rt();
-    if let Some((_, _, r)) = rt.regex_cache.iter().find(|(a, b, _)| **a == *p && **b == *f) {
+    if let Some((_, _, r)) = rt
+        .regex_cache
+        .iter()
+        .find(|(a, b, _)| **a == *p && **b == *f)
+    {
         return Some(r.clone());
     }
     let r = Rc::new(crate::regex_xpath::compile(&p, &f)?);
     if rt.regex_cache.len() > 64 {
         rt.regex_cache.remove(0);
     }
-    rt.regex_cache.push((p.to_string(), f.to_string(), r.clone()));
+    rt.regex_cache
+        .push((p.to_string(), f.to_string(), r.clone()));
     Some(r)
 }
 
 fn bi_matches(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(input) = s(cx, a[0]) else { return bad(cx, site, "matches", "input must be a string") };
+    let Some(input) = s(cx, a[0]) else {
+        return bad(cx, site, "matches", "input must be a string");
+    };
     let Some(re) = regex_arg(cx, a[1], a.get(2).copied()) else {
         return bad(cx, site, "matches", "invalid pattern or flags");
     };
@@ -991,8 +1148,12 @@ fn bi_matches(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_replace(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(input) = s(cx, a[0]) else { return bad(cx, site, "replace", "input must be a string") };
-    let Some(rep) = s(cx, a[2]) else { return bad(cx, site, "replace", "replacement must be a string") };
+    let Some(input) = s(cx, a[0]) else {
+        return bad(cx, site, "replace", "input must be a string");
+    };
+    let Some(rep) = s(cx, a[2]) else {
+        return bad(cx, site, "replace", "replacement must be a string");
+    };
     let Some(re) = regex_arg(cx, a[1], a.get(3).copied()) else {
         return bad(cx, site, "replace", "invalid pattern or flags");
     };
@@ -1003,7 +1164,9 @@ fn bi_replace(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
     let mut out = String::new();
     let mut last = 0;
     for caps in re.captures_iter(&*input) {
-        let Ok(caps) = caps else { return bad(cx, site, "replace", "regex evaluation failed") };
+        let Ok(caps) = caps else {
+            return bad(cx, site, "replace", "regex evaluation failed");
+        };
         let m = caps.get(0).unwrap();
         out.push_str(&input[last..m.start()]);
         match crate::regex_xpath::expand_replacement(&rep, &caps, ngroups) {
@@ -1017,15 +1180,21 @@ fn bi_replace(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_split(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(input) = s(cx, a[0]) else { return bad(cx, site, "split", "string expected") };
-    let Some(re) = regex_arg(cx, a[1], None) else { return bad(cx, site, "split", "invalid delimiter pattern") };
+    let Some(input) = s(cx, a[0]) else {
+        return bad(cx, site, "split", "string expected");
+    };
+    let Some(re) = regex_arg(cx, a[1], None) else {
+        return bad(cx, site, "split", "invalid delimiter pattern");
+    };
     if let Ok(true) = re.is_match("") {
         return bad(cx, site, "split", "delimiter matches the empty string");
     }
     let mut parts = Vec::new();
     let mut last = 0;
     for m in re.find_iter(&*input) {
-        let Ok(m) = m else { return bad(cx, site, "split", "regex evaluation failed") };
+        let Ok(m) = m else {
+            return bad(cx, site, "split", "regex evaluation failed");
+        };
         parts.push(input[last..m.start()].to_string());
         last = m.end();
     }
@@ -1035,7 +1204,9 @@ fn bi_split(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_string_join(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(items) = list(cx, a[0]) else { return bad(cx, site, "string join", "list expected") };
+    let Some(items) = list(cx, a[0]) else {
+        return bad(cx, site, "string join", "list expected");
+    };
     let delim: Rc<str> = if a.len() > 1 && !cx.rt().is_null(a[1]) {
         match s(cx, a[1]) {
             Some(d) => d,
@@ -1059,8 +1230,12 @@ fn bi_string_join(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 // ------------------------------------------------------------------ lists
 
 fn bi_list_contains(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(items) = list(cx, a[0]) else { return bad(cx, site, "list contains", "list expected") };
-    let found = items.iter().any(|x| ops::eq(cx.rt(), *x, a[1]) == Some(true));
+    let Some(items) = list(cx, a[0]) else {
+        return bad(cx, site, "list contains", "list expected");
+    };
+    let found = items
+        .iter()
+        .any(|x| ops::eq(cx.rt(), *x, a[1]) == Some(true));
     cx.rt().bool(found)
 }
 
@@ -1072,7 +1247,9 @@ fn bi_count(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn extreme(cx: &mut dyn Cx, a: &[H], site: u32, name: &str, want: Ordering) -> H {
-    let Some(items) = list_or_varargs(cx, a) else { return NULL };
+    let Some(items) = list_or_varargs(cx, a) else {
+        return NULL;
+    };
     if items.is_empty() {
         return NULL;
     }
@@ -1098,11 +1275,15 @@ fn bi_max(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_sum(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(items) = list_or_varargs(cx, a) else { return NULL };
+    let Some(items) = list_or_varargs(cx, a) else {
+        return NULL;
+    };
     if items.is_empty() {
         return NULL;
     }
-    let Some(ns) = nums(cx, &items) else { return bad(cx, site, "sum", "all items must be numbers") };
+    let Some(ns) = nums(cx, &items) else {
+        return bad(cx, site, "sum", "all items must be numbers");
+    };
     let mut acc = Decimal::ZERO;
     for n in ns {
         match acc.add(&n) {
@@ -1114,11 +1295,15 @@ fn bi_sum(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_product(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(items) = list_or_varargs(cx, a) else { return NULL };
+    let Some(items) = list_or_varargs(cx, a) else {
+        return NULL;
+    };
     if items.is_empty() {
         return NULL;
     }
-    let Some(ns) = nums(cx, &items) else { return bad(cx, site, "product", "all items must be numbers") };
+    let Some(ns) = nums(cx, &items) else {
+        return bad(cx, site, "product", "all items must be numbers");
+    };
     let mut acc = Decimal::ONE;
     for n in ns {
         match acc.mul(&n) {
@@ -1138,37 +1323,51 @@ fn mean_of(ns: &[Decimal]) -> Option<Decimal> {
 }
 
 fn bi_mean(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(items) = list_or_varargs(cx, a) else { return NULL };
+    let Some(items) = list_or_varargs(cx, a) else {
+        return NULL;
+    };
     if items.is_empty() {
         return NULL;
     }
-    let Some(ns) = nums(cx, &items) else { return bad(cx, site, "mean", "all items must be numbers") };
+    let Some(ns) = nums(cx, &items) else {
+        return bad(cx, site, "mean", "all items must be numbers");
+    };
     let m = mean_of(&ns);
     opt_num(cx, m, site, "mean")
 }
 
 fn bi_median(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(items) = list_or_varargs(cx, a) else { return NULL };
+    let Some(items) = list_or_varargs(cx, a) else {
+        return NULL;
+    };
     if items.is_empty() {
         return NULL;
     }
-    let Some(mut ns) = nums(cx, &items) else { return bad(cx, site, "median", "all items must be numbers") };
+    let Some(mut ns) = nums(cx, &items) else {
+        return bad(cx, site, "median", "all items must be numbers");
+    };
     ns.sort();
     let n = ns.len();
     if n % 2 == 1 {
         cx.rt().num(ns[n / 2])
     } else {
-        let m = ns[n / 2 - 1].add(&ns[n / 2]).and_then(|x| x.div(&Decimal::from_i64(2)));
+        let m = ns[n / 2 - 1]
+            .add(&ns[n / 2])
+            .and_then(|x| x.div(&Decimal::from_i64(2)));
         opt_num(cx, m, site, "median")
     }
 }
 
 fn bi_stddev(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(items) = list_or_varargs(cx, a) else { return NULL };
+    let Some(items) = list_or_varargs(cx, a) else {
+        return NULL;
+    };
     if items.len() < 2 {
         return NULL;
     }
-    let Some(ns) = nums(cx, &items) else { return bad(cx, site, "stddev", "all items must be numbers") };
+    let Some(ns) = nums(cx, &items) else {
+        return bad(cx, site, "stddev", "all items must be numbers");
+    };
     let r = (|| {
         let m = mean_of(&ns)?;
         let mut acc = Decimal::ZERO;
@@ -1182,8 +1381,12 @@ fn bi_stddev(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_mode(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(items) = list_or_varargs(cx, a) else { return NULL };
-    let Some(mut ns) = nums(cx, &items) else { return bad(cx, site, "mode", "all items must be numbers") };
+    let Some(items) = list_or_varargs(cx, a) else {
+        return NULL;
+    };
+    let Some(mut ns) = nums(cx, &items) else {
+        return bad(cx, site, "mode", "all items must be numbers");
+    };
     ns.sort();
     let mut best: Vec<Decimal> = Vec::new();
     let mut best_n = 0;
@@ -1207,7 +1410,9 @@ fn bi_mode(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_all(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(items) = list_or_varargs(cx, a) else { return NULL };
+    let Some(items) = list_or_varargs(cx, a) else {
+        return NULL;
+    };
     let mut r = T_TRUE;
     for it in items {
         let t = ops::truth(cx.rt(), it);
@@ -1220,7 +1425,9 @@ fn bi_all(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_any(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(items) = list_or_varargs(cx, a) else { return NULL };
+    let Some(items) = list_or_varargs(cx, a) else {
+        return NULL;
+    };
     let mut r = T_FALSE;
     for it in items {
         let t = ops::truth(cx.rt(), it);
@@ -1245,12 +1452,16 @@ fn position(cx: &mut dyn Cx, h: H, len: usize) -> Option<usize> {
 }
 
 fn bi_sublist(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(items) = list(cx, a[0]) else { return bad(cx, site, "sublist", "list expected") };
+    let Some(items) = list(cx, a[0]) else {
+        return bad(cx, site, "sublist", "list expected");
+    };
     let Some(from) = position(cx, a[1], items.len()) else {
         return bad(cx, site, "sublist", "start position out of range");
     };
     let to = if a.len() > 2 && !cx.rt().is_null(a[2]) {
-        let Some(l) = int_trunc(cx, a[2]) else { return bad(cx, site, "sublist", "length must be an integer") };
+        let Some(l) = int_trunc(cx, a[2]) else {
+            return bad(cx, site, "sublist", "length must be an integer");
+        };
         if l < 0 || from as i64 + l > items.len() as i64 {
             return bad(cx, site, "sublist", "length out of range");
         }
@@ -1262,7 +1473,9 @@ fn bi_sublist(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_append(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(mut items) = list(cx, a[0]) else { return bad(cx, site, "append", "list expected") };
+    let Some(mut items) = list(cx, a[0]) else {
+        return bad(cx, site, "append", "list expected");
+    };
     items.extend_from_slice(&a[1..]);
     cx.rt().list(items)
 }
@@ -1279,7 +1492,9 @@ fn bi_concatenate(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_insert_before(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(mut items) = list(cx, a[0]) else { return bad(cx, site, "insert before", "list expected") };
+    let Some(mut items) = list(cx, a[0]) else {
+        return bad(cx, site, "insert before", "list expected");
+    };
     let Some(p) = position(cx, a[1], items.len()) else {
         return bad(cx, site, "insert before", "position out of range");
     };
@@ -1288,22 +1503,36 @@ fn bi_insert_before(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_remove(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(mut items) = list(cx, a[0]) else { return bad(cx, site, "remove", "list expected") };
-    let Some(p) = position(cx, a[1], items.len()) else { return bad(cx, site, "remove", "position out of range") };
+    let Some(mut items) = list(cx, a[0]) else {
+        return bad(cx, site, "remove", "list expected");
+    };
+    let Some(p) = position(cx, a[1], items.len()) else {
+        return bad(cx, site, "remove", "position out of range");
+    };
     items.remove(p);
     cx.rt().list(items)
 }
 
 fn bi_list_replace(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(mut items) = list(cx, a[0]) else { return bad(cx, site, "list replace", "list expected") };
+    let Some(mut items) = list(cx, a[0]) else {
+        return bad(cx, site, "list replace", "list expected");
+    };
     if let Value::Func(_) = cx.rt().get(a[1]) {
+        #[allow(clippy::needless_range_loop)]
         for i in 0..items.len() {
             let args = cx.rt().list(vec![items[i], a[2]]);
             let r = call_value(cx, a[1], args, false, site);
             match cx.rt().as_bool(r) {
                 Some(true) => items[i] = a[2],
                 Some(false) => {}
-                None => return bad(cx, site, "list replace", "match function must return a boolean"),
+                None => {
+                    return bad(
+                        cx,
+                        site,
+                        "list replace",
+                        "match function must return a boolean",
+                    )
+                }
             }
             if cx.rt().aborted() {
                 return NULL;
@@ -1319,13 +1548,17 @@ fn bi_list_replace(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_reverse(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(mut items) = list(cx, a[0]) else { return bad(cx, site, "reverse", "list expected") };
+    let Some(mut items) = list(cx, a[0]) else {
+        return bad(cx, site, "reverse", "list expected");
+    };
     items.reverse();
     cx.rt().list(items)
 }
 
 fn bi_index_of(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(items) = list(cx, a[0]) else { return bad(cx, site, "index of", "list expected") };
+    let Some(items) = list(cx, a[0]) else {
+        return bad(cx, site, "index of", "list expected");
+    };
     let mut out = Vec::new();
     for (i, it) in items.iter().enumerate() {
         if ops::eq(cx.rt(), *it, a[1]) == Some(true) {
@@ -1359,7 +1592,9 @@ fn bi_union(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_distinct_values(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(items) = list(cx, a[0]) else { return bad(cx, site, "distinct values", "list expected") };
+    let Some(items) = list(cx, a[0]) else {
+        return bad(cx, site, "distinct values", "list expected");
+    };
     let d = distinct(cx, items);
     cx.rt().list(d)
 }
@@ -1395,8 +1630,17 @@ fn scale_arg(cx: &mut dyn Cx, h: H) -> Option<i64> {
     }
 }
 
-fn round_fn(cx: &mut dyn Cx, a: &[H], site: u32, name: &str, mode: RoundingMode, default_scale: Option<i64>) -> H {
-    let Some(n) = num(cx, a[0]) else { return bad(cx, site, name, "n must be a number") };
+fn round_fn(
+    cx: &mut dyn Cx,
+    a: &[H],
+    site: u32,
+    name: &str,
+    mode: RoundingMode,
+    default_scale: Option<i64>,
+) -> H {
+    let Some(n) = num(cx, a[0]) else {
+        return bad(cx, site, name, "n must be a number");
+    };
     let scale = if a.len() > 1 {
         if cx.rt().is_null(a[1]) {
             return bad(cx, site, name, "scale is null");
@@ -1413,7 +1657,13 @@ fn round_fn(cx: &mut dyn Cx, a: &[H], site: u32, name: &str, mode: RoundingMode,
     };
     // set the scale; if padding would exceed 34 digits the value already has
     // fewer fractional digits than requested and is returned unchanged
-    let r = n.set_scale(scale, mode).or_else(|| if n.scale() as i64 <= scale { Some(n) } else { n.round_to_scale(scale, mode) });
+    let r = n.set_scale(scale, mode).or_else(|| {
+        if n.scale() as i64 <= scale {
+            Some(n)
+        } else {
+            n.round_to_scale(scale, mode)
+        }
+    });
     opt_num(cx, r, site, name)
 }
 
@@ -1442,8 +1692,12 @@ fn bi_round_half_down(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 fn bi_abs(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
     match cx.rt().get(a[0]).clone() {
         Value::Num(d) => cx.rt().num(d.abs()),
-        Value::Dtd(d) => cx.rt().alloc(Value::Dtd(tm::DayTimeDuration { nanos: d.nanos.abs() })),
-        Value::Ymd(d) => cx.rt().alloc(Value::Ymd(tm::YearMonthDuration { months: d.months.abs() })),
+        Value::Dtd(d) => cx.rt().alloc(Value::Dtd(tm::DayTimeDuration {
+            nanos: d.nanos.abs(),
+        })),
+        Value::Ymd(d) => cx.rt().alloc(Value::Ymd(tm::YearMonthDuration {
+            months: d.months.abs(),
+        })),
         _ => bad(cx, site, "abs", "number or duration expected"),
     }
 }
@@ -1460,7 +1714,9 @@ fn bi_modulo(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_sqrt(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(x) = num(cx, a[0]) else { return bad(cx, site, "sqrt", "number expected") };
+    let Some(x) = num(cx, a[0]) else {
+        return bad(cx, site, "sqrt", "number expected");
+    };
     if x.is_negative() {
         return bad(cx, site, "sqrt", "negative argument");
     }
@@ -1469,7 +1725,9 @@ fn bi_sqrt(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_log(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(x) = num(cx, a[0]) else { return bad(cx, site, "log", "number expected") };
+    let Some(x) = num(cx, a[0]) else {
+        return bad(cx, site, "log", "number expected");
+    };
     if !x.is_positive() {
         return bad(cx, site, "log", "argument must be positive");
     }
@@ -1478,26 +1736,38 @@ fn bi_log(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_exp(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(x) = num(cx, a[0]) else { return bad(cx, site, "exp", "number expected") };
+    let Some(x) = num(cx, a[0]) else {
+        return bad(cx, site, "exp", "number expected");
+    };
     let r = x.exp();
     opt_num(cx, r, site, "exp")
 }
 
 fn bi_odd(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(x) = num(cx, a[0]) else { return bad(cx, site, "odd", "number expected") };
+    let Some(x) = num(cx, a[0]) else {
+        return bad(cx, site, "odd", "number expected");
+    };
     if !x.is_integer() {
         return bad(cx, site, "odd", "integer expected");
     }
-    let r = x.rem(&Decimal::from_i64(2)).map(|r| !r.is_zero()).unwrap_or(false);
+    let r = x
+        .rem(&Decimal::from_i64(2))
+        .map(|r| !r.is_zero())
+        .unwrap_or(false);
     cx.rt().bool(r)
 }
 
 fn bi_even(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(x) = num(cx, a[0]) else { return bad(cx, site, "even", "number expected") };
+    let Some(x) = num(cx, a[0]) else {
+        return bad(cx, site, "even", "number expected");
+    };
     if !x.is_integer() {
         return bad(cx, site, "even", "integer expected");
     }
-    let r = x.rem(&Decimal::from_i64(2)).map(|r| r.is_zero()).unwrap_or(false);
+    let r = x
+        .rem(&Decimal::from_i64(2))
+        .map(|r| r.is_zero())
+        .unwrap_or(false);
     cx.rt().bool(r)
 }
 
@@ -1514,7 +1784,10 @@ pub fn is_same(rt: &Runtime, a: H, b: H) -> bool {
         }
         (Value::Ctx(x), Value::Ctx(y)) => {
             x.len() == y.len()
-                && x.keys.iter().zip(x.vals.iter()).all(|(k, v)| y.get(k).map(|w| is_same(rt, *v, w)).unwrap_or(false))
+                && x.keys
+                    .iter()
+                    .zip(x.vals.iter())
+                    .all(|(k, v)| y.get(k).map(|w| is_same(rt, *v, w)).unwrap_or(false))
         }
         (x, y) => {
             if std::mem::discriminant(x) != std::mem::discriminant(y) {
@@ -1542,7 +1815,12 @@ struct R {
 
 fn as_range(rt: &Runtime, h: H) -> Option<R> {
     match rt.get(h) {
-        Value::Range(r) => Some(R { s: r.start, e: r.end, si: r.start_incl, ei: r.end_incl }),
+        Value::Range(r) => Some(R {
+            s: r.start,
+            e: r.end,
+            si: r.start_incl,
+            ei: r.end_incl,
+        }),
         _ => None,
     }
 }
@@ -1609,7 +1887,13 @@ fn classify(cx: &mut dyn Cx, h: H) -> Option<Arg> {
     })
 }
 
-fn range_fn(cx: &mut dyn Cx, a: &[H], site: u32, name: &str, f: fn(&mut RC, Arg, Arg) -> Option<bool>) -> H {
+fn range_fn(
+    cx: &mut dyn Cx,
+    a: &[H],
+    site: u32,
+    name: &str,
+    f: fn(&mut RC, Arg, Arg) -> Option<bool>,
+) -> H {
     let (Some(x), Some(y)) = (classify(cx, a[0]), classify(cx, a[1])) else {
         return bad(cx, site, name, "arguments must not be null");
     };
@@ -1619,15 +1903,24 @@ fn range_fn(cx: &mut dyn Cx, a: &[H], site: u32, name: &str, f: fn(&mut RC, Arg,
     let err = rc.err;
     match r {
         Some(b) if !err => cx.rt().bool(b),
-        _ => bad(cx, site, name, "arguments are not comparable or not of the expected kinds"),
+        _ => bad(
+            cx,
+            site,
+            name,
+            "arguments are not comparable or not of the expected kinds",
+        ),
     }
 }
 
 fn bi_before(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
     range_fn(cx, a, site, "before", |c, x, y| match (x, y) {
         (Arg::Point(p), Arg::Point(q)) => Some(c.lt(P::Val(p), P::Val(q))),
-        (Arg::Point(p), Arg::Range(r)) => Some(c.lt(P::Val(p), st(&r)) || (c.eq(P::Val(p), st(&r)) && !r.si)),
-        (Arg::Range(r), Arg::Point(p)) => Some(c.lt(en(&r), P::Val(p)) || (c.eq(en(&r), P::Val(p)) && !r.ei)),
+        (Arg::Point(p), Arg::Range(r)) => {
+            Some(c.lt(P::Val(p), st(&r)) || (c.eq(P::Val(p), st(&r)) && !r.si))
+        }
+        (Arg::Range(r), Arg::Point(p)) => {
+            Some(c.lt(en(&r), P::Val(p)) || (c.eq(en(&r), P::Val(p)) && !r.ei))
+        }
         (Arg::Range(r1), Arg::Range(r2)) => {
             Some(c.lt(en(&r1), st(&r2)) || ((!r1.ei || !r2.si) && c.eq(en(&r1), st(&r2))))
         }
@@ -1637,8 +1930,12 @@ fn bi_before(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 fn bi_after(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
     range_fn(cx, a, site, "after", |c, x, y| match (x, y) {
         (Arg::Point(p), Arg::Point(q)) => Some(c.gt(P::Val(p), P::Val(q))),
-        (Arg::Point(p), Arg::Range(r)) => Some(c.gt(P::Val(p), en(&r)) || (c.eq(P::Val(p), en(&r)) && !r.ei)),
-        (Arg::Range(r), Arg::Point(p)) => Some(c.gt(st(&r), P::Val(p)) || (c.eq(st(&r), P::Val(p)) && !r.si)),
+        (Arg::Point(p), Arg::Range(r)) => {
+            Some(c.gt(P::Val(p), en(&r)) || (c.eq(P::Val(p), en(&r)) && !r.ei))
+        }
+        (Arg::Range(r), Arg::Point(p)) => {
+            Some(c.gt(st(&r), P::Val(p)) || (c.eq(st(&r), P::Val(p)) && !r.si))
+        }
         (Arg::Range(r1), Arg::Range(r2)) => {
             Some(c.gt(st(&r1), en(&r2)) || ((!r1.si || !r2.ei) && c.eq(st(&r1), en(&r2))))
         }
@@ -1763,9 +2060,9 @@ fn bi_started_by(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 fn bi_coincides(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
     range_fn(cx, a, site, "coincides", |c, x, y| match (x, y) {
         (Arg::Point(p), Arg::Point(q)) => Some(c.eq(P::Val(p), P::Val(q))),
-        (Arg::Range(r1), Arg::Range(r2)) => {
-            Some(c.eq(st(&r1), st(&r2)) && r1.si == r2.si && c.eq(en(&r1), en(&r2)) && r1.ei == r2.ei)
-        }
+        (Arg::Range(r1), Arg::Range(r2)) => Some(
+            c.eq(st(&r1), st(&r2)) && r1.si == r2.si && c.eq(en(&r1), en(&r2)) && r1.ei == r2.ei,
+        ),
         _ => None,
     })
 }
@@ -1808,7 +2105,9 @@ fn bi_week_of_year(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 // ------------------------------------------------------------------ sort
 
 fn bi_sort(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(items) = list(cx, a[0]) else { return bad(cx, site, "sort", "list expected") };
+    let Some(items) = list(cx, a[0]) else {
+        return bad(cx, site, "sort", "list expected");
+    };
     let f = a.get(1).copied().filter(|h| !cx.rt().is_null(*h));
     if let Some(f) = f {
         if !matches!(cx.rt().get(f), Value::Func(_)) {
@@ -1877,7 +2176,12 @@ fn bi_sort(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
         width *= 2;
     }
     if err {
-        return bad(cx, site, "sort", "precedes did not return a boolean / items not comparable");
+        return bad(
+            cx,
+            site,
+            "sort",
+            "precedes did not return a boolean / items not comparable",
+        );
     }
     cx.rt().list(v)
 }
@@ -1885,7 +2189,9 @@ fn bi_sort(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 // ------------------------------------------------------------------ context
 
 fn bi_get_value(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(k) = s(cx, a[1]) else { return bad(cx, site, "get value", "key must be a string") };
+    let Some(k) = s(cx, a[1]) else {
+        return bad(cx, site, "get value", "key must be a string");
+    };
     match cx.rt().get(a[0]) {
         Value::Ctx(c) => c.get(&k).unwrap_or(NULL),
         _ => {
@@ -1901,13 +2207,18 @@ fn bi_get_value(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_get_entries(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(c) = cx.rt().as_ctx(a[0]).cloned() else { return bad(cx, site, "get entries", "context expected") };
+    let Some(c) = cx.rt().as_ctx(a[0]).cloned() else {
+        return bad(cx, site, "get entries", "context expected");
+    };
     let kk: Rc<str> = Rc::from("key");
     let vk: Rc<str> = Rc::from("value");
     let mut out = Vec::with_capacity(c.len());
     for (k, v) in c.keys.iter().zip(c.vals.iter()) {
         let kh = cx.rt().str(k);
-        let e = Ctx { keys: vec![kk.clone(), vk.clone()], vals: vec![kh, *v] };
+        let e = Ctx {
+            keys: vec![kk.clone(), vk.clone()],
+            vals: vec![kh, *v],
+        };
         out.push(cx.rt().ctx(e));
     }
     cx.rt().list(out)
@@ -1921,11 +2232,15 @@ fn bi_context(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
     };
     let mut c = Ctx::default();
     for it in items {
-        let Some(e) = cx.rt().as_ctx(it).cloned() else { return bad(cx, site, "context", "entries must be contexts") };
+        let Some(e) = cx.rt().as_ctx(it).cloned() else {
+            return bad(cx, site, "context", "entries must be contexts");
+        };
         let (Some(k), Some(v)) = (e.get("key"), e.get("value")) else {
             return bad(cx, site, "context", "entries must have 'key' and 'value'");
         };
-        let Some(ks) = s(cx, k) else { return bad(cx, site, "context", "keys must be strings") };
+        let Some(ks) = s(cx, k) else {
+            return bad(cx, site, "context", "keys must be strings");
+        };
         if c.get(&ks).is_some() {
             return bad(cx, site, "context", "duplicate key");
         }
@@ -1960,14 +2275,26 @@ fn bi_context_put(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
             }
             ks
         }
-        _ => return bad(cx, site, "context put", "key must be a string or list of strings"),
+        _ => {
+            return bad(
+                cx,
+                site,
+                "context put",
+                "key must be a string or list of strings",
+            )
+        }
     };
     if keys.is_empty() {
         return bad(cx, site, "context put", "keys must not be empty");
     }
     match context_put_path(cx, a[0], &keys, a[2]) {
         Some(h) => h,
-        None => bad(cx, site, "context put", "context expected along the key path"),
+        None => bad(
+            cx,
+            site,
+            "context put",
+            "context expected along the key path",
+        ),
     }
 }
 
@@ -1979,7 +2306,9 @@ fn bi_context_merge(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
     };
     let mut c = Ctx::default();
     for it in items {
-        let Some(e) = cx.rt().as_ctx(it).cloned() else { return bad(cx, site, "context merge", "contexts expected") };
+        let Some(e) = cx.rt().as_ctx(it).cloned() else {
+            return bad(cx, site, "context merge", "contexts expected");
+        };
         for (k, v) in e.keys.iter().zip(e.vals.iter()) {
             c.put(k.clone(), *v);
         }
@@ -1988,7 +2317,9 @@ fn bi_context_merge(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn bi_has_key(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
-    let Some(k) = s(cx, a[1]) else { return bad(cx, site, "has key", "key must be a string") };
+    let Some(k) = s(cx, a[1]) else {
+        return bad(cx, site, "has key", "key must be a string");
+    };
     match cx.rt().as_ctx(a[0]) {
         Some(c) => {
             let b = c.get(&k).is_some();
@@ -2003,14 +2334,24 @@ fn bi_has_key(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 fn bi_now(cx: &mut dyn Cx, _a: &[H], site: u32) -> H {
     match cx.rt().clock.clone() {
         Some(c) => cx.rt().alloc(Value::DateTime(c.now)),
-        None => bad(cx, site, "now", "no clock capability was supplied by the host"),
+        None => bad(
+            cx,
+            site,
+            "now",
+            "no clock capability was supplied by the host",
+        ),
     }
 }
 
 fn bi_today(cx: &mut dyn Cx, _a: &[H], site: u32) -> H {
     match cx.rt().clock.clone() {
         Some(c) => cx.rt().alloc(Value::Date(c.now.date)),
-        None => bad(cx, site, "today", "no clock capability was supplied by the host"),
+        None => bad(
+            cx,
+            site,
+            "today",
+            "no clock capability was supplied by the host",
+        ),
     }
 }
 

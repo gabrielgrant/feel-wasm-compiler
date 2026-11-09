@@ -73,9 +73,9 @@ pub fn is_name_part_char(c: char) -> bool {
 }
 
 const SYMS: &[&str] = &[
-    "..", "**", "!=", "<=", ">=", "->", ".", "*", "+", "-", "/", "=", "<", ">", "(", ")", "[",
-    "]", "{", "}", ",", ":", "@", "'", "\u{2019}", "!", "#", "$", "%", "&", ";", "\\", "^",
-    "|", "~", "`",
+    "..", "**", "!=", "<=", ">=", "->", ".", "*", "+", "-", "/", "=", "<", ">", "(", ")", "[", "]",
+    "{", "}", ",", ":", "@", "'", "\u{2019}", "!", "#", "$", "%", "&", ";", "\\", "^", "|", "~",
+    "`",
 ];
 
 pub fn tokenize(src: &str) -> Result<Vec<Token>, Diagnostic> {
@@ -115,13 +115,20 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>, Diagnostic> {
         let start = i;
         if c == '"' {
             let (s, end) = lex_string(src, i)?;
-            out.push(Token { tok: Tok::Str(s), span: Span::new(start, end), ws_before: ws });
+            out.push(Token {
+                tok: Tok::Str(s),
+                span: Span::new(start, end),
+                ws_before: ws,
+            });
             i = end;
             ws = false;
             continue;
         }
         if c.is_ascii_digit()
-            || (c == '.' && i + 1 < src.len() && bytes[i + 1].is_ascii_digit() && !prev_allows_path(&out, ws))
+            || (c == '.'
+                && i + 1 < src.len()
+                && bytes[i + 1].is_ascii_digit()
+                && !prev_allows_path(&out, ws))
         {
             let end = lex_number(src, i);
             out.push(Token {
@@ -143,7 +150,11 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>, Diagnostic> {
                     break;
                 }
             }
-            out.push(Token { tok: Tok::Word(src[i..j].to_string()), span: Span::new(i, j), ws_before: ws });
+            out.push(Token {
+                tok: Tok::Word(src[i..j].to_string()),
+                span: Span::new(i, j),
+                ws_before: ws,
+            });
             i = j;
             ws = false;
             continue;
@@ -151,7 +162,11 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>, Diagnostic> {
         let mut matched = false;
         for s in SYMS {
             if src[i..].starts_with(s) {
-                out.push(Token { tok: Tok::Sym(s), span: Span::new(i, i + s.len()), ws_before: ws });
+                out.push(Token {
+                    tok: Tok::Sym(s),
+                    span: Span::new(i, i + s.len()),
+                    ws_before: ws,
+                });
                 i += s.len();
                 matched = true;
                 break;
@@ -166,7 +181,11 @@ pub fn tokenize(src: &str) -> Result<Vec<Token>, Diagnostic> {
         }
         ws = false;
     }
-    out.push(Token { tok: Tok::Eof, span: Span::new(src.len(), src.len()), ws_before: ws });
+    out.push(Token {
+        tok: Tok::Eof,
+        span: Span::new(src.len(), src.len()),
+        ws_before: ws,
+    });
     Ok(out)
 }
 
@@ -179,7 +198,12 @@ fn prev_allows_path(out: &[Token], ws: bool) -> bool {
         return false;
     }
     match out.last() {
-        Some(t) => matches!(t.tok, Tok::Word(_) | Tok::Str(_)) || t.is_sym(")") || t.is_sym("]") || t.is_sym("}"),
+        Some(t) => {
+            matches!(t.tok, Tok::Word(_) | Tok::Str(_))
+                || t.is_sym(")")
+                || t.is_sym("]")
+                || t.is_sym("}")
+        }
         None => false,
     }
 }
@@ -206,7 +230,13 @@ fn lex_number(src: &str, start: usize) -> usize {
                 j += 1;
             }
             // exponent must not run into a name (e.g. `1each`)
-            if j >= b.len() || !src[j..].chars().next().map(is_name_part_char).unwrap_or(false) {
+            if j >= b.len()
+                || !src[j..]
+                    .chars()
+                    .next()
+                    .map(is_name_part_char)
+                    .unwrap_or(false)
+            {
                 i = j;
             }
         }
@@ -224,7 +254,11 @@ fn lex_string(src: &str, start: usize) -> Result<(String, usize), Diagnostic> {
     let mut pending_high: Option<u32> = None;
     loop {
         if i >= src.len() {
-            return Err(Diagnostic::error("FEEL-S002", "unterminated string literal", Span::new(start, src.len())));
+            return Err(Diagnostic::error(
+                "FEEL-S002",
+                "unterminated string literal",
+                Span::new(start, src.len()),
+            ));
         }
         let c = src[i..].chars().next().unwrap();
         if c == '"' {
@@ -237,12 +271,30 @@ fn lex_string(src: &str, start: usize) -> Result<(String, usize), Diagnostic> {
             let n = src[i + 1..].chars().next();
             let esc_start = i;
             match n {
-                Some('\'') => { out.push('\''); i += 2; }
-                Some('"') => { out.push('"'); i += 2; }
-                Some('\\') => { out.push('\\'); i += 2; }
-                Some('n') => { out.push('\n'); i += 2; }
-                Some('r') => { out.push('\r'); i += 2; }
-                Some('t') => { out.push('\t'); i += 2; }
+                Some('\'') => {
+                    out.push('\'');
+                    i += 2;
+                }
+                Some('"') => {
+                    out.push('"');
+                    i += 2;
+                }
+                Some('\\') => {
+                    out.push('\\');
+                    i += 2;
+                }
+                Some('n') => {
+                    out.push('\n');
+                    i += 2;
+                }
+                Some('r') => {
+                    out.push('\r');
+                    i += 2;
+                }
+                Some('t') => {
+                    out.push('\t');
+                    i += 2;
+                }
                 Some('u') | Some('U') => {
                     // \uXXXX (4 hex digits) or \UXXXXXX (6 hex digits)
                     let len = if n == Some('u') { 4 } else { 6 };
@@ -343,8 +395,22 @@ mod tests {
         );
         assert_eq!(toks(".5"), vec![Tok::Number(".5".into()), Tok::Eof]);
         assert_eq!(toks("1.2e3"), vec![Tok::Number("1.2e3".into()), Tok::Eof]);
-        assert_eq!(toks("\"a\\u0041\\U01F40E\""), vec![Tok::Str("aA\u{1F40E}".into()), Tok::Eof]);
-        assert_eq!(toks("\"\\ud83d\\udc0e\""), vec![Tok::Str("\u{1F40E}".into()), Tok::Eof]);
-        assert_eq!(toks("what if? // c\n /* x */ y"), vec![Tok::Word("what".into()), Tok::Word("if?".into()), Tok::Word("y".into()), Tok::Eof]);
+        assert_eq!(
+            toks("\"a\\u0041\\U01F40E\""),
+            vec![Tok::Str("aA\u{1F40E}".into()), Tok::Eof]
+        );
+        assert_eq!(
+            toks("\"\\ud83d\\udc0e\""),
+            vec![Tok::Str("\u{1F40E}".into()), Tok::Eof]
+        );
+        assert_eq!(
+            toks("what if? // c\n /* x */ y"),
+            vec![
+                Tok::Word("what".into()),
+                Tok::Word("if?".into()),
+                Tok::Word("y".into()),
+                Tok::Eof
+            ]
+        );
     }
 }
