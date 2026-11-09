@@ -302,7 +302,18 @@ pub struct FileReport {
 
 const CLOCK: &str = "2024-06-15T12:00:00Z";
 
+/// Runner switches.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct RunOptions {
+    /// emit unoptimized modules (differential runs)
+    pub no_opt: bool,
+}
+
 pub fn run_test_file(dir: &Path, test_file: &Path, engine: &Engine) -> FileReport {
+    run_test_file_with(dir, test_file, engine, RunOptions::default())
+}
+
+pub fn run_test_file_with(dir: &Path, test_file: &Path, engine: &Engine, ro: RunOptions) -> FileReport {
     let dname = dir.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
     let fname = test_file.file_name().map(|s| s.to_string_lossy().to_string()).unwrap_or_default();
     let mut results = Vec::new();
@@ -355,7 +366,8 @@ pub fn run_test_file(dir: &Path, test_file: &Path, engine: &Engine) -> FileRepor
                     eprintln!("lowered program for {fname}:\n{e}\nerrors: {:?}", l.report.errors);
                 }
             }
-            let opts = l.options(&[], feel_compiler::Entry::Expression);
+            let mut opts = l.options(&[], feel_compiler::Entry::Expression);
+            opts.optimize = !ro.no_opt;
             let errors = l.report.errors.clone();
             let unsupported = l.report.unsupported.clone();
             let out = feel_compiler::compile_program(&prog, "", Vec::new(), &opts);
@@ -485,4 +497,46 @@ pub fn discover(root: &Path, levels: &[&str]) -> Vec<(PathBuf, PathBuf)> {
         }
     }
     out
+}
+
+/// Differential check of decision tables: every top-level decision whose
+/// logic is a decision table referencing only input data is evaluated by the
+/// host-orchestrated evaluator (one unary-test module per cell) and compared
+/// with the lowered single-module result. Returns (compared, mismatches).
+pub fn host_dt_differential(dir: &Path, test_file: &Path, engine: &Engine) -> (usize, Vec<String>) {
+    use crate::host_dt::HostDecisionTable;
+    use crate::model::Boxed;
+    let mut compared = 0;
+    let mut mism = Vec::new();
+    let Ok(xml) = std::fs::read_to_string(test_file) else { return (0, mism) };
+    let Ok((model_file, cases)) = parse_tests(&xml) else { return (0, mism) };
+    let Ok(set) = load_model_set(dir, &model_file) else { return (0, mism) };
+    let input_names: Vec<String> = set.main.inputs.iter().map(|i| i.name.clone()).collect();
+    let rep = run_test_file(dir, test_file, engine);
+    for d in &set.main.decisions {
+        let Some(Boxed::DecisionTable(dt)) = &d.expr else { continue };
+        if !d.required_decisions.is_empty() || !d.required_knowledge.is_empty() {
+            continue;
+        }
+        let Ok(mut h) = HostDecisionTable::compile(engine, dt, &input_names) else { continue };
+        for c in cases.iter().filter(|c| c.invocable.is_none()) {
+            let Some(lowered) = rep.results.iter().find(|r| r.case == c.id && r.node == d.name) else { continue };
+            let mut inputs = String::from("{");
+            for (i, (k, v)) in c.inputs.iter().enumerate() {
+                if i > 0 {
+                    inputs.push(',');
+                }
+                json::write_json_string(&mut inputs, k);
+                inputs.push(':');
+                inputs.push_str(v);
+            }
+            inputs.push('}');
+            let host = h.evaluate(&inputs).unwrap_or_else(|e| format!("<error {e}>"));
+            compared += 1;
+            if !values_match(&lowered.actual, &host) {
+                mism.push(format!("{} {} {}: lowered {} host {}", lowered.dir, c.id, d.name, lowered.actual, host));
+            }
+        }
+    }
+    (compared, mism)
 }

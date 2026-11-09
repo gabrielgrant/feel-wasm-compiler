@@ -213,6 +213,25 @@ export interface EvalResult extends RawEvalResult {
   value?: FeelValue;
 }
 
+/** Phase timings of one evaluation (milliseconds), recorded when {@link FeelInstance.profile} is on. */
+export interface EvalProfile {
+  /** UTF-16 length of the FEEL-JSON inputs / result text. */
+  inputChars: number;
+  outputChars: number;
+  /** JS values → FEEL-JSON text (only for `evaluate`/`evaluateUnary`). */
+  jsEncodeMs: number;
+  /** Copy the text into Wasm memory + runtime FEEL-JSON decode (inputs and candidate). */
+  decodeMs: number;
+  /** Bind input slots (and boundary validation). */
+  bindMs: number;
+  /** The generated module's `evaluate()` call. */
+  evaluateMs: number;
+  /** Runtime FEEL-JSON encode of the result + UTF-8 decode into a JS string, + diagnostics. */
+  encodeMs: number;
+  /** FEEL-JSON text → JS values (only for `evaluate`/`evaluateUnary`). */
+  jsDecodeMs: number;
+}
+
 /** Explicit evaluation limits for untrusted expressions. */
 export interface Limits {
   /** Loop iterations + function entries per evaluation (default 50 000 000). */
@@ -375,7 +394,8 @@ export class FeelCompiler {
 
   /** @internal use {@link loadCompiler} */
   constructor(
-    private readonly module: WebAssembly.Module,
+    /** The compiled `compiler.wasm` (can be posted to workers). */
+    readonly module: WebAssembly.Module,
     instance: WebAssembly.Instance,
   ) {
     this.ex = instance.exports as unknown as CompilerExports;
@@ -705,6 +725,10 @@ export class FeelInstance {
   evaluations = 0;
   /** Number of times the runtime/module pair was replaced after a trap. */
   recycles = 0;
+  /** When `true`, {@link FeelInstance.lastProfile} records phase timings (small overhead). */
+  profile = false;
+  /** Phase timings of the last evaluation (when {@link FeelInstance.profile} is on). */
+  lastProfile: EvalProfile | undefined;
   private pair: Pair | undefined;
   private pending: Promise<void> | undefined;
   private dirty = false;
@@ -834,12 +858,19 @@ export class FeelInstance {
    * decimal strings in `FeelDecimal`, or `bigint` for exact values.
    */
   evaluate(inputs: FeelContext | null = {}): EvalResult {
-    return this.decorate(this.run(encodeFeelJson(inputs ?? {}), null));
+    if (!this.profile) return this.decorate(this.run(encodeFeelJson(inputs ?? {}), null));
+    const t0 = now();
+    const text = encodeFeelJson(inputs ?? {});
+    const t1 = now();
+    return this.decorate(this.run(text, null), t1 - t0);
   }
 
   /** Evaluate a unary-tests module against `candidate` (bound to `?`). */
   evaluateUnary(candidate: FeelValue, inputs: FeelContext | null = {}): EvalResult {
-    return this.decorate(this.run(encodeFeelJson(inputs ?? {}), encodeFeelJson(candidate)));
+    const t0 = this.profile ? now() : 0;
+    const text = encodeFeelJson(inputs ?? {});
+    const cand = encodeFeelJson(candidate);
+    return this.decorate(this.run(text, cand), this.profile ? now() - t0 : 0);
   }
 
   /** Evaluate many input sets in turn (same instance, no recompilation). */
@@ -855,9 +886,14 @@ export class FeelInstance {
     return this.run(inputsJson.trim() === '' ? '{}' : inputsJson, candidateJson ?? null);
   }
 
-  private decorate(r: RawEvalResult): EvalResult {
+  private decorate(r: RawEvalResult, jsEncodeMs = 0): EvalResult {
     if (r.valueJson === null) return r;
-    return { ...r, value: parseFeelJson(r.valueJson, this.decodeOptions) };
+    if (!this.profile || !this.lastProfile) return { ...r, value: parseFeelJson(r.valueJson, this.decodeOptions) };
+    const t0 = now();
+    const value = parseFeelJson(r.valueJson, this.decodeOptions);
+    this.lastProfile.jsDecodeMs = now() - t0;
+    this.lastProfile.jsEncodeMs = jsEncodeMs;
+    return { ...r, value };
   }
 
   private run(inputsJson: string, candidateJson: string | null): RawEvalResult {
@@ -872,6 +908,18 @@ export class FeelInstance {
     this.evaluations++;
     this.hostDiags = [];
     const rt = pair.rt;
+    const prof = this.profile;
+    let t = prof ? now() : 0;
+    const lap = (): number => {
+      const n = now();
+      const d = n - t;
+      t = n;
+      return d;
+    };
+    const p: EvalProfile | undefined = prof
+      ? { inputChars: inputsJson.length + (candidateJson?.length ?? 0), outputChars: 0, jsEncodeMs: 0, decodeMs: 0, bindMs: 0, evaluateMs: 0, encodeMs: 0, jsDecodeMs: 0 }
+      : undefined;
+    this.lastProfile = p;
     try {
       rt.rt_begin_eval();
       if (this.clock === 'system' && this.needsClock) {
@@ -887,9 +935,11 @@ export class FeelInstance {
         cand = writeAndCall(rt, candidateJson, (p, l) => rt.rt_decode(p, l));
         if (cand === -2) return this.decodeFailure(rt, 'invalid candidate');
       }
+      if (p) p.decodeMs = lap();
       if (rt.rt_bind_inputs(inputs, cand, 3, 4, this.metadata.validateInputs ? 1 : 0) === 0) {
         return boundary(BINDING_CODES.BIND, readRtOut(rt, rt.rt_out_ptr()));
       }
+      if (p) p.bindMs = lap();
       let h: number;
       try {
         h = pair.expr.evaluate();
@@ -904,6 +954,7 @@ export class FeelInstance {
             : { kind: 'boundary', code: BINDING_CODES.TRAP, message: `trap: ${e instanceof Error ? e.message : String(e)}` };
         return { ok: false, valueJson: null, diagnostics, abort };
       }
+      if (p) p.evaluateMs = lap();
       const diagnostics = this.diagnostics(rt);
       const abortJson = readRtOut(rt, rt.rt_abort());
       if (abortJson !== 'null') {
@@ -911,6 +962,10 @@ export class FeelInstance {
         return { ok: false, valueJson: null, diagnostics, abort: JSON.parse(abortJson) as AbortInfo };
       }
       const valueJson = readRtOut(rt, rt.rt_encode(h));
+      if (p) {
+        p.encodeMs = lap();
+        p.outputChars = valueJson.length;
+      }
       return { ok: true, valueJson, diagnostics };
     } finally {
       this.busy = false;

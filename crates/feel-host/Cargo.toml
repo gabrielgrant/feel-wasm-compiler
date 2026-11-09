@@ -12,3 +12,6 @@ feel-compiler.workspace = true
 wasmi.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+
+[dev-dependencies]
+wasm-encoder.workspace = true

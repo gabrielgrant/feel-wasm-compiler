@@ -282,6 +282,11 @@ impl<'a> Lowerer<'a> {
         if self.env.auto_inputs {
             return Ir::Slot(self.slot_index(text, None));
         }
+        if self.in_item_fallback > 0 {
+            // an implicit filter name that is not an input: only the current
+            // item can supply it
+            return Ir::Null;
+        }
         self.diags.push(Diagnostic::error("FEEL-C101", format!("unknown name '{text}'"), span));
         Ir::Null
     }

@@ -230,6 +230,18 @@ export class FeelWorker {
     return { ...r, program };
   }
 
+  /**
+   * Register a module compiled elsewhere (e.g. on the main thread) without
+   * recompiling it; it is sent to the worker on first use (and again after
+   * a restart).
+   */
+  load(compiled: CompileResult, source = ''): WorkerProgram {
+    if (!compiled.ok || !compiled.metadata) throw new Error('cannot load a failed compilation');
+    const program: WorkerProgram = { id: this.nextProgram++, source, bytes: compiled.bytes, metadata: compiled.metadata };
+    this.programs.set(program.id, program);
+    return program;
+  }
+
   /** Evaluate a program (or source text, compiled and cached) with decoded inputs/outputs. */
   async evaluate(program: WorkerProgram | string, inputs: FeelContext | null = {}, options: WorkerEvalOptions = {}): Promise<EvalResult> {
     const candidateJson = options.candidate === undefined ? null : encodeFeelJson(options.candidate);

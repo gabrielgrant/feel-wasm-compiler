@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FEEL to WebAssembly</title>
+    <meta name="description" content="Compile FEEL (DMN 1.5) expressions to WebAssembly in the browser and evaluate them with exact decimals." />
+    <link rel="stylesheet" href="demo.css" />
+    <link rel="modulepreload" href="../dist/src/feel.js" />
+    <link rel="modulepreload" href="../dist/src/values.js" />
+    <link rel="modulepreload" href="../dist/src/feel-worker.js" />
+  </head>
+  <body>
+    <header>
+      <h1>FEEL &rarr; WebAssembly</h1>
+      <p class="sub">
+        The compiler runs in your browser as Wasm, emits a module specialised to your expression, and the module runs on a shared Wasm
+        runtime with exact decimal arithmetic. Nothing leaves this page.
+      </p>
+      <p id="load-status" class="status" role="status">Loading compiler and runtime&hellip;</p>
+    </header>
+
+    <main>
+      <section class="card" aria-labelledby="h-source">
+        <h2 id="h-source">1. Expression</h2>
+        <label for="source" class="visually-hidden">FEEL source</label>
+        <textarea id="source" spellcheck="false" autocapitalize="off" autocomplete="off" rows="9"></textarea>
+        <div class="row">
+          <label>Entry
+            <select id="entry">
+              <option value="expression">expression</option>
+              <option value="unaryTests">unary tests</option>
+            </select>
+          </label>
+          <label class="check"><input type="checkbox" id="strict" /> strict type check</label>
+          <label class="check"><input type="checkbox" id="use-schema" checked /> use schema</label>
+        </div>
+        <details id="schema-box">
+          <summary>Schema (JSON, optional)</summary>
+          <textarea id="schema" spellcheck="false" rows="5"></textarea>
+        </details>
+        <div class="row">
+          <button id="compile" type="button" disabled>Compile</button>
+          <span id="status" class="status" role="status"></span>
+        </div>
+        <dl class="facts">
+          <div class="wide"><dt>Result type</dt><dd id="result-type">&ndash;</dd></div>
+          <div><dt>Module size</dt><dd id="module-size">&ndash;</dd></div>
+          <div><dt>Compile time</dt><dd id="compile-time">&ndash;</dd></div>
+          <div><dt>Instantiate</dt><dd id="instantiate-time">&ndash;</dd></div>
+        </dl>
+        <h3>Diagnostics</h3>
+        <ul id="diagnostics" class="diags"><li class="muted">none yet</li></ul>
+        <h3>Runtime imports</h3>
+        <p id="imports" class="chips muted">&ndash;</p>
+        <h3>Dependencies</h3>
+        <div id="deps" class="muted">&ndash;</div>
+      </section>
+
+      <section class="card" aria-labelledby="h-inputs">
+        <h2 id="h-inputs">2. Inputs</h2>
+        <p class="hint" id="inputs-hint">A JSON array of input contexts (FEEL-JSON: numbers keep their exact decimal text).</p>
+        <label for="inputs" class="visually-hidden">Input rows</label>
+        <textarea id="inputs" spellcheck="false" rows="9"></textarea>
+        <div class="row">
+          <label class="check"><input type="checkbox" id="use-worker" /> run in worker with timeout</label>
+          <label>timeout ms <input id="timeout" type="number" min="1" value="1000" inputmode="numeric" /></label>
+          <label>max steps <input id="max-steps" type="number" min="1" value="50000000" inputmode="numeric" /></label>
+        </div>
+        <div class="row">
+          <button id="evaluate-all" type="button" disabled>Evaluate all</button>
+          <span id="eval-summary" class="status" role="status"></span>
+        </div>
+        <ol id="results" class="results"></ol>
+      </section>
+    </main>
+
+    <footer>
+      <p id="versions" class="muted"></p>
+    </footer>
+
+    <script type="module" src="../dist/demo/demo.js"></script>
+  </body>
+</html>

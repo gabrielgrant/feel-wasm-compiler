@@ -274,6 +274,7 @@ dependencies = [
  "feel-runtime",
  "serde",
  "serde_json",
+ "wasm-encoder",
  "wasmi",
 ]
 

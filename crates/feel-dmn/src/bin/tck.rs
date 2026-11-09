@@ -4,7 +4,7 @@
 //! feel-tck <TCK TestCases dir> [--json out.json] [--md out.md] [--filter substr] [--verbose]
 //! ```
 
-use feel_dmn::tck::{discover, run_test_file, CaseResult, Status};
+use feel_dmn::tck::{discover, host_dt_differential, run_test_file_with, CaseResult, RunOptions, Status};
 use feel_host::Engine;
 use std::collections::BTreeMap;
 use std::path::PathBuf;
@@ -20,6 +20,8 @@ fn main() {
     let mut md_out = None;
     let mut filter = None;
     let mut verbose = false;
+    let mut ro = RunOptions::default();
+    let mut host_dt = false;
     let mut i = 2;
     while i < args.len() {
         match args[i].as_str() {
@@ -36,12 +38,27 @@ fn main() {
                 i += 1
             }
             "--verbose" | "-v" => verbose = true,
+            "--no-opt" => ro.no_opt = true,
+            "--host-dt" => host_dt = true,
             _ => {}
         }
         i += 1;
     }
     let engine = Engine::new();
     let files = discover(&root, &["compliance-level-2", "compliance-level-3"]);
+    if host_dt {
+        let (mut n, mut bad) = (0, Vec::new());
+        for (dir, f) in &files {
+            let (c, m) = host_dt_differential(dir, f, &engine);
+            n += c;
+            bad.extend(m);
+        }
+        for b in &bad {
+            println!("MISMATCH {b}");
+        }
+        println!("host-orchestrated decision tables: {n} results compared, {} mismatches", bad.len());
+        std::process::exit(if bad.is_empty() { 0 } else { 1 });
+    }
     let mut all: Vec<CaseResult> = Vec::new();
     let t0 = std::time::Instant::now();
     let mut compile_ms = 0.0;
@@ -52,7 +69,7 @@ fn main() {
                 continue;
             }
         }
-        let rep = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run_test_file(&dir, &f, &engine)));
+        let rep = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| run_test_file_with(&dir, &f, &engine, ro)));
         match rep {
             Ok(r) => {
                 compile_ms += r.compile_ms;
