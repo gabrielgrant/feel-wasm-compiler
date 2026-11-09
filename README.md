@@ -22,8 +22,8 @@ date and time("2018-07-10T10:30:00@Europe/Paris").time offset → PT2H
 |---|---|
 | DMN TCK, pinned revision `5cd912f2`, compliance levels 2 and 3, through generated Wasm | **3,511 / 3,511** result nodes pass (0 fail, 0 skip, 0 out of scope) — optimized and unoptimized |
 | Decision tables: one Wasm module per cell (host-orchestrated) vs one module per table (lowered) | 83 TCK results compared, 0 mismatches |
-| Semantic vectors (`tests/vectors/semantic.json`) | **407 / 407**, native (optimized and unoptimized, differential) and in Chromium (compiler.wasm + runtime.wasm) |
-| Browser end-to-end (Playwright, offline after load) | 464 / 464 checks |
+| Semantic vectors (`tests/vectors/semantic.json`) | **412 / 412**, native (optimized and unoptimized, differential) and in Chromium (compiler.wasm + runtime.wasm) |
+| Browser end-to-end (Playwright, offline after load) | 470 / 470 checks |
 | Decimal library vs Python `decimal` oracle | 21,738 vectors, 0 mismatches |
 | TCK `non-compliant` folder (informational, outside the claim) | 39 / 50 |
 

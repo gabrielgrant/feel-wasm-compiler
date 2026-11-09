@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Native tests, lint, Wasm build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned toolchain (rust-toolchain.toml)
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --all -- --check
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Tests (unit, semantic vectors through generated Wasm, modules, checker, decision tables)
+        run: cargo test --workspace --release --locked
+      - name: Build compiler.wasm and runtime.wasm
+        run: cargo build --profile wasm --target wasm32-unknown-unknown --locked -p feel-web -p feel-runtime-wasm
+      - name: Validate emitted modules from the CLI
+        run: |
+          cargo build --release --locked -p feel-cli
+          ./target/release/feel compile -e 'for x in xs return x * rate' -o /tmp/m.wasm
+          ./target/release/feel inspect /tmp/m.wasm
+          ./target/release/feel exec /tmp/m.wasm --inputs '{"xs":[1.1,2.2],"rate":0.1}'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wasm-artifacts
+          path: |
+            target/wasm32-unknown-unknown/wasm/feel_web.wasm
+            target/wasm32-unknown-unknown/wasm/feel_runtime_wasm.wasm
+
+  tck:
+    name: DMN TCK (pinned) through generated Wasm
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - name: Run TCK (optimized, unoptimized, decision-table differential)
+        run: scripts/run-tck.sh
+      - name: Require every applicable TCK result node to pass
+        run: |
+          python3 - <<'PY'
+          import json
+          for f in ["reports/tck.json", "reports/tck-unoptimized.json"]:
+              s = json.load(open(f))["summary"]
+              print(f, s)
+              assert s["fail"] == 0 and s["skip"] == 0 and s["outOfScope"] == 0, f
+          PY
+      - name: Conformance matrix
+        run: python3 scripts/conformance-matrix.py reports/tck.json .tck/TestCases
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tck-reports
+          path: |
+            reports/
+            docs/CONFORMANCE-MATRIX.md
+
+  browser:
+    name: Browser end-to-end (offline compile + execute in Chromium)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build web artifacts (compiler.wasm, runtime.wasm, TypeScript)
+        run: scripts/build-web.sh
+      - name: Install Playwright 1.63.0 and Chromium
+        run: npm install --no-save --prefix web playwright@1.63.0 && npx --prefix web playwright install --with-deps chromium
+      - name: End-to-end tests
+        run: node web/tests/e2e.mjs
