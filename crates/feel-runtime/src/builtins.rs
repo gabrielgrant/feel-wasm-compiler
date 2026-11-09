@@ -2359,3 +2359,29 @@ fn bi_today(cx: &mut dyn Cx, _a: &[H], site: u32) -> H {
 fn unused(_: RtType) -> i32 {
     tri_of(None)
 }
+
+/// Binding key of an externally defined function (10.3.2.13.3):
+/// `java:<class>.<method signature without spaces>` or
+/// `pmml:<document>#<model>`. Hosts register external bindings by this key.
+pub fn external_key(rt: &Runtime, mapping: H) -> String {
+    let Some(c) = rt.as_ctx(mapping) else {
+        return String::new();
+    };
+    let s = |c: &Ctx, k: &str| {
+        c.get(k)
+            .and_then(|h| rt.as_str(h))
+            .map(|s| s.to_string())
+            .unwrap_or_default()
+    };
+    if let Some(j) = c.get("java").and_then(|h| rt.as_ctx(h)) {
+        let sig: String = s(j, "method signature")
+            .chars()
+            .filter(|c| !c.is_whitespace())
+            .collect();
+        return format!("java:{}.{sig}", s(j, "class"));
+    }
+    if let Some(p) = c.get("pmml").and_then(|h| rt.as_ctx(h)) {
+        return format!("pmml:{}#{}", s(p, "document"), s(p, "model"));
+    }
+    String::new()
+}

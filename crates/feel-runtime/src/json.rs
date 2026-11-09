@@ -141,8 +141,16 @@ impl<'a> Decoder<'a> {
                         self.i += 1;
                         self.ws();
                         raw_starts.push(self.i);
-                        // tagged scalar payloads are decoded as plain JSON first
-                        let v = self.value(rt)?;
+                        // the payload of an `@context` escape is a plain context
+                        // whose (single) key may itself start with '@'
+                        let v = if k == "@context"
+                            && keys.is_empty()
+                            && self.s.get(self.i) == Some(&b'{')
+                        {
+                            self.raw_object(rt)?
+                        } else {
+                            self.value(rt)?
+                        };
                         keys.push(k);
                         vals.push(v);
                         self.ws();
@@ -190,6 +198,43 @@ impl<'a> Decoder<'a> {
                 }
             }
             _ => self.err("unexpected character"),
+        }
+    }
+
+    /// An object decoded as a context without tag interpretation.
+    fn raw_object(&mut self, rt: &mut Runtime) -> Result<H, JsonError> {
+        self.i += 1;
+        let mut c = Ctx::default();
+        self.ws();
+        if self.s.get(self.i) == Some(&b'}') {
+            self.i += 1;
+            return Ok(rt.ctx(c));
+        }
+        loop {
+            self.ws();
+            if self.s.get(self.i) != Some(&b'"') {
+                return self.err("expected object key");
+            }
+            let k = self.string()?;
+            self.ws();
+            if self.s.get(self.i) != Some(&b':') {
+                return self.err("expected ':'");
+            }
+            self.i += 1;
+            let v = self.value(rt)?;
+            if c.get(&k).is_some() {
+                return self.err("duplicate key in object");
+            }
+            c.put(Rc::from(k.as_str()), v);
+            self.ws();
+            match self.s.get(self.i) {
+                Some(b',') => self.i += 1,
+                Some(b'}') => {
+                    self.i += 1;
+                    return Ok(rt.ctx(c));
+                }
+                _ => return self.err("expected ',' or '}'"),
+            }
         }
     }
 
@@ -494,7 +539,9 @@ pub fn encode_into(rt: &Runtime, h: H, out: &mut String, depth: u32) {
             let desc = match f {
                 Func::Builtin(id) => format!("builtin {}", crate::builtins::name_of(*id)),
                 Func::User { index, .. } => format!("user function #{index}"),
-                Func::External { .. } => "external function".to_string(),
+                Func::External { mapping, .. } => {
+                    format!("external {}", crate::builtins::external_key(rt, *mapping))
+                }
                 Func::Host { name, .. } => format!("host function {name}"),
             };
             write_json_string(out, &desc);

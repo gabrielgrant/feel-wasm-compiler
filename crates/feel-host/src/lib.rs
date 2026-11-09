@@ -254,37 +254,7 @@ pub fn call_host_impl(rt: &mut Runtime, host: &HostFunctions, f: H, args: H) -> 
 
 /// Binding key for `function(..) external {java: {class: c, method signature: m}}`.
 pub fn external_key(rt: &Runtime, mapping: H) -> String {
-    let Some(c) = rt.as_ctx(mapping) else {
-        return String::new();
-    };
-    if let Some(j) = c.get("java").and_then(|h| rt.as_ctx(h)) {
-        let class = j
-            .get("class")
-            .and_then(|h| rt.as_str(h))
-            .map(|s| s.to_string())
-            .unwrap_or_default();
-        let sig = j
-            .get("method signature")
-            .and_then(|h| rt.as_str(h))
-            .map(|s| s.to_string())
-            .unwrap_or_default();
-        let sig: String = sig.chars().filter(|c| !c.is_whitespace()).collect();
-        return format!("java:{class}.{sig}");
-    }
-    if let Some(p) = c.get("pmml").and_then(|h| rt.as_ctx(h)) {
-        let doc = p
-            .get("document")
-            .and_then(|h| rt.as_str(h))
-            .map(|s| s.to_string())
-            .unwrap_or_default();
-        let model = p
-            .get("model")
-            .and_then(|h| rt.as_str(h))
-            .map(|s| s.to_string())
-            .unwrap_or_default();
-        return format!("pmml:{doc}#{model}");
-    }
-    String::new()
+    feel_runtime::builtins::external_key(rt, mapping)
 }
 
 fn trap_if_aborted(caller: &Caller<'_, HostState>) -> Result<(), wasmi::Error> {

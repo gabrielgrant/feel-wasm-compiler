@@ -126,3 +126,23 @@ mod tests {
         assert_eq!(json::encode(&rt, h), "123456789012345678901234567890.123");
     }
 }
+
+#[cfg(test)]
+mod json_escape_tests {
+    use super::*;
+    #[test]
+    fn context_escape_roundtrips() {
+        let mut rt = Runtime::new();
+        let h = json::decode(&mut rt, r#"{"@context":{"@x":1}}"#).unwrap();
+        let text = json::encode(&rt, h);
+        assert_eq!(text, r#"{"@context":{"@x":1}}"#);
+        let h2 = json::decode(&mut rt, &text).unwrap();
+        assert_eq!(
+            rt.as_ctx(h2)
+                .unwrap()
+                .get("@x")
+                .map(|v| json::encode(&rt, v)),
+            Some("1".to_string())
+        );
+    }
+}

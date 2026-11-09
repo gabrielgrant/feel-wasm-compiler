@@ -174,6 +174,13 @@ pub extern "C" fn rt_set_limits(
     r.limits.max_depth = max_depth as u32;
 }
 
+/// Step limit (fuel) as recorded by the runtime, used in the `FEEL-L404`
+/// message; the fuel itself is enforced by the module (`__feel_set_limits`).
+#[no_mangle]
+pub extern "C" fn rt_set_max_steps(steps: i64) {
+    rt().limits.max_steps = steps.max(0) as u64;
+}
+
 #[no_mangle]
 pub extern "C" fn rt_set_extensions(flags: i32) {
     rt().extensions = flags as u32;

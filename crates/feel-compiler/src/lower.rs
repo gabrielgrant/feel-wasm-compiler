@@ -322,11 +322,10 @@ impl<'a> Lowerer<'a> {
             // item can supply it
             return Ir::Null;
         }
-        self.diags.push(Diagnostic::error(
-            "FEEL-C101",
-            format!("unknown name '{text}'"),
-            span,
-        ));
+        // closed schema: the checker reports unknown names according to the
+        // diagnostic policy; under a permissive policy (or with checking off)
+        // the name evaluates to null like any unbound name
+        let _ = span;
         Ir::Null
     }
 

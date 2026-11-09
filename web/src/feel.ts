@@ -571,6 +571,8 @@ interface RuntimeExports {
   rt_out_ptr(): number;
   rt_load_consts(ptr: number, len: number): number;
   rt_set_limits(maxValues: number, maxCollection: number, maxString: number, maxDiags: number, maxDepth: number): void;
+  /** Step limit as reported in FEEL-L404 messages (fuel is enforced by the module). */
+  rt_set_max_steps?(steps: bigint): void;
   rt_set_extensions(flags: number): void;
   rt_set_clock(ptr: number, len: number): number;
   rt_begin_eval(): void;
@@ -776,6 +778,7 @@ export class FeelInstance {
     const L = this.limits;
     const u32 = (n: number) => Math.max(0, Math.min(Math.floor(Number(n)), 0xffffffff)) | 0;
     rt.rt_set_limits(u32(L.maxValues), u32(L.maxCollection), u32(L.maxString), u32(L.maxDiags), u32(L.maxDepth));
+    rt.rt_set_max_steps?.(BigInt(L.maxSteps));
     rt.rt_set_extensions(this.metadata.extensionFlags | 0);
     const c = this.program.consts;
     const p = rt.rt_alloc(c.length);
