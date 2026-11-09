@@ -57,7 +57,13 @@ The per-clause and per-builtin mapping is in [CONFORMANCE-MATRIX.md](CONFORMANCE
 ## Dialects and extensions
 
 * **`feel-1.5`** is the only dialect and the conformance baseline (`CompileOptions::dialect`, `metadata.dialect`).
-* **B-FEEL** belongs to DMN 1.6, not 1.5. It is not implemented, and the `Dialect` enum keeps it separate: adding B-FEEL would mean a new variant, with no change to `feel-1.5` behaviour.
+* **`b-feel`** (`CompileOptions.dialect = "b-feel"`, CLI `--dialect b-feel`): the Business FEEL dialect of DMN 1.6 clause 11, a **separate dialect outside the DMN 1.5 claim**. It uses the same grammar and the same generated code, with two-valued boolean logic, plus a runtime mode flag (`DIALECT_BFEEL`, recorded in `metadata.extensionFlags`):
+  * comparisons, `in`, `instance of`, `and`, `or`, `not` and conditions treat a null or incomparable result as **false**;
+  * `+` with a string converts the other operand to a string (null → `""`); otherwise a number operand turns the other into **0**, and a temporal or duration operand turns the other into a zero duration; `string - string` is `""`; division by zero is 0;
+  * statistical builtins (`sum`, `mean`, `stddev`, `median`, `mode`, `product`; `min`/`max` ignore nulls) ignore null and non-number items;
+  * a builtin that FEEL makes null returns its result type's default: 0, `""`, false, `[]`, `1970-01-01`, `00:00:00Z`, `1970-01-01T00:00:00Z`, `PT0S`/`P0M`, `(0..0)`.
+
+  These rules were implemented from secondary sources: B. Silver, "Make Way for B-FEEL" (Trisotech, 2024), and the feel.dmn.tools B-FEEL table. All 35 of their examples are vectors (`bfeel-*`), and two controls check that the same expressions keep FEEL 1.5 semantics without the flag. The normative DMN 1.6 clause 11 text is **not yet pinned**. Where the sources are silent or conflict (`**`, `null = null`, filters, `"5" * 2`), the implementation follows the general rules above; check those cases against the spec text before relying on them.
 * **Extensions** are opt-in via `extensions` and recorded in the module metadata (`extensionFlags`). Each is enforced twice: by name resolution and by the runtime.
   * `has key(context, key)` → `true` / `false`: key **presence**, independent of the value, so a present null-valued entry is reported as present. Without the extension the name is not a builtin. The standard presence idiom is `count(get entries(m)[key = k]) > 0` (`get entries` keeps present null-valued entries). Both are tested independently (`ctx-has-key-*`, `ctx-presence-idiom`).
 

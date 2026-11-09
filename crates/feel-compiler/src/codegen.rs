@@ -34,7 +34,14 @@ const F_INVOKE: u32 = 2;
 const F_SET_LIMITS: u32 = 3;
 const F_USER0: u32 = 4;
 
+thread_local! {
+    /// Set by `emit_module` for the dialect being emitted.
+    static NULL_TRI: std::cell::Cell<i32> = const { std::cell::Cell::new(2) };
+}
+
 pub struct EmitInput<'a> {
+    /// B-FEEL dialect (two-valued boolean logic in generated code)
+    pub bfeel: bool,
     pub prog: &'a ProgramIr,
     pub consts_json: &'a str,
     pub meta_json: &'a str,
@@ -75,6 +82,9 @@ struct FnBuilder<'a> {
     n_imports: u32,
     /// main function: slot → cached local
     slot_cache: Option<BTreeMap<u32, u32>>,
+    /// tri-state used for "not a boolean": 2 (null) in FEEL, 0 (false) in
+    /// B-FEEL, whose boolean logic is two-valued
+    null_tri: i32,
 }
 
 impl<'a> FnBuilder<'a> {
@@ -94,6 +104,7 @@ impl<'a> FnBuilder<'a> {
             imports,
             n_imports,
             slot_cache: if main { Some(BTreeMap::new()) } else { None },
+            null_tri: NULL_TRI.with(|c| c.get()),
         }
     }
     fn tmp(&mut self) -> u32 {
@@ -479,7 +490,7 @@ impl<'a> FnBuilder<'a> {
         match ir {
             Ir::True => self.c(1),
             Ir::False => self.c(0),
-            Ir::Null => self.c(2),
+            Ir::Null => self.c(self.null_tri),
             Ir::Cmp(op, a, b, site) => {
                 self.emit_h(a);
                 self.emit_h(b);
@@ -548,7 +559,10 @@ impl<'a> FnBuilder<'a> {
                 self.end();
             }
             Ir::Not(x, site) => {
-                if x.is_tri() || matches!(**x, Ir::True | Ir::False | Ir::Null) {
+                if self.null_tri == 0 && matches!(**x, Ir::Null) {
+                    // B-FEEL: not(null) is false
+                    self.c(0);
+                } else if x.is_tri() || matches!(**x, Ir::True | Ir::False | Ir::Null) {
                     let t = self.tmp();
                     self.emit_t(x);
                     self.set(t);
@@ -637,13 +651,13 @@ impl<'a> FnBuilder<'a> {
                 self.emit_t(body);
             }
             other => {
-                // handle → tri inline: h==1 → 1, h==2 → 0, else 2
+                // handle → tri inline: h==1 → 1, h==2 → 0, else 2 (B-FEEL: 0)
                 let t = self.tmp();
                 self.emit_h(other);
                 self.set(t);
                 self.c(1);
                 self.c(0);
-                self.c(2);
+                self.c(self.null_tri);
                 self.get(t);
                 self.c(2);
                 self.i(I::I32Eq);
@@ -925,43 +939,50 @@ impl<'a> FnBuilder<'a> {
             .map(|(l, e)| (*l, IterIr::Expr(e.clone())))
             .collect();
         let body = body.clone();
-        self.emit_nested(&its, exit, Some((acc, 2)), site, &mut |s: &mut Self| {
-            s.emit_t(&body);
-            s.set(t);
-            if every {
-                // false decides; null taints
-                s.get(t);
-                s.i(I::I32Eqz);
-                s.open(I::If(BlockType::Empty));
-                s.c(0);
-                s.set(acc);
-                s.br(exit);
-                s.end();
-                s.get(t);
-                s.c(2);
-                s.i(I::I32Eq);
-                s.open(I::If(BlockType::Empty));
-                s.c(2);
-                s.set(acc);
-                s.end();
-            } else {
-                s.get(t);
-                s.c(1);
-                s.i(I::I32Eq);
-                s.open(I::If(BlockType::Empty));
-                s.c(1);
-                s.set(acc);
-                s.br(exit);
-                s.end();
-                s.get(t);
-                s.c(2);
-                s.i(I::I32Eq);
-                s.open(I::If(BlockType::Empty));
-                s.c(2);
-                s.set(acc);
-                s.end();
-            }
-        });
+        let null_tri = self.null_tri;
+        self.emit_nested(
+            &its,
+            exit,
+            Some((acc, null_tri)),
+            site,
+            &mut |s: &mut Self| {
+                s.emit_t(&body);
+                s.set(t);
+                if every {
+                    // false decides; null taints
+                    s.get(t);
+                    s.i(I::I32Eqz);
+                    s.open(I::If(BlockType::Empty));
+                    s.c(0);
+                    s.set(acc);
+                    s.br(exit);
+                    s.end();
+                    s.get(t);
+                    s.c(2);
+                    s.i(I::I32Eq);
+                    s.open(I::If(BlockType::Empty));
+                    s.c(2);
+                    s.set(acc);
+                    s.end();
+                } else {
+                    s.get(t);
+                    s.c(1);
+                    s.i(I::I32Eq);
+                    s.open(I::If(BlockType::Empty));
+                    s.c(1);
+                    s.set(acc);
+                    s.br(exit);
+                    s.end();
+                    s.get(t);
+                    s.c(2);
+                    s.i(I::I32Eq);
+                    s.open(I::If(BlockType::Empty));
+                    s.c(2);
+                    s.set(acc);
+                    s.end();
+                }
+            },
+        );
         self.end();
         self.get(acc);
     }
@@ -1116,6 +1137,7 @@ fn build_bodies(prog: &ProgramIr, imports: &mut Imports, n_imports: u32) -> Bodi
 }
 
 pub fn emit_module(input: &EmitInput) -> Emitted {
+    NULL_TRI.with(|c| c.set(if input.bfeel { 0 } else { 2 }));
     // pass 1: discover the imports actually used
     let mut probe = Imports {
         used: BTreeMap::new(),

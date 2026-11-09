@@ -197,6 +197,8 @@ pub struct Runtime {
 
 /// Extension flags (opt-in, outside the DMN 1.5 conformance claim).
 pub const EXT_HAS_KEY: u32 = 1;
+/// Dialect flag: B-FEEL (DMN 1.6 clause 11) instead of DMN 1.5 FEEL.
+pub const DIALECT_BFEEL: u32 = 1 << 16;
 
 impl Default for Runtime {
     fn default() -> Self {
@@ -280,6 +282,12 @@ impl Runtime {
         let h = self.vals.len() as H;
         self.vals.push(v);
         h
+    }
+
+    /// Evaluating the B-FEEL dialect?
+    #[inline]
+    pub fn bfeel(&self) -> bool {
+        self.extensions & DIALECT_BFEEL != 0
     }
 
     pub fn bool(&self, b: bool) -> H {

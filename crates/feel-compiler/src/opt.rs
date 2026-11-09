@@ -324,8 +324,10 @@ impl<'a> Folder<'a> {
     }
 }
 
-pub fn optimize(prog: &mut ProgramIr, consts: &mut ConstPool) -> (u32, u32) {
+pub fn optimize(prog: &mut ProgramIr, consts: &mut ConstPool, flags: u32) -> (u32, u32) {
     let mut f = Folder::new(consts);
+    // fold with the same dialect / extension semantics the runtime will use
+    f.rt.extensions = flags;
     f.run(&mut prog.main);
     for func in prog.funcs.iter_mut() {
         f.run(&mut func.body);

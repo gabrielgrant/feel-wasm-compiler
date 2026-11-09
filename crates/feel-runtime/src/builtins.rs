@@ -365,6 +365,93 @@ fn is_list_type(t: &str) -> bool {
 
 /// Invoke builtin `id` with positional arguments.
 pub fn call(cx: &mut dyn Cx, id: u16, args: &[H], site: u32) -> H {
+    if !cx.rt().bfeel() {
+        return call_feel(cx, id, args, site);
+    }
+    // B-FEEL (DMN 1.6 clause 11): statistical functions ignore null and
+    // non-number items; a function that FEEL makes null returns the default
+    // value of its result type instead.
+    let name = name_of(id);
+    let mut args = args.to_vec();
+    if matches!(
+        name,
+        "sum" | "mean" | "stddev" | "median" | "mode" | "product" | "min" | "max"
+    ) {
+        let items = if args.len() == 1 {
+            cx.rt().list_items(args[0]).unwrap_or_else(|| vec![args[0]])
+        } else {
+            args.clone()
+        };
+        let keep: Vec<H> = items
+            .into_iter()
+            .filter(|h| {
+                if matches!(name, "min" | "max") {
+                    !cx.rt().is_null(*h)
+                } else {
+                    matches!(cx.rt().get(*h), Value::Num(_))
+                }
+            })
+            .collect();
+        let l = cx.rt().list(keep);
+        args = vec![l];
+    }
+    let r = call_feel(cx, id, &args, site);
+    if r != NULL || cx.rt().aborted() {
+        return r;
+    }
+    let ret = overloads(id)
+        .iter()
+        .find(|o| {
+            args.len() >= o.min_args() && o.max_args().map(|m| args.len() <= m).unwrap_or(true)
+        })
+        .or(overloads(id).first())
+        .map(|o| o.ret.clone())
+        .unwrap_or_default();
+    bfeel_default(cx.rt(), &ret)
+}
+
+/// The B-FEEL default value of a result type (0, "", false, [], 1970-01-01,
+/// 00:00:00Z, PT0S, P0M); null for `Any`.
+pub fn bfeel_default(rt: &mut Runtime, ty: &str) -> H {
+    let ty = ty.trim();
+    match ty {
+        "number" => rt.num(Decimal::ZERO),
+        "string" => rt.str(""),
+        "boolean" => FALSE,
+        "date" => match tm::Date::from_ymd(1970, 1, 1) {
+            Some(d) => rt.alloc(Value::Date(d)),
+            None => NULL,
+        },
+        "time" => match tm::Time::parse("00:00:00Z") {
+            Some(t) => rt.alloc(Value::Time(t)),
+            None => NULL,
+        },
+        "date and time" => match tm::DateTime::parse("1970-01-01T00:00:00Z") {
+            Some(t) => rt.alloc(Value::DateTime(t)),
+            None => NULL,
+        },
+        "duration" | "days and time duration" => {
+            rt.alloc(Value::Dtd(tm::DayTimeDuration { nanos: 0 }))
+        }
+        "years and months duration" => rt.alloc(Value::Ymd(tm::YearMonthDuration { months: 0 })),
+        t if t.starts_with("list") => rt.list(Vec::new()),
+        t if t.starts_with("range") => {
+            let z = rt.num(Decimal::ZERO);
+            rt.alloc(Value::Range(Range {
+                start: Some(z),
+                end: Some(z),
+                start_incl: false,
+                end_incl: false,
+                ne: false,
+                eq: false,
+            }))
+        }
+        t if t.starts_with("context") => rt.ctx(Ctx::default()),
+        _ => NULL,
+    }
+}
+
+fn call_feel(cx: &mut dyn Cx, id: u16, args: &[H], site: u32) -> H {
     let Some(b) = BUILTINS.get(id as usize) else {
         cx.rt().diag("FEEL-E320", site, "unknown builtin");
         return NULL;

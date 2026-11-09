@@ -22,10 +22,11 @@ date and time("2018-07-10T10:30:00@Europe/Paris").time offset → PT2H
 |---|---|
 | DMN TCK, pinned revision `5cd912f2`, compliance levels 2 and 3, through generated Wasm | **3,511 / 3,511** result nodes pass (0 fail, 0 skip, 0 out of scope) — optimized and unoptimized |
 | Decision tables: one Wasm module per cell (host-orchestrated) vs one module per table (lowered) | 83 TCK results compared, 0 mismatches |
-| Semantic vectors (`tests/vectors/semantic.json`) | **412 / 412**, native (optimized and unoptimized, differential) and in Chromium (compiler.wasm + runtime.wasm) |
+| Semantic vectors (`tests/vectors/semantic.json`) | **449 / 449**, native (optimized and unoptimized, differential) and in Chromium (compiler.wasm + runtime.wasm) |
 | Browser end-to-end (Playwright, offline after load) | 470 / 470 checks |
 | Decimal library vs Python `decimal` oracle | 21,738 vectors, 0 mismatches |
 | TCK `non-compliant` folder (informational, outside the claim) | 39 / 50 |
+| B-FEEL dialect (DMN 1.6, separate from the claim; `--dialect b-feel`) | 35 / 35 examples from the published descriptions |
 
 The conformance claim, its scope and the exact clauses are in [docs/CONFORMANCE.md](docs/CONFORMANCE.md). The clause-by-clause and builtin-by-builtin matrix is in [docs/CONFORMANCE-MATRIX.md](docs/CONFORMANCE-MATRIX.md).
 

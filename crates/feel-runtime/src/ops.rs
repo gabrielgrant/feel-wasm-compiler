@@ -39,6 +39,7 @@ pub fn truth(rt: &Runtime, h: H) -> i32 {
         _ => match rt.get(h) {
             Value::Bool(true) => T_TRUE,
             Value::Bool(false) => T_FALSE,
+            _ if rt.bfeel() => T_FALSE,
             _ => T_NULL,
         },
     }
@@ -111,7 +112,83 @@ fn overflow(rt: &mut Runtime, site: u32, what: &str) -> H {
 
 // -------------------------------------------------------------------- arithmetic
 
+/// B-FEEL operand coercion (DMN 1.6 clause 11): string concatenation
+/// converts the other operand to a string; otherwise a number operand turns
+/// the other into 0; a temporal or duration operand turns the other into a
+/// zero duration. Returns the coerced operands, or None to use FEEL rules.
+fn bfeel_coerce(rt: &mut Runtime, a: H, b: H, op: char) -> Option<(H, H)> {
+    use Value::*;
+    let (va, vb) = (rt.get(a).clone(), rt.get(b).clone());
+    let is_str = |v: &Value| matches!(v, Str(_));
+    let is_num = |v: &Value| matches!(v, Num(_));
+    let is_temporal = |v: &Value| matches!(v, Date(_) | Time(_) | DateTime(_));
+    let is_dur = |v: &Value| matches!(v, Dtd(_) | Ymd(_));
+    let same_kind = std::mem::discriminant(&va) == std::mem::discriminant(&vb);
+    if same_kind && !matches!(va, Null) {
+        return None;
+    }
+    let to_s = |rt: &mut Runtime, h: H| -> H {
+        if rt.is_null(h) {
+            rt.str("")
+        } else {
+            let s = crate::builtins::to_feel_string(rt, h, true);
+            rt.string(s)
+        }
+    };
+    if op == '+' && (is_str(&va) || is_str(&vb)) {
+        let x = if is_str(&va) { a } else { to_s(rt, a) };
+        let y = if is_str(&vb) { b } else { to_s(rt, b) };
+        return Some((x, y));
+    }
+    if is_num(&va) || is_num(&vb) {
+        let x = if is_num(&va) {
+            a
+        } else {
+            rt.num(Decimal::ZERO)
+        };
+        let y = if is_num(&vb) {
+            b
+        } else {
+            rt.num(Decimal::ZERO)
+        };
+        return Some((x, y));
+    }
+    let zero_dur = |rt: &mut Runtime| rt.alloc(Dtd(tm::DayTimeDuration { nanos: 0 }));
+    if is_temporal(&va) && !is_dur(&vb) && !is_temporal(&vb) {
+        return Some((a, zero_dur(rt)));
+    }
+    if is_temporal(&vb) && !is_dur(&va) && !is_temporal(&va) {
+        return Some((zero_dur(rt), b));
+    }
+    if is_dur(&va) && !is_dur(&vb) && !is_temporal(&vb) {
+        let z = if matches!(va, Ymd(_)) {
+            rt.alloc(Ymd(tm::YearMonthDuration { months: 0 }))
+        } else {
+            zero_dur(rt)
+        };
+        return Some((a, z));
+    }
+    if is_dur(&vb) && !is_dur(&va) && !is_temporal(&va) {
+        let z = if matches!(vb, Ymd(_)) {
+            rt.alloc(Ymd(tm::YearMonthDuration { months: 0 }))
+        } else {
+            zero_dur(rt)
+        };
+        return Some((z, b));
+    }
+    None
+}
+
 pub fn add(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
+    if rt.bfeel() {
+        if let Some((x, y)) = bfeel_coerce(rt, a, b, '+') {
+            return add_feel(rt, x, y, site);
+        }
+    }
+    add_feel(rt, a, b, site)
+}
+
+fn add_feel(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
     use Value::*;
     let r = match (rt.get(a), rt.get(b)) {
         (Num(x), Num(y)) => match x.add(y) {
@@ -149,6 +226,19 @@ pub fn add(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
 }
 
 pub fn sub(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
+    if rt.bfeel() {
+        if matches!((rt.get(a), rt.get(b)), (Value::Str(_), Value::Str(_))) {
+            return rt.str("");
+        }
+        if let Some((x, y)) = bfeel_coerce(rt, a, b, '-') {
+            let r = sub_feel(rt, x, y, site);
+            return if r == NULL { rt.num(Decimal::ZERO) } else { r };
+        }
+    }
+    sub_feel(rt, a, b, site)
+}
+
+fn sub_feel(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
     use Value::*;
     let r = match (rt.get(a), rt.get(b)) {
         (Num(x), Num(y)) => match x.sub(y) {
@@ -212,6 +302,16 @@ fn dtd_scale(n: i128, d: &Decimal) -> Option<i128> {
 }
 
 pub fn mul(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
+    if rt.bfeel() {
+        if let Some((x, y)) = bfeel_coerce(rt, a, b, '*') {
+            let r = mul_feel(rt, x, y, site);
+            return if r == NULL { rt.num(Decimal::ZERO) } else { r };
+        }
+    }
+    mul_feel(rt, a, b, site)
+}
+
+fn mul_feel(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
     use Value::*;
     let r = match (rt.get(a), rt.get(b)) {
         (Num(x), Num(y)) => match x.mul(y) {
@@ -236,6 +336,19 @@ pub fn mul(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
 }
 
 pub fn div(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
+    if rt.bfeel() {
+        if let Some((x, y)) = bfeel_coerce(rt, a, b, '/') {
+            let r = div_feel(rt, x, y, site);
+            return if r == NULL { rt.num(Decimal::ZERO) } else { r };
+        }
+        if matches!(rt.get(b), Value::Num(d) if d.is_zero()) {
+            return rt.num(Decimal::ZERO);
+        }
+    }
+    div_feel(rt, a, b, site)
+}
+
+fn div_feel(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
     use Value::*;
     let r = match (rt.get(a), rt.get(b)) {
         (Num(x), Num(y)) => {
@@ -297,6 +410,16 @@ pub fn div(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
 }
 
 pub fn pow(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
+    if rt.bfeel() {
+        if let Some((x, y)) = bfeel_coerce(rt, a, b, '*') {
+            let r = pow_feel(rt, x, y, site);
+            return if r == NULL { rt.num(Decimal::ZERO) } else { r };
+        }
+    }
+    pow_feel(rt, a, b, site)
+}
+
+fn pow_feel(rt: &mut Runtime, a: H, b: H, site: u32) -> H {
     match (rt.get(a), rt.get(b)) {
         (Value::Num(x), Value::Num(y)) => {
             let lim = Decimal::from_i64(999_999_999);
@@ -474,7 +597,34 @@ pub fn cmp_diag(rt: &mut Runtime, a: H, b: H, op: &str, site: u32) {
     }
 }
 
+/// B-FEEL: a comparison that FEEL makes null is false.
+#[inline]
+fn bf(rt: &Runtime, t: i32) -> i32 {
+    if t == T_NULL && rt.bfeel() {
+        T_FALSE
+    } else {
+        t
+    }
+}
+
 pub fn lt(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
+    let t = lt_feel(rt, a, b, site);
+    bf(rt, t)
+}
+pub fn gt(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
+    let t = gt_feel(rt, a, b, site);
+    bf(rt, t)
+}
+pub fn le(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
+    let t = le_feel(rt, a, b, site);
+    bf(rt, t)
+}
+pub fn ge(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
+    let t = ge_feel(rt, a, b, site);
+    bf(rt, t)
+}
+
+fn lt_feel(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
     match cmp(rt, a, b) {
         Some(o) => tri_of(Some(o == Ordering::Less)),
         None => {
@@ -483,7 +633,7 @@ pub fn lt(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
         }
     }
 }
-pub fn gt(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
+fn gt_feel(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
     match cmp(rt, a, b) {
         Some(o) => tri_of(Some(o == Ordering::Greater)),
         None => {
@@ -493,7 +643,7 @@ pub fn gt(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
     }
 }
 /// `e1 <= e2` is `e1 < e2 or e1 = e2`.
-pub fn le(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
+fn le_feel(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
     match cmp(rt, a, b) {
         Some(o) => tri_of(Some(o != Ordering::Greater)),
         None => {
@@ -505,7 +655,7 @@ pub fn le(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
         }
     }
 }
-pub fn ge(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
+fn ge_feel(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
     match cmp(rt, a, b) {
         Some(o) => tri_of(Some(o != Ordering::Less)),
         None => {
@@ -528,6 +678,9 @@ fn eq_strict(rt: &Runtime, a: H, b: H) -> Option<bool> {
 
 pub fn eq_tri(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
     let r = eq(rt, a, b);
+    if r.is_none() && rt.bfeel() {
+        return T_FALSE;
+    }
     if r.is_none() {
         let (ka, kb) = (rt.kind_name(a), rt.kind_name(b));
         rt.diag(

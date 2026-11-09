@@ -52,6 +52,9 @@ struct Src {
     #[arg(long)]
     no_opt: bool,
     /// Enable an extension (e.g. "has key")
+    /// Dialect: feel-1.5 (default) or b-feel
+    #[arg(long, default_value = "feel-1.5")]
+    dialect: String,
     #[arg(long = "ext")]
     extensions: Vec<String>,
 }
@@ -164,6 +167,15 @@ fn options(s: &Src) -> Result<CompileOptions, String> {
     };
     o.optimize = !s.no_opt;
     o.extensions = s.extensions.clone();
+    o.dialect = match s.dialect.as_str() {
+        "feel-1.5" => feel_compiler::Dialect::Feel15,
+        "b-feel" => feel_compiler::Dialect::BFeel,
+        d => {
+            return Err(format!(
+                "unknown dialect '{d}' (expected feel-1.5 or b-feel)"
+            ))
+        }
+    };
     Ok(o)
 }
 

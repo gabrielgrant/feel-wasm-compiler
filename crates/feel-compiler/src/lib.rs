@@ -54,6 +54,11 @@ pub enum Dialect {
     #[default]
     #[serde(rename = "feel-1.5")]
     Feel15,
+    /// B-FEEL (DMN 1.6 clause 11): FEEL with type-default substitution
+    /// instead of null propagation. A separate dialect, outside the DMN 1.5
+    /// conformance claim.
+    #[serde(rename = "b-feel")]
+    BFeel,
 }
 
 /// Opt-in extensions (outside the DMN 1.5 conformance claim).
@@ -122,7 +127,11 @@ impl CompileOptions {
     }
 
     pub fn extension_flags(&self) -> u32 {
-        let mut f = 0;
+        let mut f = if self.dialect == Dialect::BFeel {
+            feel_runtime::DIALECT_BFEEL
+        } else {
+            0
+        };
         for e in &self.extensions {
             if let Some((_, b)) = EXTENSIONS.iter().find(|(n, _)| n == e) {
                 f |= b;
@@ -477,7 +486,7 @@ pub fn lower(
         return Err(l.diags);
     }
     if opts.optimize {
-        opt::optimize(&mut ir, &mut l.consts);
+        opt::optimize(&mut ir, &mut l.consts, opts.extension_flags());
     }
     Ok((ir, l.consts, l.slots))
 }
@@ -550,7 +559,7 @@ pub fn compile_program(
         return fail(diags);
     }
     let (folded, fused) = if opts.optimize {
-        opt::optimize(&mut ir, &mut l.consts)
+        opt::optimize(&mut ir, &mut l.consts, opts.extension_flags())
     } else {
         (0, 0)
     };
@@ -573,7 +582,10 @@ pub fn compile_program(
         abi_module: ABI_MODULE.into(),
         compiler_version: COMPILER_VERSION.into(),
         runtime_version: feel_runtime::RUNTIME_VERSION.into(),
-        dialect: "feel-1.5".into(),
+        dialect: match opts.dialect {
+            Dialect::Feel15 => "feel-1.5".into(),
+            Dialect::BFeel => "b-feel".into(),
+        },
         entry: opts.entry,
         extensions: opts.extensions.clone(),
         extension_flags: opts.extension_flags(),
@@ -597,7 +609,9 @@ pub fn compile_program(
     };
     // the import list is only known after emission; emit twice is avoided by
     // computing it from a first emission
+    let bfeel = opts.dialect == Dialect::BFeel;
     let first = codegen::emit_module(&codegen::EmitInput {
+        bfeel,
         prog: &ir,
         consts_json: &consts_json,
         meta_json: "{}",
@@ -605,6 +619,7 @@ pub fn compile_program(
     meta.imports = first.imports.clone();
     let meta_json = serde_json::to_string(&meta).unwrap();
     let emitted = codegen::emit_module(&codegen::EmitInput {
+        bfeel,
         prog: &ir,
         consts_json: &consts_json,
         meta_json: &meta_json,

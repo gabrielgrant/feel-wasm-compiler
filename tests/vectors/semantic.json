@@ -2724,5 +2724,367 @@
     }
    ]
   }
+ },
+ {
+  "id": "bfeel-00",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "\"a\" = 1",
+  "expect": "false",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-01",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "16 > null",
+  "expect": "false",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-02",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "not(0)",
+  "expect": "false",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-03",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "not(null)",
+  "expect": "false",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-04",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "true and null",
+  "expect": "false",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-05",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "null < 1",
+  "expect": "false",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-06",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "X = 4 and X + 4",
+  "expect": "false",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-07",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "\"1\" in [0..1]",
+  "expect": "false",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-08",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "\"Today is \" + today()",
+  "expect": "\"Today is 2024-07-15\"",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-09",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "\"The total is \" + 162.04",
+  "expect": "\"The total is 162.04\"",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-10",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "\"The total is \" + null",
+  "expect": "\"The total is \"",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-11",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "1 + null",
+  "expect": "1",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-12",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "date(\"2024-07-15\") + 7",
+  "expect": "7",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-13",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "date(\"2024-07-15\") + null",
+  "expect": "{\"@date\":\"2024-07-15\"}",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-14",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "1/0",
+  "expect": "0",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-15",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "modulo(10, 0)",
+  "expect": "0",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-16",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "decimal(162.623, \"2\")",
+  "expect": "0",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-17",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "string length(11)",
+  "expect": "0",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-18",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "sum([1,2,null])",
+  "expect": "3",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-19",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "mean([1,2,null])",
+  "expect": "1.5",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-20",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "sum(1,2,\"3\")",
+  "expect": "3",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-21",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "sum([])",
+  "expect": "0",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-22",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "substring(\"myString\", \"S\")",
+  "expect": "\"\"",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-23",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "string(null)",
+  "expect": "\"\"",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-24",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "date(\"2024-06-31\")",
+  "expect": "{\"@date\":\"1970-01-01\"}",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-25",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "time(\"25:00:00\")",
+  "expect": "{\"@time\":\"00:00:00Z\"}",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-26",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "duration(\"bad\")",
+  "expect": "{\"@duration\":\"PT0S\"}",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-27",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "split(\"a,b,c\", 2)",
+  "expect": "[]",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-28",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "contains(\"abc\", null)",
+  "expect": "false",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-29",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "before(null, 5)",
+  "expect": "false",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-30",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "get entries(null)",
+  "expect": "[]",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-31",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "{a: 1}.b + 1",
+  "expect": "1",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-32",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "upper case(null)",
+  "expect": "\"\"",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-33",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "day of week(null)",
+  "expect": "\"\"",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-34",
+  "clause": "B-FEEL (DMN 1.6 cl. 11)",
+  "expr": "0.1 + 0.2",
+  "expect": "0.3",
+  "options": {
+   "dialect": "b-feel"
+  },
+  "clock": "2024-07-15T00:00:00Z"
+ },
+ {
+  "id": "bfeel-off-1",
+  "clause": "Table 57",
+  "expr": "1 + null",
+  "expect": "null"
+ },
+ {
+  "id": "bfeel-off-2",
+  "clause": "Table 50",
+  "expr": "true and null",
+  "expect": "null"
  }
 ]

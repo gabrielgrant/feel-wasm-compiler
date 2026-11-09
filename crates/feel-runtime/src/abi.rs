@@ -172,7 +172,12 @@ pub fn ge(cx: &mut dyn Cx, a: i32, b: i32, site: i32) -> i32 {
     ops::ge(cx.rt(), h(a), h(b), site as u32)
 }
 pub fn in_value(cx: &mut dyn Cx, c: i32, v: i32, uses_q: i32, site: i32) -> i32 {
-    ops::in_value(cx.rt(), h(c), h(v), uses_q != 0, site as u32)
+    let rt = cx.rt();
+    let t = ops::in_value(rt, h(c), h(v), uses_q != 0, site as u32);
+    if t == ops::T_NULL && rt.bfeel() {
+        return ops::T_FALSE;
+    }
+    t
 }
 pub fn range(cx: &mut dyn Cx, s: i32, e: i32, flags: i32, site: i32) -> i32 {
     r(ops::make_range(cx.rt(), h(s), h(e), flags, site as u32))
@@ -315,7 +320,11 @@ pub fn external_fn(cx: &mut dyn Cx, mapping: i32, sig: i32) -> i32 {
 pub fn instance_of(cx: &mut dyn Cx, v: i32, ty: i32) -> i32 {
     let rt = cx.rt();
     let t = rt.type_of_const(h(ty));
-    ops::tri_of(crate::types::instance_of(rt, h(v), &t))
+    let r = crate::types::instance_of(rt, h(v), &t);
+    if r.is_none() && rt.bfeel() {
+        return ops::T_FALSE;
+    }
+    ops::tri_of(r)
 }
 pub fn coerce(cx: &mut dyn Cx, v: i32, ty: i32, site: i32) -> i32 {
     let rt = cx.rt();
@@ -325,6 +334,9 @@ pub fn coerce(cx: &mut dyn Cx, v: i32, ty: i32, site: i32) -> i32 {
 /// `not(x)` on a value handle, returning a tri-state.
 pub fn not_bool(cx: &mut dyn Cx, x: i32, site: i32) -> i32 {
     let rt = cx.rt();
+    if rt.bfeel() && !matches!(rt.get(h(x)), Value::Bool(_)) {
+        return ops::T_FALSE;
+    }
     let t = ops::truth(rt, h(x));
     if t == ops::T_NULL && !rt.is_null(h(x)) {
         let k = rt.kind_name(h(x));
