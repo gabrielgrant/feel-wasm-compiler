@@ -378,7 +378,7 @@ try {
     );
     check(r.nanError === 'RangeError', 'NaN is rejected');
     check(r.escTs === r.escText && r.escOut === r.escText, `@context escape: TS codec and runtime encoder agree (${r.escTs} / ${r.escOut})`);
-    if (!r.escIn.ok) console.log(`  KNOWN RUST ISSUE (not counted): runtime cannot decode its own escape ${r.escText}: ${r.escIn.abort?.message}`);
+    check(r.escIn.ok && r.escIn.valueJson === r.escText, `runtime decodes its own @context escape (${r.escIn.valueJson ?? r.escIn.abort?.message})`);
   }
 
   section('(g) semantic vectors in the browser (compiler.wasm + runtime.wasm + generated modules)');

@@ -244,8 +244,8 @@ functions cannot cross the worker boundary.
 | `serve.mjs` | Static server (`createServer()` is also used by the test and the benchmark) |
 | `build-bundles.mjs` | esbuild step for the worker and feelin bundles |
 
-## Known runtime issues (reported to the Rust side)
+## Runtime notes
 
-- **Traps leak shadow stack.** Each abort that traps inside nested runtime frames (for example a step limit hit inside a `sort` comparator) leaves `__stack_pointer` lowered. After about 5,400 such aborts on one `runtime.wasm` instance, every call fails with "memory access out of bounds". The bindings work around this by recycling the instance after a trap.
-- **`@context` escape does not decode.** The runtime's FEEL-JSON decoder rejects `{"@context": {"@x": 1}}` ("unknown tag @x"), which is its own encoding of a context whose only key starts with `@`. Such contexts can be returned but not passed back in as inputs.
-- **Wrong step limit in the message.** `FEEL-L404` reports the default step limit (50,000,000) instead of the value passed to `__feel_set_limits`, because `rt_set_limits` has no steps parameter.
+- **Traps and the shadow stack.** A trap inside nested runtime frames (for example a step limit hit inside a `sort` comparator) unwinds without running Rust epilogues, so `runtime.wasm`'s `__stack_pointer` is left lowered. The bindings replace the runtime/module pair after any trap (about 1 ms). `runtime.wasm` also exports `__stack_pointer`, so a host can restore it instead.
+- **Step limit in messages.** `rt_set_max_steps` records the step limit for `FEEL-L404` messages; the fuel itself is enforced by the module (`__feel_set_limits`).
+- **`@context` escape.** The runtime decodes its own `{"@context": {...}}` escape; the e2e test round-trips it.
