@@ -1,7 +1,16 @@
 [package]
 name = "feel-web"
+description = "The FEEL compiler built for WebAssembly (browser/offline compilation), exposing a small C ABI"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+rust-version.workspace = true
+
+[lib]
+crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+feel-compiler.workspace = true
+feel-runtime.workspace = true
+serde.workspace = true
+serde_json.workspace = true

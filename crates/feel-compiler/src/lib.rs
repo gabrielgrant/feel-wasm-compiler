@@ -94,6 +94,25 @@ impl Default for CompileOptions {
 }
 
 impl CompileOptions {
+    /// Parse options JSON (camelCase). `schema.inputs` and `schema.types`
+    /// may be objects (`{"name": "type"}`) as well as arrays.
+    pub fn from_json(json: &str) -> Result<CompileOptions, String> {
+        if json.trim().is_empty() {
+            return Ok(CompileOptions::default());
+        }
+        let mut v: serde_json::Value = serde_json::from_str(json).map_err(|e| format!("options: {e}"))?;
+        if let Some(schema) = v.get_mut("schema") {
+            if let Some(obj) = schema.get("inputs").and_then(|x| x.as_object()).cloned() {
+                schema["inputs"] =
+                    serde_json::Value::Array(obj.into_iter().map(|(k, t)| serde_json::json!({"name": k, "type": t})).collect());
+            }
+            if let Some(obj) = schema.get("types").and_then(|x| x.as_object()).cloned() {
+                schema["types"] = serde_json::Value::Array(obj.into_iter().map(|(k, t)| serde_json::json!([k, t])).collect());
+            }
+        }
+        serde_json::from_value(v).map_err(|e| format!("options: {e}"))
+    }
+
     pub fn extension_flags(&self) -> u32 {
         let mut f = 0;
         for e in &self.extensions {

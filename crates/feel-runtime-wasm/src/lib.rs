@@ -132,6 +132,13 @@ pub unsafe extern "C" fn rt_free(ptr: i32, len: i32) {
     drop(Vec::from_raw_parts(ptr as *mut u8, 0, len.max(1) as usize));
 }
 
+/// Pointer to the last output buffer (results, diagnostics, and the error
+/// message of a failed `rt_load_consts` / `rt_decode` / `rt_bind_inputs`).
+#[no_mangle]
+pub extern "C" fn rt_out_ptr() -> i32 {
+    rt().out.as_ptr() as i32
+}
+
 /// Length of the last output buffer (`rt_encode`, `rt_diags`, ...).
 #[no_mangle]
 pub extern "C" fn rt_out_len() -> i32 {

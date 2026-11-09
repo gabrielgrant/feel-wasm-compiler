@@ -304,6 +304,12 @@ dependencies = [
 [[package]]
 name = "feel-web"
 version = "0.1.0"
+dependencies = [
+ "feel-compiler",
+ "feel-runtime",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "foldhash"

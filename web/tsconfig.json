@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "strict": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "declaration": true,
+    "sourceMap": true,
+    "skipLibCheck": true,
+    "rootDir": ".",
+    "outDir": "dist",
+    "types": []
+  },
+  "include": ["src/**/*.ts", "demo/**/*.ts", "bench/**/*.ts"]
+}

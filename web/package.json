@@ -1,0 +1,21 @@
+{
+  "name": "feel-wasm-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser bindings, demo, end-to-end tests and benchmarks for the FEEL (DMN 1.5) to WebAssembly compiler",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "build": "bash ../scripts/build-web.sh",
+    "build:ts": "tsc -p tsconfig.json && node build-bundles.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "serve": "node serve.mjs",
+    "test": "node tests/e2e.mjs",
+    "bench": "node bench/run.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "feelin": "7.0.2",
+    "typescript": "5.9.3"
+  }
+}

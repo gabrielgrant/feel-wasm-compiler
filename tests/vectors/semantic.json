@@ -1,0 +1,1836 @@
+[
+ {
+  "id": "num-exact-sum",
+  "clause": "10.3.2.3.1",
+  "expr": "0.1 + 0.2",
+  "expect": "0.3"
+ },
+ {
+  "id": "num-table40-1",
+  "clause": "10.2.2.2",
+  "expr": "decimal(1, 2)",
+  "expect": "1.00"
+ },
+ {
+  "id": "num-table40-2",
+  "clause": "10.2.2.2",
+  "expr": ".25 + .2",
+  "expect": "0.45"
+ },
+ {
+  "id": "num-table40-3",
+  "clause": "10.2.2.2",
+  "expr": ".10 * 30.00",
+  "expect": "3.0000"
+ },
+ {
+  "id": "num-table40-4",
+  "clause": "10.2.2.2",
+  "expr": "1 + 3/2*2 - 2**3",
+  "expect": "-4.0"
+ },
+ {
+  "id": "num-table40-5",
+  "clause": "10.2.2.2",
+  "expr": "1/3",
+  "expect": "0.3333333333333333333333333333333333"
+ },
+ {
+  "id": "num-table40-6",
+  "clause": "10.2.2.2",
+  "expr": "decimal(1/3, 2)",
+  "expect": "0.33"
+ },
+ {
+  "id": "num-table40-7",
+  "clause": "10.2.2.2",
+  "expr": "1 = 1.000",
+  "expect": "true"
+ },
+ {
+  "id": "num-table40-8",
+  "clause": "10.2.2.2",
+  "expr": "1.01/2",
+  "expect": "0.505"
+ },
+ {
+  "id": "num-table40-9",
+  "clause": "10.2.2.2",
+  "expr": "decimal(0.505, 2)",
+  "expect": "0.50"
+ },
+ {
+  "id": "num-table40-10",
+  "clause": "10.2.2.2",
+  "expr": "decimal(0.515, 2)",
+  "expect": "0.52"
+ },
+ {
+  "id": "num-table40-11",
+  "clause": "10.2.2.2",
+  "expr": "1.0*10**3",
+  "expect": "1000.0"
+ },
+ {
+  "id": "num-repeating-2-3",
+  "clause": "10.3.2.3.1",
+  "expr": "2/3",
+  "expect": "0.6666666666666666666666666666666667"
+ },
+ {
+  "id": "num-repeating-neg",
+  "clause": "10.3.2.3.1",
+  "expr": "-1/3",
+  "expect": "-0.3333333333333333333333333333333333"
+ },
+ {
+  "id": "num-large-int",
+  "clause": "10.3.2.3.1",
+  "expr": "123456789012345678901234567890 + 1",
+  "expect": "123456789012345678901234567891"
+ },
+ {
+  "id": "num-34-digits",
+  "clause": "10.3.2.3.1",
+  "expr": "9999999999999999999999999999999999 + 1",
+  "expect": "10000000000000000000000000000000000"
+ },
+ {
+  "id": "num-35-digit-rounding",
+  "clause": "10.3.2.3.1",
+  "expr": "1234567890123456789012345678901234 * 10 + 5",
+  "expect": "12345678901234567890123456789012340"
+ },
+ {
+  "id": "num-tie-even-down",
+  "clause": "10.3.2.3.1",
+  "expr": "decimal(2.5, 0)",
+  "expect": "2"
+ },
+ {
+  "id": "num-tie-even-up",
+  "clause": "10.3.2.3.1",
+  "expr": "decimal(3.5, 0)",
+  "expect": "4"
+ },
+ {
+  "id": "num-mul-tie",
+  "clause": "10.3.2.3.1",
+  "expr": "1000000000000000000000000000000001 * 1.5",
+  "expect": "1500000000000000000000000000000002"
+ },
+ {
+  "id": "num-input-precision",
+  "clause": "10.3.2.3.1",
+  "expr": "x * 3",
+  "expect": "3.30000000000000000003",
+  "inputs": {
+   "x": 1.10000000000000000001
+  }
+ },
+ {
+  "id": "num-input-tagged",
+  "clause": "10.3.2.3.1",
+  "expr": "x + y",
+  "expect": "0.30",
+  "inputs": {
+   "x": {
+    "@number": "0.10"
+   },
+   "y": {
+    "@number": "0.20"
+   }
+  }
+ },
+ {
+  "id": "num-scale-preserved",
+  "clause": "10.3.2.3.1",
+  "expr": "x",
+  "expect": "1.10",
+  "inputs": {
+   "x": {
+    "@number": "1.10"
+   }
+  }
+ },
+ {
+  "id": "num-div-zero",
+  "clause": "Table 59",
+  "expr": "1 / 0",
+  "expect": "null",
+  "expectDiag": [
+   "FEEL-E305"
+  ]
+ },
+ {
+  "id": "num-overflow",
+  "clause": "10.3.2.3.1",
+  "expr": "9e6144 * 10",
+  "expect": "null",
+  "expectDiag": [
+   "FEEL-E303"
+  ]
+ },
+ {
+  "id": "num-exp-literal",
+  "clause": "10.3.2.3.1",
+  "expr": "1.2e3",
+  "expect": "1200"
+ },
+ {
+  "id": "num-neg-pow",
+  "clause": "grammar 24",
+  "expr": "-4 ** 2",
+  "expect": "16"
+ },
+ {
+  "id": "num-pow-left-assoc",
+  "clause": "Table 60",
+  "expr": "3 ** 4 ** 5",
+  "expect": "3486784401"
+ },
+ {
+  "id": "num-pow-fraction",
+  "clause": "Table 60",
+  "expr": "2 ** 0.5",
+  "expect": "1.414213562373095048801688724209698"
+ },
+ {
+  "id": "num-pow-neg",
+  "clause": "Table 60",
+  "expr": "2 ** -2",
+  "expect": "0.25"
+ },
+ {
+  "id": "num-string-add",
+  "clause": "Table 57",
+  "expr": "1 + \"a\"",
+  "expect": "null",
+  "expectDiag": [
+   "FEEL-E302"
+  ]
+ },
+ {
+  "id": "num-null-add",
+  "clause": "Table 57",
+  "expr": "1 + null",
+  "expect": "null",
+  "expectDiag": [
+   "FEEL-E301"
+  ]
+ },
+ {
+  "id": "num-eq-scale",
+  "clause": "Table 53",
+  "expr": "1.0 = 1",
+  "expect": "true"
+ },
+ {
+  "id": "num-cmp",
+  "clause": "Table 54",
+  "expr": "1.10 < 1.2",
+  "expect": "true"
+ },
+ {
+  "id": "fn-floor",
+  "clause": "10.3.4.5",
+  "expr": "floor(-1.56, 1)",
+  "expect": "-1.6"
+ },
+ {
+  "id": "fn-ceiling",
+  "clause": "10.3.4.5",
+  "expr": "ceiling(-1.56, 1)",
+  "expect": "-1.5"
+ },
+ {
+  "id": "fn-round-up",
+  "clause": "10.3.4.5",
+  "expr": "round up(-5.5, 0)",
+  "expect": "-6"
+ },
+ {
+  "id": "fn-round-down",
+  "clause": "10.3.4.5",
+  "expr": "round down(-1.126, 2)",
+  "expect": "-1.12"
+ },
+ {
+  "id": "fn-round-half-up",
+  "clause": "10.3.4.5",
+  "expr": "round half up(-1.126, 2)",
+  "expect": "-1.13"
+ },
+ {
+  "id": "fn-round-half-down",
+  "clause": "10.3.4.5",
+  "expr": "round half down(5.5, 0)",
+  "expect": "5"
+ },
+ {
+  "id": "fn-modulo-1",
+  "clause": "10.3.4.5",
+  "expr": "modulo(-12, 5)",
+  "expect": "3"
+ },
+ {
+  "id": "fn-modulo-2",
+  "clause": "10.3.4.5",
+  "expr": "modulo(10.1, -4.5)",
+  "expect": "-3.4"
+ },
+ {
+  "id": "fn-sqrt",
+  "clause": "10.3.4.5",
+  "expr": "sqrt(16)",
+  "expect": "4"
+ },
+ {
+  "id": "fn-sqrt-neg",
+  "clause": "10.3.4.5",
+  "expr": "sqrt(-1)",
+  "expect": "null"
+ },
+ {
+  "id": "fn-log",
+  "clause": "10.3.4.5",
+  "expr": "log(10)",
+  "expect": "2.302585092994045684017991454684364"
+ },
+ {
+  "id": "fn-exp",
+  "clause": "10.3.4.5",
+  "expr": "exp(1)",
+  "expect": "2.718281828459045235360287471352662"
+ },
+ {
+  "id": "fn-odd",
+  "clause": "10.3.4.5",
+  "expr": "odd(5)",
+  "expect": "true"
+ },
+ {
+  "id": "fn-even",
+  "clause": "10.3.4.5",
+  "expr": "even(2.5)",
+  "expect": "null"
+ },
+ {
+  "id": "fn-abs-dur",
+  "clause": "10.3.4.5",
+  "expr": "abs(@\"-PT5H\")",
+  "expect": "{\"@duration\":\"PT5H\"}"
+ },
+ {
+  "id": "fn-number",
+  "clause": "10.3.4.1",
+  "expr": "number(\"1 000,0\", \" \", \",\")",
+  "expect": "1000.0"
+ },
+ {
+  "id": "fn-string-num",
+  "clause": "10.3.4.1",
+  "expr": "string(1.10)",
+  "expect": "\"1.10\""
+ },
+ {
+  "id": "fn-stddev",
+  "clause": "10.3.4.4",
+  "expr": "stddev(2, 4, 7, 5)",
+  "expect": "2.081665999466132735282297706979931"
+ },
+ {
+  "id": "fn-median",
+  "clause": "10.3.4.4",
+  "expr": "median([6, 1, 2, 3])",
+  "expect": "2.5"
+ },
+ {
+  "id": "fn-mode",
+  "clause": "10.3.4.4",
+  "expr": "mode([6, 1, 9, 6, 1])",
+  "expect": "[1,6]"
+ },
+ {
+  "id": "fn-mean",
+  "clause": "10.3.4.4",
+  "expr": "mean(1, 2, 3)",
+  "expect": "2"
+ },
+ {
+  "id": "fn-sum-empty",
+  "clause": "10.3.4.4",
+  "expr": "sum([])",
+  "expect": "null"
+ },
+ {
+  "id": "fn-product",
+  "clause": "10.3.4.4",
+  "expr": "product(2, 3, 4)",
+  "expect": "24"
+ },
+ {
+  "id": "str-concat",
+  "clause": "Table 57",
+  "expr": "\"foo\" + \"bar\"",
+  "expect": "\"foobar\""
+ },
+ {
+  "id": "str-substring",
+  "clause": "10.3.4.3",
+  "expr": "substring(\"foobar\", 3)",
+  "expect": "\"obar\""
+ },
+ {
+  "id": "str-substring-neg",
+  "clause": "10.3.4.3",
+  "expr": "substring(\"foobar\", -2, 1)",
+  "expect": "\"a\""
+ },
+ {
+  "id": "str-substring-astral",
+  "clause": "10.3.4.3",
+  "expr": "substring(\"\\U01F40Eab\", 2)",
+  "expect": "\"ab\""
+ },
+ {
+  "id": "str-length-astral",
+  "clause": "10.3.4.3",
+  "expr": "string length(\"\\U01F40Eab\")",
+  "expect": "3"
+ },
+ {
+  "id": "str-upper",
+  "clause": "10.3.4.3",
+  "expr": "upper case(\"aBc4\")",
+  "expect": "\"ABC4\""
+ },
+ {
+  "id": "str-before",
+  "clause": "10.3.4.3",
+  "expr": "substring before(\"foobar\", \"bar\")",
+  "expect": "\"foo\""
+ },
+ {
+  "id": "str-after-missing",
+  "clause": "10.3.4.3",
+  "expr": "substring after(\"\", \"a\")",
+  "expect": "\"\""
+ },
+ {
+  "id": "str-replace-groups",
+  "clause": "10.3.4.3",
+  "expr": "replace(\"abcd\", \"(ab)|(a)\", \"[1=$1][2=$2]\")",
+  "expect": "\"[1=ab][2=]cd\""
+ },
+ {
+  "id": "str-matches",
+  "clause": "10.3.4.3",
+  "expr": "matches(\"foobar\", \"^fo*b\")",
+  "expect": "true"
+ },
+ {
+  "id": "str-matches-flag",
+  "clause": "10.3.4.3",
+  "expr": "matches(\"abc\", \"ABC\", \"i\")",
+  "expect": "true"
+ },
+ {
+  "id": "str-matches-bad-flag",
+  "clause": "10.3.4.3",
+  "expr": "matches(\"abc\", \"a\", \"p\")",
+  "expect": "null"
+ },
+ {
+  "id": "str-split",
+  "clause": "10.3.4.3",
+  "expr": "split(\"a;b;c;;\", \";\")",
+  "expect": "[\"a\",\"b\",\"c\",\"\",\"\"]"
+ },
+ {
+  "id": "str-join",
+  "clause": "10.3.4.3",
+  "expr": "string join([\"a\", null, \"c\"], \"X\")",
+  "expect": "\"aXc\""
+ },
+ {
+  "id": "str-contains",
+  "clause": "10.3.4.3",
+  "expr": "contains(\"foobar\", \"of\")",
+  "expect": "false"
+ },
+ {
+  "id": "str-compare",
+  "clause": "Table 54",
+  "expr": "\"abc\" < \"abd\"",
+  "expect": "true"
+ },
+ {
+  "id": "str-escape",
+  "clause": "rule 64",
+  "expr": "\"a\\\"b\\n\"",
+  "expect": "\"a\\\"b\\n\""
+ },
+ {
+  "id": "logic-and-true-true",
+  "clause": "Table 50",
+  "expr": "true and true",
+  "expect": "true"
+ },
+ {
+  "id": "logic-or-true-true",
+  "clause": "Table 50",
+  "expr": "true or true",
+  "expect": "true"
+ },
+ {
+  "id": "logic-and-true-false",
+  "clause": "Table 50",
+  "expr": "true and false",
+  "expect": "false"
+ },
+ {
+  "id": "logic-or-true-false",
+  "clause": "Table 50",
+  "expr": "true or false",
+  "expect": "true"
+ },
+ {
+  "id": "logic-and-true-null",
+  "clause": "Table 50",
+  "expr": "true and null",
+  "expect": "null"
+ },
+ {
+  "id": "logic-or-true-null",
+  "clause": "Table 50",
+  "expr": "true or null",
+  "expect": "true"
+ },
+ {
+  "id": "logic-and-false-null",
+  "clause": "Table 50",
+  "expr": "false and null",
+  "expect": "false"
+ },
+ {
+  "id": "logic-or-false-null",
+  "clause": "Table 50",
+  "expr": "false or null",
+  "expect": "null"
+ },
+ {
+  "id": "logic-and-null-null",
+  "clause": "Table 50",
+  "expr": "null and null",
+  "expect": "null"
+ },
+ {
+  "id": "logic-or-null-null",
+  "clause": "Table 50",
+  "expr": "null or null",
+  "expect": "null"
+ },
+ {
+  "id": "logic-and-x-false",
+  "clause": "Table 50",
+  "expr": "\"x\" and false",
+  "expect": "false"
+ },
+ {
+  "id": "logic-or-x-false",
+  "clause": "Table 50",
+  "expr": "\"x\" or false",
+  "expect": "null"
+ },
+ {
+  "id": "logic-not-null",
+  "clause": "Table 51",
+  "expr": "not(null)",
+  "expect": "null"
+ },
+ {
+  "id": "logic-not-true",
+  "clause": "Table 51",
+  "expr": "not(true)",
+  "expect": "false"
+ },
+ {
+  "id": "logic-eq-null",
+  "clause": "Table 49.a",
+  "expr": "null = null",
+  "expect": "true"
+ },
+ {
+  "id": "logic-ne-null",
+  "clause": "Table 49.a",
+  "expr": "1 != null",
+  "expect": "true"
+ },
+ {
+  "id": "logic-eq-kinds",
+  "clause": "Table 52",
+  "expr": "\"1\" = 1",
+  "expect": "null",
+  "expectDiag": [
+   "FEEL-E307"
+  ]
+ },
+ {
+  "id": "logic-if-null",
+  "clause": "Table 49",
+  "expr": "if null then 1 else 2",
+  "expect": "2"
+ },
+ {
+  "id": "logic-if-nonbool",
+  "clause": "Table 49",
+  "expr": "if \"x\" then 1 else 2",
+  "expect": "2"
+ },
+ {
+  "id": "list-index",
+  "clause": "Table 68",
+  "expr": "[1,2,3][2]",
+  "expect": "2"
+ },
+ {
+  "id": "list-index-neg",
+  "clause": "Table 68",
+  "expr": "[1,2,3][-1]",
+  "expect": "3"
+ },
+ {
+  "id": "list-index-oob",
+  "clause": "Table 68",
+  "expr": "[1,2,3][4]",
+  "expect": "null"
+ },
+ {
+  "id": "list-index-zero",
+  "clause": "Table 68",
+  "expr": "[1,2,3][0]",
+  "expect": "null"
+ },
+ {
+  "id": "list-filter",
+  "clause": "10.3.2.5",
+  "expr": "[1, 2, 3, 4][item > 2]",
+  "expect": "[3,4]"
+ },
+ {
+  "id": "list-filter-ctx",
+  "clause": "10.3.2.5",
+  "expr": "[ {x:1, y:2}, {x:2, y:3} ][x=1]",
+  "expect": "[{\"x\":1,\"y\":2}]"
+ },
+ {
+  "id": "list-filter-null-field",
+  "clause": "10.3.2.5",
+  "expr": "[ {x:1, y:2}, {x:null, y:3} ][x < 2]",
+  "expect": "[{\"x\":1,\"y\":2}]"
+ },
+ {
+  "id": "list-filter-singleton",
+  "clause": "10.3.2.9.4",
+  "expr": "3[item > 2]",
+  "expect": "[3]"
+ },
+ {
+  "id": "list-filter-item-key",
+  "clause": "10.3.2.5",
+  "expr": "[{item: 5}, {item: 1}][item > 2]",
+  "expect": "[{\"item\":5}]"
+ },
+ {
+  "id": "list-filter-dynamic-index",
+  "clause": "Table 68",
+  "expr": "for i in [1,2] return [10,20,30][i]",
+  "expect": "[10,20]"
+ },
+ {
+  "id": "list-projection",
+  "clause": "10.3.2.5",
+  "expr": "[ {x:1, y:2}, {x:2} ].y",
+  "expect": "[2,null]"
+ },
+ {
+  "id": "list-projection-nested",
+  "clause": "10.3.1.5",
+  "expr": "[{a: {b: [1]}}, {a: {b: [2.1, 2.2]}}].a.b",
+  "expect": "[[1],[2.1,2.2]]"
+ },
+ {
+  "id": "list-filter-projection-fused",
+  "clause": "10.3.2.5",
+  "expr": "items[price > 10].name",
+  "expect": "[\"b\"]",
+  "inputs": {
+   "items": [
+    {
+     "name": "a",
+     "price": 5
+    },
+    {
+     "name": "b",
+     "price": 20
+    },
+    "x"
+   ]
+  }
+ },
+ {
+  "id": "list-eq",
+  "clause": "Table 53",
+  "expr": "[1,2] = [1,2.0]",
+  "expect": "true"
+ },
+ {
+  "id": "list-contains",
+  "clause": "10.3.4.4",
+  "expr": "list contains([1,2,3], 2)",
+  "expect": "true"
+ },
+ {
+  "id": "list-count",
+  "clause": "10.3.4.4",
+  "expr": "count([1,[2,3]])",
+  "expect": "2"
+ },
+ {
+  "id": "list-min",
+  "clause": "10.3.4.4",
+  "expr": "min([1,2,3])",
+  "expect": "1"
+ },
+ {
+  "id": "list-max-varargs",
+  "clause": "10.3.4.4",
+  "expr": "max(1,2,3)",
+  "expect": "3"
+ },
+ {
+  "id": "list-all",
+  "clause": "10.3.4.4",
+  "expr": "all([false,null,true])",
+  "expect": "false"
+ },
+ {
+  "id": "list-any",
+  "clause": "10.3.4.4",
+  "expr": "any([false,null,true])",
+  "expect": "true"
+ },
+ {
+  "id": "list-sublist",
+  "clause": "10.3.4.4",
+  "expr": "sublist([4,5,6], 1, 2)",
+  "expect": "[4,5]"
+ },
+ {
+  "id": "list-append",
+  "clause": "10.3.4.4",
+  "expr": "append([1], 2, 3)",
+  "expect": "[1,2,3]"
+ },
+ {
+  "id": "list-concat",
+  "clause": "10.3.4.4",
+  "expr": "concatenate([1,2],[3])",
+  "expect": "[1,2,3]"
+ },
+ {
+  "id": "list-insert",
+  "clause": "10.3.4.4",
+  "expr": "insert before([1,3], 1, 2)",
+  "expect": "[2,1,3]"
+ },
+ {
+  "id": "list-remove",
+  "clause": "10.3.4.4",
+  "expr": "remove([1,2,3], 2)",
+  "expect": "[1,3]"
+ },
+ {
+  "id": "list-replace-fn",
+  "clause": "10.3.4.4",
+  "expr": "list replace([2, 4, 7, 8], function(item, newItem) item < newItem, 5)",
+  "expect": "[5,5,7,8]"
+ },
+ {
+  "id": "list-reverse",
+  "clause": "10.3.4.4",
+  "expr": "reverse([1,2,3])",
+  "expect": "[3,2,1]"
+ },
+ {
+  "id": "list-index-of",
+  "clause": "10.3.4.4",
+  "expr": "index of([1,2,3,2], 2)",
+  "expect": "[2,4]"
+ },
+ {
+  "id": "list-union",
+  "clause": "10.3.4.4",
+  "expr": "union([1,2],[2,3])",
+  "expect": "[1,2,3]"
+ },
+ {
+  "id": "list-distinct",
+  "clause": "10.3.4.4",
+  "expr": "distinct values([1,2,3,2,1])",
+  "expect": "[1,2,3]"
+ },
+ {
+  "id": "list-flatten",
+  "clause": "10.3.4.4",
+  "expr": "flatten([[1,2],[[3]], 4])",
+  "expect": "[1,2,3,4]"
+ },
+ {
+  "id": "list-sort",
+  "clause": "10.3.4.9",
+  "expr": "sort(list: [3,1,4,5,2], precedes: function(x,y) x < y)",
+  "expect": "[1,2,3,4,5]"
+ },
+ {
+  "id": "list-sort-desc",
+  "clause": "10.3.4.9",
+  "expr": "sort([{n:\"a\",v:2},{n:\"b\",v:1}], function(x,y) x.v > y.v).n",
+  "expect": "[\"a\",\"b\"]"
+ },
+ {
+  "id": "ctx-sequential",
+  "clause": "10.3.2.6",
+  "expr": "{a: 1, b: a + 1, c: b * 2}",
+  "expect": "{\"a\":1,\"b\":2,\"c\":4}"
+ },
+ {
+  "id": "ctx-path",
+  "clause": "Table 64",
+  "expr": "{a: {b: 5}}.a.b",
+  "expect": "5"
+ },
+ {
+  "id": "ctx-missing-key",
+  "clause": "Table 64",
+  "expr": "{a: 1}.b",
+  "expect": "null",
+  "expectDiag": [
+   "FEEL-E311"
+  ]
+ },
+ {
+  "id": "ctx-get-value",
+  "clause": "10.3.4.10",
+  "expr": "get value({key1: \"value1\"}, \"key1\")",
+  "expect": "\"value1\""
+ },
+ {
+  "id": "ctx-get-value-missing",
+  "clause": "10.3.4.10",
+  "expr": "get value({a: 1}, \"zz\")",
+  "expect": "null"
+ },
+ {
+  "id": "ctx-get-entries-null-kept",
+  "clause": "10.3.4.10",
+  "expr": "get entries({a: null, b: 1})",
+  "expect": "[{\"key\":\"a\",\"value\":null},{\"key\":\"b\",\"value\":1}]"
+ },
+ {
+  "id": "ctx-input-null-vs-missing-select",
+  "clause": "10.3.2.6",
+  "expr": "[m.a, m.b]",
+  "expect": "[null,null]",
+  "inputs": {
+   "m": {
+    "a": null
+   }
+  }
+ },
+ {
+  "id": "ctx-input-null-vs-missing-entries",
+  "clause": "10.3.4.10",
+  "expr": "get entries(m)",
+  "expect": "[{\"key\":\"a\",\"value\":null}]",
+  "inputs": {
+   "m": {
+    "a": null
+   }
+  }
+ },
+ {
+  "id": "ctx-has-key-present-null",
+  "clause": "extension has key",
+  "expr": "has key(m, \"a\")",
+  "expect": "true",
+  "inputs": {
+   "m": {
+    "a": null
+   }
+  },
+  "options": {
+   "extensions": [
+    "has key"
+   ]
+  }
+ },
+ {
+  "id": "ctx-has-key-absent",
+  "clause": "extension has key",
+  "expr": "has key(m, \"b\")",
+  "expect": "false",
+  "inputs": {
+   "m": {
+    "a": null
+   }
+  },
+  "options": {
+   "extensions": [
+    "has key"
+   ]
+  }
+ },
+ {
+  "id": "ctx-has-key-disabled",
+  "clause": "extension has key",
+  "expr": "has key(m, \"a\")",
+  "expect": "null",
+  "inputs": {
+   "m": {
+    "a": 1
+   }
+  },
+  "expectDiag": [
+   "FEEL-E350"
+  ]
+ },
+ {
+  "id": "ctx-presence-idiom",
+  "clause": "10.3.4.10",
+  "expr": "count(get entries(m)[key = \"a\"]) > 0",
+  "expect": "true",
+  "inputs": {
+   "m": {
+    "a": null
+   }
+  }
+ },
+ {
+  "id": "ctx-context-fn",
+  "clause": "10.3.4.10",
+  "expr": "context([{key:\"a\", value:1}, {key:\"b\", value:2}])",
+  "expect": "{\"a\":1,\"b\":2}"
+ },
+ {
+  "id": "ctx-put",
+  "clause": "10.3.4.10",
+  "expr": "context put({x:1}, \"y\", 2)",
+  "expect": "{\"x\":1,\"y\":2}"
+ },
+ {
+  "id": "ctx-put-nested",
+  "clause": "10.3.4.10",
+  "expr": "context put({x:1, y: {a: 0} }, [\"y\", \"a\"], 2)",
+  "expect": "{\"x\":1,\"y\":{\"a\":2}}"
+ },
+ {
+  "id": "ctx-merge",
+  "clause": "10.3.4.10",
+  "expr": "context merge([{x:1, y:0}, {y:2}])",
+  "expect": "{\"x\":1,\"y\":2}"
+ },
+ {
+  "id": "ctx-eq",
+  "clause": "Table 53",
+  "expr": "{a:1,b:2} = {b:2,a:1}",
+  "expect": "true"
+ },
+ {
+  "id": "ctx-string-key",
+  "clause": "rule 59",
+  "expr": "{\"a b\": 1}.\"a b\"",
+  "expect": "null",
+  "expectCompileError": "FEEL-S010"
+ },
+ {
+  "id": "ctx-multiword-key",
+  "clause": "10.3.1.4",
+  "expr": "{Monthly Salary: 10000, Annual Salary: Monthly Salary * 12}.Annual Salary",
+  "expect": "120000"
+ },
+ {
+  "id": "ctx-keyword-name",
+  "clause": "10.3.1.6",
+  "expr": "Profit and loss + 1",
+  "expect": "11",
+  "inputs": {
+   "Profit and loss": 10
+  },
+  "options": {
+   "schema": {
+    "inputs": {
+     "Profit and loss": "number"
+    }
+   }
+  }
+ },
+ {
+  "id": "ctx-qualified-input",
+  "clause": "10.3.1.5",
+  "expr": "Applicant.age >= 18",
+  "expect": "true",
+  "inputs": {
+   "Applicant": {
+    "age": 20
+   }
+  }
+ },
+ {
+  "id": "ctx-input-missing",
+  "clause": "10.3.2.11",
+  "expr": "x",
+  "expect": "null",
+  "expectDiag": [
+   "FEEL-E350"
+  ]
+ },
+ {
+  "id": "fn-closure-capture",
+  "clause": "10.3.2.13.2",
+  "expr": "{rate: 0.1, f: function(x) x * rate}.f(200)",
+  "expect": "20.0"
+ },
+ {
+  "id": "fn-closure-nested",
+  "clause": "10.3.2.13.2",
+  "expr": "{mk: function(a) function(b) a + b, add2: mk(2), r: add2(5)}.r",
+  "expect": "7"
+ },
+ {
+  "id": "fn-recursion",
+  "clause": "10.3.2.13.4",
+  "expr": "{fact: function(n) if n <= 1 then 1 else n * fact(n - 1), r: fact(25)}.r",
+  "expect": "15511210043330985984000000"
+ },
+ {
+  "id": "fn-named-args",
+  "clause": "10.3.2.13.5",
+  "expr": "{f: function(a, b) a - b, r: f(b: 1, a: 5)}.r",
+  "expect": "4"
+ },
+ {
+  "id": "fn-named-missing",
+  "clause": "10.3.2.13.5",
+  "expr": "{f: function(a, b) if b = null then a else b, r: f(a: 3)}.r",
+  "expect": "3"
+ },
+ {
+  "id": "fn-arity",
+  "clause": "Table 63",
+  "expr": "{f: function(a, b) a, r: f(1)}.r",
+  "expect": "null",
+  "expectDiag": [
+   "FEEL-E320"
+  ]
+ },
+ {
+  "id": "fn-typed-param",
+  "clause": "Table 63",
+  "expr": "{f: function(a: number) a + 1, r: f(\"x\")}.r",
+  "expect": "null",
+  "expectDiag": [
+   "FEEL-E325"
+  ]
+ },
+ {
+  "id": "fn-typed-param-singleton",
+  "clause": "10.3.2.9.4",
+  "expr": "{f: function(a: number) a + 1, r: f([4])}.r",
+  "expect": "5"
+ },
+ {
+  "id": "fn-builtin-named",
+  "clause": "10.3.2.13.5",
+  "expr": "substring(string: \"foobar\", start position: 3, length: 2)",
+  "expect": "\"ob\""
+ },
+ {
+  "id": "fn-builtin-named-bad",
+  "clause": "10.3.2.13.5",
+  "expr": "substring(text: \"foobar\", start position: 3)",
+  "expect": "null",
+  "expectDiag": [
+   "FEEL-E323"
+  ]
+ },
+ {
+  "id": "fn-builtin-value",
+  "clause": "10.3.2.13.1",
+  "expr": "{f: abs, r: f(-2)}.r",
+  "expect": "2"
+ },
+ {
+  "id": "fn-not-function",
+  "clause": "Table 63",
+  "expr": "{f: 5, r: f(1)}.r",
+  "expect": "null",
+  "expectDiag": [
+   "FEEL-E324"
+  ]
+ },
+ {
+  "id": "fn-host-like-closure-sort",
+  "clause": "10.3.4.9",
+  "expr": "{by: function(k) function(a, b) a.v < b.v, r: sort([{v:3},{v:1}], by(1)).v}.r",
+  "expect": "[1,3]"
+ },
+ {
+  "id": "for-basic",
+  "clause": "10.3.2.14",
+  "expr": "for i in [1,2,3] return i * i",
+  "expect": "[1,4,9]"
+ },
+ {
+  "id": "for-range",
+  "clause": "10.3.2.14",
+  "expr": "for i in 1..3 return i",
+  "expect": "[1,2,3]"
+ },
+ {
+  "id": "for-range-desc",
+  "clause": "10.3.2.14",
+  "expr": "for i in 3..1 return i",
+  "expect": "[3,2,1]"
+ },
+ {
+  "id": "for-cartesian",
+  "clause": "10.3.2.14",
+  "expr": "for i in [1,2], j in [10,20] return i + j",
+  "expect": "[11,21,12,22]"
+ },
+ {
+  "id": "for-dependent",
+  "clause": "10.3.2.14",
+  "expr": "for i in 1..3, j in 1..i return j",
+  "expect": "[1,1,2,1,2,3]"
+ },
+ {
+  "id": "for-partial",
+  "clause": "10.3.2.14",
+  "expr": "for i in 0..5 return if i = 0 then 1 else i * partial[-1]",
+  "expect": "[1,1,2,6,24,120]"
+ },
+ {
+  "id": "for-dates",
+  "clause": "10.3.2.14",
+  "expr": "for d in @\"2021-01-01\"..@\"2021-01-03\" return d",
+  "expect": "[{\"@date\":\"2021-01-01\"},{\"@date\":\"2021-01-02\"},{\"@date\":\"2021-01-03\"}]"
+ },
+ {
+  "id": "for-null",
+  "clause": "10.3.2.14",
+  "expr": "for i in null return i",
+  "expect": "null"
+ },
+ {
+  "id": "some-true",
+  "clause": "rule 46",
+  "expr": "some x in [1,2,3] satisfies x > 2",
+  "expect": "true"
+ },
+ {
+  "id": "some-null",
+  "clause": "rule 46",
+  "expr": "some x in [1,null] satisfies x > 2",
+  "expect": "null"
+ },
+ {
+  "id": "every-false",
+  "clause": "rule 46",
+  "expr": "every x in [1,2,3] satisfies x > 1",
+  "expect": "false"
+ },
+ {
+  "id": "every-empty",
+  "clause": "rule 46",
+  "expr": "every x in [] satisfies false",
+  "expect": "true"
+ },
+ {
+  "id": "some-empty",
+  "clause": "rule 46",
+  "expr": "some x in [] satisfies true",
+  "expect": "false"
+ },
+ {
+  "id": "some-two",
+  "clause": "rule 46",
+  "expr": "some x in [1,2], y in [2,3] satisfies x = y",
+  "expect": "true"
+ },
+ {
+  "id": "range-in-le",
+  "clause": "Table 39",
+  "expr": "5 in (<=5)",
+  "expect": "true"
+ },
+ {
+  "id": "range-in-open",
+  "clause": "Table 39",
+  "expr": "5 in ((5..10])",
+  "expect": "false"
+ },
+ {
+  "id": "range-in-closed",
+  "clause": "Table 39",
+  "expr": "5 in ([5..10])",
+  "expect": "true"
+ },
+ {
+  "id": "range-in-list",
+  "clause": "Table 39",
+  "expr": "5 in (4, 5, 6)",
+  "expect": "true"
+ },
+ {
+  "id": "range-in-two",
+  "clause": "Table 39",
+  "expr": "5 in (<5, >5)",
+  "expect": "false"
+ },
+ {
+  "id": "range-in-dates",
+  "clause": "Table 39",
+  "expr": "@\"2012-12-31\" in (@\"2012-12-25\"..@\"2013-02-14\")",
+  "expect": "true"
+ },
+ {
+  "id": "range-in-list-value",
+  "clause": "Table 55",
+  "expr": "2 in [1, 2, 3]",
+  "expect": "true"
+ },
+ {
+  "id": "range-in-list-incomparable",
+  "clause": "Table 55",
+  "expr": "true in [false, 2, 3]",
+  "expect": "false"
+ },
+ {
+  "id": "range-in-q",
+  "clause": "Table 55",
+  "expr": "5 in (? > 3)",
+  "expect": "true"
+ },
+ {
+  "id": "range-in-null",
+  "clause": "Table 55",
+  "expr": "null in (null)",
+  "expect": "true"
+ },
+ {
+  "id": "range-between",
+  "clause": "Table 55",
+  "expr": "5 between 1 and 10",
+  "expect": "true"
+ },
+ {
+  "id": "range-between-null",
+  "clause": "Table 55",
+  "expr": "null between 1 and 10",
+  "expect": "null"
+ },
+ {
+  "id": "range-props",
+  "clause": "Table 67",
+  "expr": "[1..10).end included",
+  "expect": "false"
+ },
+ {
+  "id": "range-props-start",
+  "clause": "Table 67",
+  "expr": "(< 10).start",
+  "expect": "null"
+ },
+ {
+  "id": "range-value-eq",
+  "clause": "Table 53",
+  "expr": "[1..10] = [1..10]",
+  "expect": "true"
+ },
+ {
+  "id": "range-point-eq",
+  "clause": "Table 53",
+  "expr": "(=10) = [10..10]",
+  "expect": "false"
+ },
+ {
+  "id": "range-invalid-order",
+  "clause": "10.3.2.7",
+  "expr": "[2..1]",
+  "expect": "null",
+  "expectDiag": [
+   "FEEL-E308"
+  ]
+ },
+ {
+  "id": "range-fn",
+  "clause": "10.3.4.1",
+  "expr": "range(\"[18..21)\") = [18..21)",
+  "expect": "true"
+ },
+ {
+  "id": "range-before",
+  "clause": "Table 78",
+  "expr": "before(1, [5..10])",
+  "expect": "true"
+ },
+ {
+  "id": "range-overlaps",
+  "clause": "Table 78",
+  "expr": "overlaps([1..5], [3..8])",
+  "expect": "true"
+ },
+ {
+  "id": "range-includes",
+  "clause": "Table 78",
+  "expr": "includes([1..10], [4..6])",
+  "expect": "true"
+ },
+ {
+  "id": "range-coincides",
+  "clause": "Table 78",
+  "expr": "coincides([1..5], [1..5])",
+  "expect": "true"
+ },
+ {
+  "id": "range-met-by",
+  "clause": "Table 78",
+  "expr": "met by([5..10], [1..5])",
+  "expect": "true"
+ },
+ {
+  "id": "ut-wildcard",
+  "clause": "rule 15.c",
+  "expr": "-",
+  "expect": "true",
+  "entry": "unaryTests",
+  "candidate": null
+ },
+ {
+  "id": "ut-disjunction",
+  "clause": "rule 14",
+  "expr": "\"A\", \"B\"",
+  "expect": "true",
+  "entry": "unaryTests",
+  "candidate": "B"
+ },
+ {
+  "id": "ut-disjunction-miss",
+  "clause": "rule 14",
+  "expr": "\"A\", \"B\"",
+  "expect": "false",
+  "entry": "unaryTests",
+  "candidate": "C"
+ },
+ {
+  "id": "ut-interval-incl",
+  "clause": "rule 8",
+  "expr": "[18..65)",
+  "expect": "true",
+  "entry": "unaryTests",
+  "candidate": 18
+ },
+ {
+  "id": "ut-interval-excl-end",
+  "clause": "rule 8",
+  "expr": "[18..65)",
+  "expect": "false",
+  "entry": "unaryTests",
+  "candidate": 65
+ },
+ {
+  "id": "ut-interval-reversed-bracket",
+  "clause": "rule 9",
+  "expr": "]18..65]",
+  "expect": "false",
+  "entry": "unaryTests",
+  "candidate": 18
+ },
+ {
+  "id": "ut-null-candidate",
+  "clause": "10.3.2.10",
+  "expr": "< 10",
+  "expect": "null",
+  "entry": "unaryTests",
+  "candidate": null
+ },
+ {
+  "id": "ut-null-test",
+  "clause": "10.3.2.10",
+  "expr": "null",
+  "expect": "true",
+  "entry": "unaryTests",
+  "candidate": null
+ },
+ {
+  "id": "ut-not",
+  "clause": "rule 15.b",
+  "expr": "not(1, 2)",
+  "expect": "true",
+  "entry": "unaryTests",
+  "candidate": 3
+ },
+ {
+  "id": "ut-not-null",
+  "clause": "rule 15.b",
+  "expr": "not(< 10)",
+  "expect": "null",
+  "entry": "unaryTests",
+  "candidate": null
+ },
+ {
+  "id": "ut-q-expr",
+  "clause": "rule 13",
+  "expr": "? * 2 > limit",
+  "expect": "true",
+  "entry": "unaryTests",
+  "candidate": 6,
+  "inputs": {
+   "limit": 10
+  }
+ },
+ {
+  "id": "ut-list-value",
+  "clause": "Table 55",
+  "expr": "[1, 2, 3]",
+  "expect": "true",
+  "entry": "unaryTests",
+  "candidate": 2
+ },
+ {
+  "id": "ut-range-input",
+  "clause": "Table 55",
+  "expr": "r",
+  "expect": "true",
+  "entry": "unaryTests",
+  "candidate": 5,
+  "inputs": {
+   "r": {
+    "@range": {
+     "start": 1,
+     "end": 9,
+     "startIncluded": true,
+     "endIncluded": true
+    }
+   }
+  }
+ },
+ {
+  "id": "ut-eq-ne",
+  "clause": "rule 7.a",
+  "expr": "!= 5",
+  "expect": "true",
+  "entry": "unaryTests",
+  "candidate": 4
+ },
+ {
+  "id": "ut-date",
+  "clause": "rule 7.a",
+  "expr": ">= @\"2019-03-31\"",
+  "expect": "true",
+  "entry": "unaryTests",
+  "candidate": {
+   "@date": "2020-01-01"
+  }
+ },
+ {
+  "id": "ut-function-call",
+  "clause": "rule 13",
+  "expr": "contains(?, \"ab\")",
+  "expect": "true",
+  "entry": "unaryTests",
+  "candidate": "xaby"
+ },
+ {
+  "id": "io-number",
+  "clause": "Table 61",
+  "expr": "123 instance of number",
+  "expect": "true"
+ },
+ {
+  "id": "io-null",
+  "clause": "Table 61",
+  "expr": "null instance of Any",
+  "expect": "false"
+ },
+ {
+  "id": "io-list",
+  "clause": "Table 61",
+  "expr": "[1,2] instance of list<number>",
+  "expect": "true"
+ },
+ {
+  "id": "io-list-mixed",
+  "clause": "Table 61",
+  "expr": "[1,\"a\"] instance of list<number>",
+  "expect": "false"
+ },
+ {
+  "id": "io-context",
+  "clause": "Table 61",
+  "expr": "{a: 1} instance of context<a: number>",
+  "expect": "true"
+ },
+ {
+  "id": "io-function",
+  "clause": "Table 61",
+  "expr": "(function(x: number) x) instance of function<number>->Any",
+  "expect": "true"
+ },
+ {
+  "id": "io-unknown",
+  "clause": "Table 61",
+  "expr": "1 instance of tFoo",
+  "expect": "null"
+ },
+ {
+  "id": "t-date-sub",
+  "clause": "Table 72",
+  "expr": "date(\"2012-12-25\") - date(\"2012-12-24\")",
+  "expect": "{\"@duration\":\"P1D\"}"
+ },
+ {
+  "id": "t-date-ctor",
+  "clause": "Table 72",
+  "expr": "date(2012, 12, 25)",
+  "expect": "{\"@date\":\"2012-12-25\"}"
+ },
+ {
+  "id": "t-date-invalid",
+  "clause": "Table 72",
+  "expr": "date(\"2017-13-10\")",
+  "expect": "null"
+ },
+ {
+  "id": "t-dt-add",
+  "clause": "Table 57",
+  "expr": "date and time(\"2012-12-24T23:59:00\") + duration(\"PT1M\")",
+  "expect": "{\"@dateTime\":\"2012-12-25T00:00:00\"}"
+ },
+ {
+  "id": "t-dt-sub",
+  "clause": "Table 57",
+  "expr": "date and time(\"2012-12-24T23:59:00\") - date and time(\"2012-12-22T03:45:00\")",
+  "expect": "{\"@duration\":\"P2DT20H14M\"}"
+ },
+ {
+  "id": "t-time-wrap",
+  "clause": "Table 57",
+  "expr": "time(\"23:59:00z\") + duration(\"PT2M\")",
+  "expect": "{\"@time\":\"00:01:00Z\"}"
+ },
+ {
+  "id": "t-dtd-normalize",
+  "clause": "10.3.2.3.7",
+  "expr": "duration(\"P0DT25H\")",
+  "expect": "{\"@duration\":\"P1DT1H\"}"
+ },
+ {
+  "id": "t-ymd-normalize",
+  "clause": "10.3.2.3.8",
+  "expr": "duration(\"P0Y13M\")",
+  "expect": "{\"@duration\":\"P1Y1M\"}"
+ },
+ {
+  "id": "t-ymd-between",
+  "clause": "Table 72",
+  "expr": "years and months duration(date(\"2011-12-22\"), date(\"2013-08-24\"))",
+  "expect": "{\"@duration\":\"P1Y8M\"}"
+ },
+ {
+  "id": "t-date-plus-ymd",
+  "clause": "Table 57",
+  "expr": "date(\"2017-01-31\") + @\"P1M\"",
+  "expect": "{\"@date\":\"2017-02-28\"}"
+ },
+ {
+  "id": "t-date-plus-dtd",
+  "clause": "Table 57",
+  "expr": "@\"2020-01-01\" + @\"P1DT12H\"",
+  "expect": "{\"@date\":\"2020-01-02\"}"
+ },
+ {
+  "id": "t-ymd-mul",
+  "clause": "Table 59",
+  "expr": "@\"P1Y\" * 1.5",
+  "expect": "{\"@duration\":\"P1Y6M\"}"
+ },
+ {
+  "id": "t-dtd-div",
+  "clause": "Table 59",
+  "expr": "@\"P1D\" / @\"PT12H\"",
+  "expect": "2"
+ },
+ {
+  "id": "t-zone-paris",
+  "clause": "10.3.2.3.6",
+  "expr": "date and time(\"2018-12-10T10:30:00@Europe/Paris\").time offset",
+  "expect": "{\"@duration\":\"PT1H\"}"
+ },
+ {
+  "id": "t-zone-dst",
+  "clause": "10.3.2.3.6",
+  "expr": "date and time(\"2018-07-10T10:30:00@Europe/Paris\").time offset",
+  "expect": "{\"@duration\":\"PT2H\"}"
+ },
+ {
+  "id": "t-zone-eq",
+  "clause": "Table 53",
+  "expr": "@\"2018-12-10T10:30:00@Europe/Paris\" = @\"2018-12-10T09:30:00Z\"",
+  "expect": "true"
+ },
+ {
+  "id": "t-zone-name",
+  "clause": "Table 66",
+  "expr": "@\"2018-12-10T10:30:00@Europe/Paris\".timezone",
+  "expect": "\"Europe/Paris\""
+ },
+ {
+  "id": "t-props",
+  "clause": "Table 66",
+  "expr": "[@\"2019-09-17\".weekday, @\"2019-09-17T10:20:30.5\".second, @\"P1DT2H\".hours]",
+  "expect": "[2,30.5,2]"
+ },
+ {
+  "id": "t-cmp-unzoned",
+  "clause": "Table 54",
+  "expr": "@\"2018-12-10T10:30:00\" < @\"2018-12-10T11:00:00\"",
+  "expect": "true"
+ },
+ {
+  "id": "t-date-vs-dt",
+  "clause": "10.3.2.9.4",
+  "expr": "@\"2018-12-10\" < @\"2018-12-10T01:00:00Z\"",
+  "expect": "true"
+ },
+ {
+  "id": "t-is",
+  "clause": "Table 77",
+  "expr": "is(time(\"23:00:50z\"), time(\"23:00:50+00:00\"))",
+  "expect": "true"
+ },
+ {
+  "id": "t-is-false",
+  "clause": "Table 77",
+  "expr": "is(time(\"23:00:50z\"), time(\"23:00:50\"))",
+  "expect": "false"
+ },
+ {
+  "id": "t-day-of-year",
+  "clause": "Table 79",
+  "expr": "day of year(date(2019, 9, 17))",
+  "expect": "260"
+ },
+ {
+  "id": "t-day-of-week",
+  "clause": "Table 79",
+  "expr": "day of week(date(2019, 9, 17))",
+  "expect": "\"Tuesday\""
+ },
+ {
+  "id": "t-week-of-year",
+  "clause": "Table 79",
+  "expr": "week of year(date(2005, 1, 1))",
+  "expect": "53"
+ },
+ {
+  "id": "t-month-of-year",
+  "clause": "Table 79",
+  "expr": "month of year(date(2019, 9, 17))",
+  "expect": "\"September\""
+ },
+ {
+  "id": "t-input-date",
+  "clause": "10.3.2.3.5",
+  "expr": "d + @\"P1D\"",
+  "expect": "{\"@date\":\"2020-03-01\"}",
+  "inputs": {
+   "d": {
+    "@date": "2020-02-29"
+   }
+  }
+ },
+ {
+  "id": "t-big-year",
+  "clause": "10.3.2.3.5",
+  "expr": "date(\"999999999-12-31\") + @\"P1D\"",
+  "expect": "null"
+ },
+ {
+  "id": "t-now-fixed",
+  "clause": "10.3.4.11",
+  "expr": "now()",
+  "expect": "{\"@dateTime\":\"2024-01-01T10:00:00Z\"}",
+  "clock": "2024-01-01T10:00:00Z"
+ },
+ {
+  "id": "t-today-fixed",
+  "clause": "10.3.4.11",
+  "expr": "today()",
+  "expect": "{\"@date\":\"2024-01-01\"}",
+  "clock": "2024-01-01T10:00:00Z"
+ },
+ {
+  "id": "t-at-invalid",
+  "clause": "rule 65",
+  "expr": "@\"foo\"",
+  "expectCompileError": "FEEL-S031"
+ },
+ {
+  "id": "syn-unbalanced",
+  "clause": "10.3.1.2",
+  "expr": "(1 + 2",
+  "expectCompileError": "FEEL-S010"
+ },
+ {
+  "id": "syn-bad-char",
+  "clause": "10.3.1.4",
+  "expr": "1 # 2",
+  "expectCompileError": "FEEL-S010"
+ },
+ {
+  "id": "syn-comment",
+  "clause": "10.3.1.2",
+  "expr": "1 + /* c */ 2 // end",
+  "expect": "3"
+ },
+ {
+  "id": "chk-strict-unknown",
+  "clause": "checker",
+  "expr": "applicant.age + 1",
+  "options": {
+   "check": "strict",
+   "schema": {
+    "inputs": {
+     "applicant": "context<name: string>"
+    },
+    "closed": true
+   }
+  },
+  "expectCompileError": "FEEL-C102"
+ },
+ {
+  "id": "chk-strict-type",
+  "clause": "checker",
+  "expr": "x + \"a\"",
+  "options": {
+   "check": "strict",
+   "schema": {
+    "inputs": {
+     "x": "number"
+    }
+   }
+  },
+  "expectCompileError": "FEEL-C103"
+ },
+ {
+  "id": "chk-permissive-runs",
+  "clause": "checker",
+  "expr": "x + \"a\"",
+  "expect": "null",
+  "inputs": {
+   "x": 1
+  },
+  "options": {
+   "check": "permissive",
+   "schema": {
+    "inputs": {
+     "x": "number"
+    }
+   }
+  },
+  "expectDiag": [
+   "FEEL-E302"
+  ]
+ },
+ {
+  "id": "chk-boundary",
+  "clause": "validation",
+  "expr": "x + 1",
+  "inputs": {
+   "x": "one"
+  },
+  "options": {
+   "schema": {
+    "inputs": {
+     "x": "number"
+    }
+   }
+  },
+  "expectAbort": "FEEL-B506"
+ },
+ {
+  "id": "chk-off-dynamic",
+  "clause": "checker",
+  "expr": "x + 1",
+  "expect": "null",
+  "inputs": {
+   "x": "one"
+  },
+  "options": {
+   "check": "off",
+   "validateInputs": false
+  },
+  "expectDiag": [
+   "FEEL-E302"
+  ]
+ },
+ {
+  "id": "lim-steps",
+  "clause": "limits",
+  "expr": "count(for i in 1..100000 return i)",
+  "limits": {
+   "maxSteps": 1000
+  },
+  "expectAbort": "FEEL-L404"
+ },
+ {
+  "id": "lim-depth",
+  "clause": "limits",
+  "expr": "{f: function(n) f(n + 1), r: f(0)}.r",
+  "limits": {
+   "maxDepth": 50
+  },
+  "expectAbort": "FEEL-L405"
+ },
+ {
+  "id": "lim-collection",
+  "clause": "limits",
+  "expr": "count(for i in 1..100000 return i)",
+  "limits": {
+   "maxCollection": 1000
+  },
+  "expectAbort": "FEEL-L402"
+ },
+ {
+  "id": "lim-values",
+  "clause": "limits",
+  "expr": "count(for i in 1..10000 return [i])",
+  "limits": {
+   "maxValues": 2000
+  },
+  "expectAbort": "FEEL-L401"
+ },
+ {
+  "id": "lim-ok",
+  "clause": "limits",
+  "expr": "count(for i in 1..1000 return i)",
+  "expect": "1000",
+  "limits": {
+   "maxSteps": 5000
+  }
+ }
+]
