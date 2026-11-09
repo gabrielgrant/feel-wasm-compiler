@@ -76,6 +76,12 @@ pub struct Range {
     pub end: Option<H>,
     pub start_incl: bool,
     pub end_incl: bool,
+    /// `!= e` used as a range value (DMN 1.5 rule 7.a): every value except
+    /// `start` (= `end`).
+    pub ne: bool,
+    /// `= e` used as a range value: exactly `start` (= `end`). Distinct from
+    /// the interval `[e..e]` for equality (TCK 0068).
+    pub eq: bool,
 }
 
 #[derive(Clone, Debug)]

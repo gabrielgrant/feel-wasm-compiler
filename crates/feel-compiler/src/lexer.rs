@@ -286,11 +286,19 @@ fn lex_string(src: &str, start: usize) -> Result<(String, usize), Diagnostic> {
                         }
                     }
                 }
-                _ => {
+                // Other escapes are kept verbatim (backslash included): regular
+                // expression patterns such as "\d" or "\s" are commonly written
+                // this way and the reference implementations accept them.
+                Some(c) => {
+                    out.push('\\');
+                    out.push(c);
+                    i += 1 + c.len_utf8();
+                }
+                None => {
                     return Err(Diagnostic::error(
                         "FEEL-S005",
                         "invalid escape sequence in string literal",
-                        Span::new(i, (i + 2).min(src.len())),
+                        Span::new(i, (i + 1).min(src.len())),
                     ))
                 }
             }

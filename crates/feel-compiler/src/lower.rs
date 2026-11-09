@@ -26,6 +26,11 @@ impl ConstPool {
         self.items.push(json);
         i
     }
+    /// Reserve a slot that is filled later (never shared via deduplication).
+    pub fn reserve(&mut self) -> ConstId {
+        self.items.push("null".to_string());
+        (self.items.len() - 1) as u32
+    }
     pub fn str(&mut self, s: &str) -> ConstId {
         let mut j = String::new();
         feel_runtime::json::write_json_string(&mut j, s);
@@ -119,9 +124,9 @@ impl<'a> Lowerer<'a> {
             diags: Vec::new(),
         };
         // constants 0 and 1 are reserved for the slot-name and slot-type lists
-        l.consts.add_json("[]".into());
-        l.consts.add_json("[null]".into());
-        l.consts.add_json("[false]".into());
+        l.consts.reserve();
+        l.consts.reserve();
+        l.consts.reserve();
         // pre-declare all schema inputs so slot order is stable
         for i in &env.inputs {
             l.slot_index(&i.name, i.ty.clone());
@@ -547,6 +552,8 @@ impl<'a> Lowerer<'a> {
                 let site = self.site(e.span, "range");
                 let v = Some(Box::new(self.lower(x)));
                 match op {
+                    CmpOp::Eq => Ir::PointRange { value: v.unwrap(), ne: false, site },
+                    CmpOp::Ne => Ir::PointRange { value: v.unwrap(), ne: true, site },
                     CmpOp::Lt => Ir::Range { start: None, end: v, start_incl: false, end_incl: false, site },
                     CmpOp::Le => Ir::Range { start: None, end: v, start_incl: false, end_incl: true, site },
                     CmpOp::Gt => Ir::Range { start: v, end: None, start_incl: false, end_incl: false, site },

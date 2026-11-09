@@ -73,6 +73,8 @@ pub struct CompileOptions {
     /// Additional names to recognise as (multi-word) names when parsing, e.g.
     /// DRG element names supplied by a DMN integration layer.
     pub known_names: Vec<String>,
+    /// Additional context field / property names recognised after `.`.
+    pub known_fields: Vec<String>,
 }
 
 impl Default for CompileOptions {
@@ -86,6 +88,7 @@ impl Default for CompileOptions {
             extensions: Vec::new(),
             validate_inputs: true,
             known_names: Vec::new(),
+            known_fields: Vec::new(),
         }
     }
 }
@@ -223,6 +226,9 @@ fn parse_options(o: &CompileOptions) -> ParseOptions {
     }
     for n in &o.known_names {
         po.names.insert(n);
+    }
+    for n in &o.known_fields {
+        po.fields.insert(n);
     }
     for (a, d) in &o.schema.types {
         po.type_names.insert(a);
@@ -404,13 +410,25 @@ pub fn compile(source: &str, opts: &CompileOptions) -> CompileOutput {
         CompileOutput { wasm: None, diagnostics, metadata: None, constants: None }
     };
     let p = parse(source, opts);
-    let mut diags = p.diagnostics;
+    let diags = p.diagnostics;
     let Some(prog) = p.program else { return fail(diags) };
+    compile_program(&prog, source, diags, opts)
+}
+
+/// Compile an already-parsed (or programmatically constructed) program.
+/// `source` is only used for diagnostics positions and the source hash.
+pub fn compile_program(prog: &Program, source: &str, mut diags: Vec<Diagnostic>, opts: &CompileOptions) -> CompileOutput {
+    let fail = |mut diagnostics: Vec<Diagnostic>| {
+        for d in diagnostics.iter_mut() {
+            d.locate(source);
+        }
+        CompileOutput { wasm: None, diagnostics, metadata: None, constants: None }
+    };
     let mut result_type = None;
     if opts.check != CheckMode::Off {
         match check::env_from_schema(&opts.schema, opts.check, opts.extension_flags()) {
             Ok(env) => {
-                let out = check::check_program(&prog, &env);
+                let out = check::check_program(prog, &env);
                 result_type = Some(out.result.to_string());
                 diags.extend(out.diagnostics);
             }
@@ -428,7 +446,7 @@ pub fn compile(source: &str, opts: &CompileOptions) -> CompileOutput {
         }
     };
     let mut l = lower::Lowerer::new(&env);
-    let mut ir = l.lower_program(&prog);
+    let mut ir = l.lower_program(prog);
     if !l.diags.is_empty() {
         diags.extend(l.diags.drain(..));
         return fail(diags);

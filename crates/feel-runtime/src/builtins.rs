@@ -237,7 +237,8 @@ pub struct Overload {
 
 impl Overload {
     pub fn min_args(&self) -> usize {
-        self.params.iter().filter(|p| !p.optional && !p.variadic).count()
+        // a variadic parameter takes one or more arguments (N > 0)
+        self.params.iter().filter(|p| !p.optional).count()
     }
     pub fn max_args(&self) -> Option<usize> {
         if self.params.iter().any(|p| p.variadic) {
@@ -376,7 +377,40 @@ pub fn call(cx: &mut dyn Cx, id: u16, args: &[H], site: u32) -> H {
             }
         }
     }
+    // implicit conversion "to singleton list" for list parameters
+    for (i, a) in conv.iter_mut().enumerate() {
+        let all_list = ovs.iter().filter(|o| n >= o.min_args() && o.max_args().map(|m| n <= m).unwrap_or(true)).all(|o| {
+            let p = o.params.get(i).or_else(|| o.params.last().filter(|p| p.variadic));
+            match p {
+                Some(p) => is_list_type(&p.ty) && !p.variadic,
+                None => false,
+            }
+        });
+        if all_list && !matches!(cx.rt().get(*a), Value::List(_) | Value::Null) {
+            let l = cx.rt().list(vec![*a]);
+            *a = l;
+        }
+    }
     (b.imp)(cx, &conv, site)
+}
+
+fn arg_conforms(rt: &mut Runtime, h: H, ty: &str) -> bool {
+    if ty == "Any" || rt.is_null(h) {
+        return true;
+    }
+    let t = types::parse_type(ty);
+    if let Some(true) = types::value_conforms(rt, h, &t) {
+        return true;
+    }
+    // implicit singleton conversions
+    match (&t, rt.get(h).clone()) {
+        (RtType::List(et), v) if !matches!(v, Value::List(_)) => types::value_conforms(rt, h, et) == Some(true),
+        (t, Value::List(items)) if items.len() == 1 && !matches!(t, RtType::List(_)) => {
+            types::value_conforms(rt, items[0], t) == Some(true)
+        }
+        (RtType::DateTime, Value::Date(_)) => true,
+        _ => false,
+    }
 }
 
 /// Invoke builtin `id` with named arguments given as a context.
@@ -389,8 +423,24 @@ pub fn call_named(cx: &mut dyn Cx, id: u16, named: H, site: u32) -> H {
         None => return NULL,
     };
     let ovs = overloads(id);
-    for o in &ovs {
-        if ctx.keys.iter().all(|k| o.params.iter().any(|p| p.name == **k)) {
+    let name_match: Vec<&Overload> = ovs.iter().filter(|o| ctx.keys.iter().all(|k| o.params.iter().any(|p| p.name == **k))).collect();
+    // prefer an overload whose parameter types accept the named arguments
+    let typed: Vec<&Overload> = name_match
+        .iter()
+        .copied()
+        .filter(|o| {
+            ctx.keys.iter().zip(ctx.vals.iter()).all(|(k, v)| {
+                let p = o.params.iter().find(|p| p.name == **k).unwrap();
+                arg_conforms(cx.rt(), *v, &p.ty)
+            })
+        })
+        .collect();
+    if typed.is_empty() && !name_match.is_empty() {
+        cx.rt().diag("FEEL-E325", site, format!("named arguments of '{}' do not conform to its parameter types", b.name));
+        return NULL;
+    }
+    for o in typed {
+        {
             // required params must be supplied? Unsupplied are bound to null.
             let mut args = Vec::new();
             let last_supplied = o.params.iter().rposition(|p| ctx.get(&p.name).is_some());
@@ -533,6 +583,12 @@ fn num(cx: &mut dyn Cx, h: H) -> Option<Decimal> {
 }
 fn int(cx: &mut dyn Cx, h: H) -> Option<i64> {
     cx.rt().as_num(h).and_then(|d| d.to_i64())
+}
+/// Integer argument with truncation of a fractional part (Java `intValue()`
+/// semantics used by the reference implementations for positions, lengths
+/// and scales).
+fn int_trunc(cx: &mut dyn Cx, h: H) -> Option<i64> {
+    cx.rt().as_num(h).and_then(|d| d.trunc().to_i64())
 }
 fn s(cx: &mut dyn Cx, h: H) -> Option<Rc<str>> {
     cx.rt().as_str(h)
@@ -815,7 +871,7 @@ fn bi_substring(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
     let Some(start) = num(cx, a[1]) else { return bad(cx, site, "substring", "start position must be a number") };
     let chars: Vec<char> = st.chars().collect();
     let len = chars.len() as i64;
-    let start = match start.set_scale(0, RoundingMode::HalfEven).and_then(|d| d.to_i64()) {
+    let start = match start.trunc().to_i64() {
         Some(x) => x,
         None => return bad(cx, site, "substring", "invalid start position"),
     };
@@ -825,7 +881,7 @@ fn bi_substring(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
     let from = if start > 0 { start - 1 } else { len + start };
     let to = if a.len() > 2 && !cx.rt().is_null(a[2]) {
         let Some(l) = num(cx, a[2]) else { return bad(cx, site, "substring", "length must be a number") };
-        let l = match l.set_scale(0, RoundingMode::HalfEven).and_then(|d| d.to_i64()) {
+        let l = match l.trunc().to_i64() {
             Some(x) => x,
             None => return bad(cx, site, "substring", "invalid length"),
         };
@@ -1177,7 +1233,7 @@ fn bi_any(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 }
 
 fn position(cx: &mut dyn Cx, h: H, len: usize) -> Option<usize> {
-    let p = int(cx, h)?;
+    let p = int_trunc(cx, h)?;
     let len = len as i64;
     if p > 0 && p <= len {
         Some((p - 1) as usize)
@@ -1194,7 +1250,7 @@ fn bi_sublist(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
         return bad(cx, site, "sublist", "start position out of range");
     };
     let to = if a.len() > 2 && !cx.rt().is_null(a[2]) {
-        let Some(l) = int(cx, a[2]) else { return bad(cx, site, "sublist", "length must be an integer") };
+        let Some(l) = int_trunc(cx, a[2]) else { return bad(cx, site, "sublist", "length must be an integer") };
         if l < 0 || from as i64 + l > items.len() as i64 {
             return bad(cx, site, "sublist", "length out of range");
         }
@@ -1331,7 +1387,7 @@ fn bi_flatten(cx: &mut dyn Cx, a: &[H], site: u32) -> H {
 // ------------------------------------------------------------------ numeric
 
 fn scale_arg(cx: &mut dyn Cx, h: H) -> Option<i64> {
-    let s = int(cx, h)?;
+    let s = int_trunc(cx, h)?;
     if (-6111..=6176).contains(&s) {
         Some(s)
     } else {
@@ -1355,7 +1411,9 @@ fn round_fn(cx: &mut dyn Cx, a: &[H], site: u32, name: &str, mode: RoundingMode,
             None => return bad(cx, site, name, "scale required"),
         }
     };
-    let r = n.set_scale(scale, mode);
+    // set the scale; if padding would exceed 34 digits the value already has
+    // fewer fractional digits than requested and is returned unchanged
+    let r = n.set_scale(scale, mode).or_else(|| if n.scale() as i64 <= scale { Some(n) } else { n.round_to_scale(scale, mode) });
     opt_num(cx, r, site, name)
 }
 

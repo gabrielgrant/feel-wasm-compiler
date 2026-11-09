@@ -308,6 +308,15 @@ impl<'a> FnBuilder<'a> {
                 self.c(*site as i32);
                 self.rt("range");
             }
+            Ir::PointRange { value, ne, site } => {
+                let t = self.tmp();
+                self.emit_h(value);
+                self.tee(t);
+                self.get(t);
+                self.c(if *ne { 16 } else { 32 | 3 });
+                self.c(*site as i32);
+                self.rt("range");
+            }
             Ir::Filter { list, item, pred, site } => self.emit_filter(list, *item, pred, None, *site),
             Ir::FilterPath { list, item, pred, key, site } => self.emit_filter(list, *item, pred, Some(*key), *site),
             Ir::Index(l, n, site) => {

@@ -211,7 +211,13 @@ impl<'a> Folder<'a> {
         match ir {
             Ir::Null | Ir::True | Ir::False | Ir::Const(_) | Ir::Local(_) | Ir::Slot(_) | Ir::BuiltinFn(_) | Ir::HostFn { .. } | Ir::Partial(_) => {}
             Ir::ItemField { fallback, .. } => self.run(fallback),
-            Ir::Path(a, _, _) | Ir::Neg(a, _) | Ir::IsNull(a, _) | Ir::Not(a, _) | Ir::InstanceOf(a, _) | Ir::Coerce(a, _, _) => {
+            Ir::Path(a, _, _)
+            | Ir::Neg(a, _)
+            | Ir::IsNull(a, _)
+            | Ir::Not(a, _)
+            | Ir::InstanceOf(a, _)
+            | Ir::Coerce(a, _, _)
+            | Ir::PointRange { value: a, .. } => {
                 self.run(a)
             }
             Ir::ExternalFn { mapping, .. } => self.run(mapping),

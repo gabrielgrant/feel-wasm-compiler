@@ -537,7 +537,17 @@ mod tests {
 
     #[test]
     fn small_values_match_i128() {
-        let vals: [i128; 9] = [0, 1, -1, 7, -7, 1 << 70, -(1 << 70), i64::MAX as i128, -12345678901234567890];
+        let vals: [i128; 9] = [
+            0,
+            1,
+            -1,
+            7,
+            -7,
+            1 << 70,
+            -(1 << 70),
+            i64::MAX as i128,
+            -12345678901234567890,
+        ];
         for &a in &vals {
             for &b in &vals {
                 let (ba, bb) = (BigInt::from_i128(a), BigInt::from_i128(b));
@@ -556,7 +566,10 @@ mod tests {
                 assert_eq!(ba.cmp(&bb), a.cmp(&b));
             }
             for s in 0..80u64 {
-                assert_eq!(BigInt::from_i128(a).shr_floor(s), BigInt::from_i128(a >> s.min(127)));
+                assert_eq!(
+                    BigInt::from_i128(a).shr_floor(s),
+                    BigInt::from_i128(a >> s.min(127))
+                );
             }
         }
     }

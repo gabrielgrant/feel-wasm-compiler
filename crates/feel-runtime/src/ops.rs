@@ -343,7 +343,7 @@ pub fn eq(rt: &Runtime, a: H, b: H) -> Option<bool> {
             res
         }
         (Range(x), Range(y)) => {
-            if x.start_incl != y.start_incl || x.end_incl != y.end_incl {
+            if x.start_incl != y.start_incl || x.end_incl != y.end_incl || x.ne != y.ne || x.eq != y.eq {
                 return Some(false);
             }
             let ep = |p: Option<H>, q: Option<H>| match (p, q) {
@@ -459,6 +459,10 @@ pub fn eq_tri(rt: &mut Runtime, a: H, b: H, site: u32) -> i32 {
 
 /// Does `r` contain `x`? (Table 55)
 pub fn range_contains(rt: &mut Runtime, r: &Range, x: H, site: u32) -> i32 {
+    if r.ne {
+        let e = r.start.unwrap_or(NULL);
+        return tri_not(eq_tri(rt, x, e, site));
+    }
     let mut res = T_TRUE;
     if let Some(s) = r.start {
         let t = if r.start_incl { ge(rt, x, s, site) } else { gt(rt, x, s, site) };
@@ -511,27 +515,32 @@ pub fn in_value(rt: &mut Runtime, cand: H, v: H, uses_q: bool, site: u32) -> i32
     }
 }
 
+/// List membership (`list contains` semantics, Table 55): true if the
+/// candidate equals an element (or is contained in a range element), false
+/// otherwise — incomparable elements do not make the result null.
 fn in_list(rt: &mut Runtime, cand: H, v: H, site: u32) -> i32 {
     let items = rt.list_items(v).unwrap_or_default();
-    let mut res = T_FALSE;
     for it in items {
         let t = match rt.get(it) {
             Value::Range(r) => {
                 let r = r.clone();
-                range_contains(rt, &r, cand, site)
+                let saved = rt.diags.len();
+                let t = range_contains(rt, &r, cand, site);
+                rt.diags.truncate(saved);
+                t
             }
             _ => tri_of(eq(rt, cand, it)),
         };
-        res = tri_or(res, t);
-        if res == T_TRUE {
-            break;
+        if t == T_TRUE {
+            return T_TRUE;
         }
     }
-    res
+    T_FALSE
 }
 
 pub fn make_range(rt: &mut Runtime, start: H, end: H, flags: i32, site: u32) -> H {
-    // flags: bit0 start included, bit1 end included, bit2 start unbounded, bit3 end unbounded
+    // flags: bit0 start included, bit1 end included, bit2 start unbounded,
+    // bit3 end unbounded, bit4 "not equal" (`!= e`)
     let start_unb = flags & 4 != 0;
     let end_unb = flags & 8 != 0;
     let s = if start_unb { None } else { Some(start) };
@@ -539,9 +548,20 @@ pub fn make_range(rt: &mut Runtime, start: H, end: H, flags: i32, site: u32) -> 
     // endpoints must be of comparable, equivalent types (10.3.2.7)
     if let (Some(s), Some(e)) = (s, e) {
         let (ks, ke) = (rt.kind_name(s), rt.kind_name(e));
-        if ks == "null" || ke == "null" || cmp(rt, s, e).is_none() {
-            rt.diag("FEEL-E308", site, format!("invalid range endpoints ({ks}, {ke})"));
+        if ks != ke {
+            rt.diag("FEEL-E308", site, format!("range endpoints must have the same type ({ks}, {ke})"));
             return NULL;
+        }
+        match cmp(rt, s, e) {
+            None => {
+                rt.diag("FEEL-E308", site, format!("invalid range endpoints ({ks}, {ke})"));
+                return NULL;
+            }
+            Some(Ordering::Greater) => {
+                rt.diag("FEEL-E308", site, "range start is greater than range end".to_string());
+                return NULL;
+            }
+            _ => {}
         }
     } else {
         let p = s.or(e).unwrap_or(NULL);
@@ -559,6 +579,8 @@ pub fn make_range(rt: &mut Runtime, start: H, end: H, flags: i32, site: u32) -> 
         end: e,
         start_incl: !start_unb && flags & 1 != 0,
         end_incl: !end_unb && flags & 2 != 0,
+        ne: flags & 16 != 0,
+        eq: flags & 32 != 0,
     }))
 }
 

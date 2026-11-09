@@ -101,6 +101,10 @@ fn reference_vectors() {
     assert!(total > 10_000, "too few vectors: {total}");
     if !failures.is_empty() {
         let shown: Vec<_> = failures.iter().take(40).cloned().collect();
-        panic!("{} of {total} vectors failed:\n{}", failures.len(), shown.join("\n"));
+        panic!(
+            "{} of {total} vectors failed:\n{}",
+            failures.len(),
+            shown.join("\n")
+        );
     }
 }

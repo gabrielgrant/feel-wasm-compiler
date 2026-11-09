@@ -886,11 +886,13 @@ impl<'a> Parser<'a> {
                 Ok(self.mk(ExprKind::List(items), t.span.to(end)))
             }
             Tok::Sym("{") => self.parse_context(),
-            Tok::Sym("<") | Tok::Sym("<=") | Tok::Sym(">") | Tok::Sym(">=") => {
+            Tok::Sym("<") | Tok::Sym("<=") | Tok::Sym(">") | Tok::Sym(">=") | Tok::Sym("=") | Tok::Sym("!=") => {
                 let op = match &t.tok {
                     Tok::Sym("<") => CmpOp::Lt,
                     Tok::Sym("<=") => CmpOp::Le,
                     Tok::Sym(">") => CmpOp::Gt,
+                    Tok::Sym("=") => CmpOp::Eq,
+                    Tok::Sym("!=") => CmpOp::Ne,
                     _ => CmpOp::Ge,
                 };
                 self.bump();

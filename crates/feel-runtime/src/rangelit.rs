@@ -8,19 +8,6 @@ use feel_temporal as tm;
 
 pub fn parse_range(rt: &mut Runtime, s: &str) -> Option<H> {
     let t = s.trim();
-    // comparison forms (`< 10`, `>= @"2019-01-01"`), accepted as an extension
-    // of rule 66 for symmetry with rule 7.a
-    for (op, si, ei, lower) in [("<=", false, true, false), (">=", true, false, true), ("<", false, false, false), (">", false, false, true)] {
-        if let Some(rest) = t.strip_prefix(op) {
-            let v = endpoint(rt, rest.trim())?;
-            let r = if lower {
-                Range { start: Some(v), end: None, start_incl: si, end_incl: false }
-            } else {
-                Range { start: None, end: Some(v), start_incl: false, end_incl: ei }
-            };
-            return Some(rt.alloc(Value::Range(r)));
-        }
-    }
     let first = t.chars().next()?;
     let last = t.chars().last()?;
     let start_incl = match first {
@@ -57,12 +44,15 @@ pub fn parse_range(rt: &mut Runtime, s: &str) -> Option<H> {
         Some(endpoint(rt, b)?)
     };
     if let (Some(x), Some(y)) = (start, end) {
+        if rt.kind_name(x) != rt.kind_name(y) {
+            return None;
+        }
         match crate::ops::cmp(rt, x, y) {
             Some(std::cmp::Ordering::Greater) | None => return None,
             _ => {}
         }
     }
-    Some(rt.alloc(Value::Range(Range { start, end, start_incl: start.is_some() && start_incl, end_incl: end.is_some() && end_incl })))
+    Some(rt.alloc(Value::Range(Range { start, end, start_incl: start.is_some() && start_incl, end_incl: end.is_some() && end_incl, ne: false, eq: false })))
 }
 
 /// Position of the `..` separator outside string literals.

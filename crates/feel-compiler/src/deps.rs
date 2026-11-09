@@ -115,7 +115,13 @@ impl Walk<'_> {
                 }
             }
             Ir::Null | Ir::True | Ir::False | Ir::Const(_) | Ir::Local(_) | Ir::Slot(_) | Ir::Partial(_) => {}
-            Ir::Path(a, _, _) | Ir::Neg(a, _) | Ir::IsNull(a, _) | Ir::Not(a, _) | Ir::InstanceOf(a, _) | Ir::Coerce(a, _, _) => {
+            Ir::Path(a, _, _)
+            | Ir::Neg(a, _)
+            | Ir::IsNull(a, _)
+            | Ir::Not(a, _)
+            | Ir::InstanceOf(a, _)
+            | Ir::Coerce(a, _, _)
+            | Ir::PointRange { value: a, .. } => {
                 self.walk(a)
             }
             Ir::Bin(_, a, b, _) | Ir::Cmp(_, a, b, _) | Ir::And(a, b) | Ir::Or(a, b) | Ir::Index(a, b, _) => {

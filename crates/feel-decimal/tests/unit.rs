@@ -47,7 +47,12 @@ fn spec_table_40_examples() {
     );
     // decimal(1/3, 2) = 0.33
     assert_eq!(
-        plain(d("1").div(&d("3")).unwrap().set_scale(2, RoundingMode::HalfEven)),
+        plain(
+            d("1")
+                .div(&d("3"))
+                .unwrap()
+                .set_scale(2, RoundingMode::HalfEven)
+        ),
         "0.33"
     );
     // 1 = 1.000
@@ -55,8 +60,14 @@ fn spec_table_40_examples() {
     // 1.01/2 = 0.505
     assert_eq!(plain(d("1.01").div(&d("2"))), "0.505");
     // decimal(0.505, 2) = 0.50, decimal(0.515, 2) = 0.52
-    assert_eq!(plain(d("0.505").set_scale(2, RoundingMode::HalfEven)), "0.50");
-    assert_eq!(plain(d("0.515").set_scale(2, RoundingMode::HalfEven)), "0.52");
+    assert_eq!(
+        plain(d("0.505").set_scale(2, RoundingMode::HalfEven)),
+        "0.50"
+    );
+    assert_eq!(
+        plain(d("0.515").set_scale(2, RoundingMode::HalfEven)),
+        "0.52"
+    );
     // 1.0*10**3 = 1000.0
     assert_eq!(
         plain(d("1.0").mul(&d("10").pow(&d("3")).unwrap())),
@@ -135,7 +146,10 @@ fn every_rounding_mode_on_ties_and_non_ties() {
         ("-5.5", ["-6", "-6", "-5", "-6", "-5", "-6", "-5"]),
         ("0.5", ["0", "1", "0", "1", "0", "0", "1"]),
         ("-0.5", ["0", "-1", "0", "-1", "0", "-1", "0"]),
-        ("2.50000000000000000000000000000001", ["3", "3", "3", "3", "2", "2", "3"]),
+        (
+            "2.50000000000000000000000000000001",
+            ["3", "3", "3", "3", "2", "2", "3"],
+        ),
         ("0.0001", ["0", "0", "0", "1", "0", "0", "1"]),
         ("-0.0001", ["0", "0", "0", "-1", "0", "-1", "0"]),
     ];
@@ -160,21 +174,46 @@ fn every_rounding_mode_on_ties_and_non_ties() {
     assert_eq!(d("-12").set_scale(-1, HalfEven).unwrap().scale(), -1);
     // Too many digits / scale out of range.
     assert!(d("1").set_scale(34, HalfEven).is_none());
-    assert_eq!(plain(d("1").set_scale(33, HalfEven)), format!("1.{}", "0".repeat(33)));
+    assert_eq!(
+        plain(d("1").set_scale(33, HalfEven)),
+        format!("1.{}", "0".repeat(33))
+    );
     assert!(d("1").set_scale(MAX_SCALE as i64 + 1, HalfEven).is_none());
     assert!(d("1").set_scale(MIN_SCALE as i64 - 1, HalfEven).is_none());
-    assert_eq!(plain(d("0").set_scale(MAX_SCALE as i64, HalfEven).map(|x| Decimal::from_i64(x.scale() as i64))), "6176");
-    assert_eq!(d("123456").set_scale(MIN_SCALE as i64, HalfEven).unwrap(), Decimal::ZERO);
+    assert_eq!(
+        plain(
+            d("0")
+                .set_scale(MAX_SCALE as i64, HalfEven)
+                .map(|x| Decimal::from_i64(x.scale() as i64))
+        ),
+        "6176"
+    );
+    assert_eq!(
+        d("123456").set_scale(MIN_SCALE as i64, HalfEven).unwrap(),
+        Decimal::ZERO
+    );
 }
 
 #[test]
 fn round_to_scale_does_not_pad() {
     use RoundingMode::*;
-    assert_eq!(d("1.5").round_to_scale(3, HalfEven).unwrap().to_string(), "1.5");
-    assert_eq!(d("1.5678").round_to_scale(3, HalfEven).unwrap().to_string(), "1.568");
+    assert_eq!(
+        d("1.5").round_to_scale(3, HalfEven).unwrap().to_string(),
+        "1.5"
+    );
+    assert_eq!(
+        d("1.5678").round_to_scale(3, HalfEven).unwrap().to_string(),
+        "1.568"
+    );
     assert_eq!(d("1E+3").round_to_scale(0, HalfEven).unwrap().scale(), -3);
-    assert_eq!(d("125").round_to_scale(-1, HalfEven).unwrap().to_string(), "120");
-    assert_eq!(d("135").round_to_scale(-1, HalfEven).unwrap().to_string(), "140");
+    assert_eq!(
+        d("125").round_to_scale(-1, HalfEven).unwrap().to_string(),
+        "120"
+    );
+    assert_eq!(
+        d("135").round_to_scale(-1, HalfEven).unwrap().to_string(),
+        "140"
+    );
 }
 
 #[test]
@@ -206,7 +245,10 @@ fn modulo_examples() {
     assert_eq!(d("1E+6000").rem(&d("1E-6000")).unwrap(), Decimal::ZERO);
     assert_eq!(d("1E+6000").rem(&d("1E-6000")).unwrap().scale(), 6000);
     // Remainder smaller than the divisor needs no division.
-    assert_eq!(d("1E-30").rem(&d("1E+30")).unwrap().to_scientific_string(), "1E-30");
+    assert_eq!(
+        d("1E-30").rem(&d("1E+30")).unwrap().to_scientific_string(),
+        "1E-30"
+    );
 }
 
 #[test]
@@ -255,7 +297,11 @@ fn integer_powers() {
         ("10", 3, "1000"),
         ("1.0", 3, "1.000"),
         ("2", 100, "1267650600228229401496703205376"),
-        ("2", 200, "1606938044258990275541962092341163000000000000000000000000000"),
+        (
+            "2",
+            200,
+            "1606938044258990275541962092341163000000000000000000000000000",
+        ),
     ];
     for (x, n, want) in cases {
         assert_eq!(plain(d(x).pow_i64(n)), want, "{x}^{n}");
@@ -301,7 +347,10 @@ fn integer_powers() {
     // Boundaries of the range.
     assert_eq!(d("10").pow_i64(6144).unwrap().scale(), MIN_SCALE);
     assert!(d("10").pow_i64(6145).is_none());
-    assert_eq!(d("10").pow_i64(-6176).unwrap().to_scientific_string(), "1E-6176");
+    assert_eq!(
+        d("10").pow_i64(-6176).unwrap().to_scientific_string(),
+        "1E-6176"
+    );
     assert!(d("10").pow_i64(-6177).is_none());
 }
 
@@ -311,8 +360,14 @@ fn real_powers() {
     assert_eq!(plain(d("0.25").pow(&d("0.5"))), "0.5");
     assert_eq!(plain(d("4").pow(&d("-0.5"))), "0.5");
     assert_eq!(plain(d("100").pow(&d("1.5"))), "1000");
-    assert_eq!(plain(d("8").pow(&d("2.5"))), "181.0193359837561662466161566988414");
-    assert_eq!(plain(d("2").pow(&d("0.5"))), "1.414213562373095048801688724209698");
+    assert_eq!(
+        plain(d("8").pow(&d("2.5"))),
+        "181.0193359837561662466161566988414"
+    );
+    assert_eq!(
+        plain(d("2").pow(&d("0.5"))),
+        "1.414213562373095048801688724209698"
+    );
     assert_eq!(plain(d("0").pow(&d("0.5"))), "0");
     assert!(d("0").pow(&d("-0.5")).is_none());
     assert!(d("-4").pow(&d("0.5")).is_none());
@@ -321,7 +376,10 @@ fn real_powers() {
     assert_eq!(plain(d("2").pow(&d("-3"))), "0.125");
     assert!(d("10").pow(&d("1E+10")).is_none());
     assert!(d("10").pow(&d("-1E+10")).is_none());
-    assert_eq!(plain(d("1.0000000000000001").pow(&d("1E+10"))), "1.000001000000500000166616708283342");
+    assert_eq!(
+        plain(d("1.0000000000000001").pow(&d("1E+10"))),
+        "1.000001000000500000166616708283342"
+    );
     assert!(d("-1").pow(&d("1E+10")).is_none());
 }
 
@@ -344,11 +402,17 @@ fn addition_scales_and_rounding() {
     );
     // Half-even at the 35th digit.
     assert_eq!(
-        d("1000000000000000000000000000000000").add(&d("0.5")).unwrap().to_string(),
+        d("1000000000000000000000000000000000")
+            .add(&d("0.5"))
+            .unwrap()
+            .to_string(),
         "1000000000000000000000000000000000"
     );
     assert_eq!(
-        d("1000000000000000000000000000000001").add(&d("0.5")).unwrap().to_string(),
+        d("1000000000000000000000000000000001")
+            .add(&d("0.5"))
+            .unwrap()
+            .to_string(),
         "1000000000000000000000000000000002"
     );
     // Absorbed tiny operand (huge scale difference).
@@ -365,7 +429,10 @@ fn addition_scales_and_rounding() {
         "0.9999999999999999999999999999999994"
     );
     assert_eq!(
-        d("1E+6111").add(&d("1E-6176")).unwrap().to_scientific_string(),
+        d("1E+6111")
+            .add(&d("1E-6176"))
+            .unwrap()
+            .to_scientific_string(),
         "1.000000000000000000000000000000000E+6111"
     );
     // Overflow.
@@ -379,21 +446,42 @@ fn multiplication_and_division_details() {
     assert_eq!(plain(d("1.5").mul(&d("-2"))), "-3.0");
     assert_eq!(plain(d("-0").mul(&d("5"))), "0");
     assert_eq!(plain(d("1E-4000").mul(&d("1E-4000"))), "null");
-    assert_eq!(d("1E-3000").mul(&d("1E-3176")).unwrap().to_scientific_string(), "1E-6176");
+    assert_eq!(
+        d("1E-3000")
+            .mul(&d("1E-3176"))
+            .unwrap()
+            .to_scientific_string(),
+        "1E-6176"
+    );
     assert_eq!(d("1E+3000").mul(&d("1E+3144")).unwrap().scale(), MIN_SCALE);
     assert!(d("1E+3000").mul(&d("1E+3145")).is_none());
     assert_eq!(d("0E-4000").mul(&d("0E-4000")).unwrap().scale(), MAX_SCALE);
-    assert_eq!(plain(d("2").div(&d("3"))), "0.6666666666666666666666666666666667");
-    assert_eq!(plain(d("-1").div(&d("3"))), "-0.3333333333333333333333333333333333");
-    assert_eq!(plain(d("1").div(&d("7"))), "0.1428571428571428571428571428571429");
+    assert_eq!(
+        plain(d("2").div(&d("3"))),
+        "0.6666666666666666666666666666666667"
+    );
+    assert_eq!(
+        plain(d("-1").div(&d("3"))),
+        "-0.3333333333333333333333333333333333"
+    );
+    assert_eq!(
+        plain(d("1").div(&d("7"))),
+        "0.1428571428571428571428571428571429"
+    );
     assert_eq!(plain(d("1").div(&d("8"))), "0.125");
     assert_eq!(plain(d("100").div(&d("1"))), "100");
-    assert_eq!(d("1E+2").div(&d("1")).unwrap().to_scientific_string(), "1E+2");
+    assert_eq!(
+        d("1E+2").div(&d("1")).unwrap().to_scientific_string(),
+        "1E+2"
+    );
     assert_eq!(plain(d("0.00").div(&d("5"))), "0.00");
     assert!(d("1").div(&d("0")).is_none());
     assert!(d("0").div(&d("0")).is_none());
     assert!(d("1E-6176").div(&d("10")).is_none());
-    assert_eq!(d("10E-6176").div(&d("10")).unwrap().to_scientific_string(), "1E-6176");
+    assert_eq!(
+        d("10E-6176").div(&d("10")).unwrap().to_scientific_string(),
+        "1E-6176"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -438,7 +526,10 @@ fn parse_valid_forms() {
     let long = format!("1.{}51", "0".repeat(33));
     assert_eq!(d(&long).to_string(), format!("1.{}1", "0".repeat(32)));
     let nines = "9".repeat(40);
-    assert_eq!(d(&nines).to_scientific_string(), "1.000000000000000000000000000000000E+40");
+    assert_eq!(
+        d(&nines).to_scientific_string(),
+        "1.000000000000000000000000000000000E+40"
+    );
     let long_int = format!("1{}", "0".repeat(36));
     assert_eq!(d(&long_int).scale(), -3);
     // Thousands of digits.
@@ -464,9 +555,34 @@ fn parse_valid_forms() {
 #[test]
 fn parse_invalid_forms() {
     let bad = [
-        "", " ", "+", "-", ".", "e", "e5", "1e", "1e+", "1e-", ".e1", "1..2", "1.2.3",
-        " 1", "1 ", "1_000", "1,5", "--1", "+-1", "0x10", "inf", "NaN", "1e5.5", "١",
-        "1e999999999999999999999", "1e-999999999999999999999", "1e6145", "1e-6177",
+        "",
+        " ",
+        "+",
+        "-",
+        ".",
+        "e",
+        "e5",
+        "1e",
+        "1e+",
+        "1e-",
+        ".e1",
+        "1..2",
+        "1.2.3",
+        " 1",
+        "1 ",
+        "1_000",
+        "1,5",
+        "--1",
+        "+-1",
+        "0x10",
+        "inf",
+        "NaN",
+        "1e5.5",
+        "١",
+        "1e999999999999999999999",
+        "1e-999999999999999999999",
+        "1e6145",
+        "1e-6177",
         "12345678901234567890123456789012345e6111",
     ];
     for s in bad {
@@ -552,22 +668,42 @@ fn equality_ordering_hash() {
         }
     }
     let ordered = [
-        "-1E+6111", "-100", "-1.5", "-1.499999999999999999999999999999999", "-1E-6176", "0",
-        "1E-6176", "0.1", "0.99999999999999999999999999999999", "1", "1.000000000000000000000000000000001",
-        "10", "99", "100", "1E+6111",
+        "-1E+6111",
+        "-100",
+        "-1.5",
+        "-1.499999999999999999999999999999999",
+        "-1E-6176",
+        "0",
+        "1E-6176",
+        "0.1",
+        "0.99999999999999999999999999999999",
+        "1",
+        "1.000000000000000000000000000000001",
+        "10",
+        "99",
+        "100",
+        "1E+6111",
     ];
     let vals: Vec<Decimal> = ordered.iter().map(|s| d(s)).collect();
     for i in 0..vals.len() {
         for j in 0..vals.len() {
-            assert_eq!(vals[i].cmp(&vals[j]), i.cmp(&j), "{} vs {}", ordered[i], ordered[j]);
+            assert_eq!(
+                vals[i].cmp(&vals[j]),
+                i.cmp(&j),
+                "{} vs {}",
+                ordered[i],
+                ordered[j]
+            );
         }
     }
     let mut sorted = [d("3"), d("-1"), d("2.50"), d("2.5"), d("0")];
     sorted.sort();
     let s: Vec<String> = sorted.iter().map(|x| x.to_string()).collect();
     assert_eq!(s, ["-1", "0", "2.50", "2.5", "3"]);
-    let set: std::collections::HashSet<Decimal> =
-        ["1", "1.0", "2", "2.00", "0", "0.0"].iter().map(|s| d(s)).collect();
+    let set: std::collections::HashSet<Decimal> = ["1", "1.0", "2", "2.00", "0", "0.0"]
+        .iter()
+        .map(|s| d(s))
+        .collect();
     assert_eq!(set.len(), 3);
 }
 
@@ -610,16 +746,30 @@ fn accessors_and_conversions() {
         Some(-170141183460469231731687303715884100000)
     );
     assert_eq!(d("1.8E+38").to_i128(), None);
-    assert_eq!(d("-1.7E+38").to_i128(), Some(-170000000000000000000000000000000000000));
+    assert_eq!(
+        d("-1.7E+38").to_i128(),
+        Some(-170000000000000000000000000000000000000)
+    );
     assert_eq!(d("0.5").to_f64(), 0.5);
     assert_eq!(d("-1.1").to_f64(), -1.1);
     assert_eq!(d("1E-400").to_f64(), 0.0);
     assert_eq!(d("1.7976931348623157E+308").to_f64(), f64::MAX);
-    assert_eq!(d("123456789012345678901234567890").to_f64(), 1.2345678901234568e29);
-    assert_eq!(Decimal::from_i64(i64::MIN).to_string(), "-9223372036854775808");
-    assert_eq!(Decimal::from_u64(u64::MAX).to_string(), "18446744073709551615");
     assert_eq!(
-        Decimal::from_i128(i128::MIN).unwrap().to_scientific_string(),
+        d("123456789012345678901234567890").to_f64(),
+        1.2345678901234568e29
+    );
+    assert_eq!(
+        Decimal::from_i64(i64::MIN).to_string(),
+        "-9223372036854775808"
+    );
+    assert_eq!(
+        Decimal::from_u64(u64::MAX).to_string(),
+        "18446744073709551615"
+    );
+    assert_eq!(
+        Decimal::from_i128(i128::MIN)
+            .unwrap()
+            .to_scientific_string(),
         "-1.701411834604692317316873037158841E+38"
     );
     assert_eq!(Decimal::new(12345, 2).unwrap().to_string(), "123.45");
@@ -628,8 +778,14 @@ fn accessors_and_conversions() {
     assert!(Decimal::new(1, -6145).is_none());
     assert_eq!(Decimal::new(1, -6144).unwrap().scale(), MIN_SCALE);
     assert_eq!(Decimal::new(0, i32::MAX).unwrap().scale(), MAX_SCALE);
-    assert_eq!(Decimal::from_parts(true, 15, 1).unwrap().to_string(), "-1.5");
-    assert_eq!(Decimal::from_parts(true, 0, 1).unwrap().to_parts(), (false, 0, 1));
+    assert_eq!(
+        Decimal::from_parts(true, 15, 1).unwrap().to_string(),
+        "-1.5"
+    );
+    assert_eq!(
+        Decimal::from_parts(true, 0, 1).unwrap().to_parts(),
+        (false, 0, 1)
+    );
     assert_eq!(Decimal::default(), Decimal::ZERO);
     assert_eq!(Decimal::from(7i32).to_string(), "7");
 }
@@ -672,15 +828,28 @@ fn range_boundaries() {
 
 #[test]
 fn exp_ln_consistency() {
-    for s in ["0.5", "2", "10", "123.456", "0.001", "1E-20", "-3", "1E-40", "-1E-40"] {
+    for s in [
+        "0.5", "2", "10", "123.456", "0.001", "1E-20", "-3", "1E-40", "-1E-40",
+    ] {
         let x = d(s);
         let e = x.exp().unwrap();
         if x.is_positive() {
             let l = x.ln().unwrap();
-            assert!(l.exp().unwrap().sub(&x).unwrap().abs() < d("1E-30").mul(&x.abs().add(&Decimal::ONE).unwrap()).unwrap());
+            assert!(
+                l.exp().unwrap().sub(&x).unwrap().abs()
+                    < d("1E-30")
+                        .mul(&x.abs().add(&Decimal::ONE).unwrap())
+                        .unwrap()
+            );
         }
         assert!(e.is_positive());
     }
-    assert_eq!(d("1E-40").exp().unwrap().to_string(), format!("1.{}", "0".repeat(33)));
-    assert_eq!(d("-1E-40").exp().unwrap().to_string(), format!("1.{}", "0".repeat(33)));
+    assert_eq!(
+        d("1E-40").exp().unwrap().to_string(),
+        format!("1.{}", "0".repeat(33))
+    );
+    assert_eq!(
+        d("-1E-40").exp().unwrap().to_string(),
+        format!("1.{}", "0".repeat(33))
+    );
 }

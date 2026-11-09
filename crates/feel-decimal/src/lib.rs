@@ -63,9 +63,33 @@
 //! These rules are the decimal128 "clamped" encoding of IEEE 754 with the
 //! difference that results which would be *subnormal and inexact* (would need
 //! rounding to fewer than 34 digits) are `None` instead of being rounded
-//! again. Division by zero, `ln`/`log10` of non-positive numbers, `sqrt` of
+//! again. A consequence is that an inexact result with magnitude below
+//! `1E-6143` (34 digits would need a scale above 6176) is `None` unless its
+//! 34-digit rounding happens to end in enough zeros; e.g. `exp(-14200)` is
+//! `None`. Division by zero, `ln`/`log10` of non-positive numbers, `sqrt` of
 //! negative numbers, `0 ** n` for negative `n` and `x ** y` for negative `x`
 //! and non-integer `y` are also `None`.
+//!
+//! ## Conventions where Java and Python differ
+//!
+//! The reference implementation used for testing is Python's `decimal`
+//! module (with an unbounded exponent range plus the rules above); the
+//! results of `+ - * /`, `set_scale`, comparisons and parsing are identical
+//! to both Python and Java. Where conventions differ:
+//!
+//! * [`Decimal::sqrt`] of an exact square uses Python's preferred scale
+//!   `ceil(s / 2)` (`sqrt(1.0) = 1.0`; Java's `BigDecimal.sqrt` would give `1`).
+//! * [`Decimal::pow_i64`] is correctly rounded (Java's `pow(n, mc)` may be off
+//!   by one ulp for inexact results); exact results have the scale of
+//!   repeated multiplication (`1.10^2 = 1.2100`), and `0.0^2 = 0.00` as in
+//!   Java (Python gives `0`).
+//! * [`Decimal::pow`] with a non-integer exponent returns exact results with
+//!   only significant digits (`4 ** 0.5 = 2`; Python pads to 34 digits).
+//!   Integral exponents beyond `±999_999_999` (outside FEEL's input domain
+//!   for `**`) are evaluated via `exp(y * ln x)` rather than rejected; callers
+//!   that want the strict domain should check it before calling.
+//! * [`Decimal::rem`] is always exact, even when the integer quotient has
+//!   more than 34 digits (Python's `remainder` raises `DivisionImpossible`).
 //!
 //! ## Parsing and formatting
 //!
@@ -230,7 +254,14 @@ pub(crate) fn div_pow10_u128(c: u128, k: u32) -> (u128, Discard) {
     }
     if k > 38 {
         // 10^k / 2 > u128::MAX >= c
-        return (0, if c == 0 { Discard::Zero } else { Discard::Below });
+        return (
+            0,
+            if c == 0 {
+                Discard::Zero
+            } else {
+                Discard::Below
+            },
+        );
     }
     let p = POW10[k as usize];
     let (q, r) = if c <= u64::MAX as u128 && k <= 19 {
@@ -642,7 +673,10 @@ impl Decimal {
             // A = a * 10^(sb - sa) (possibly huge), B = b
             let k = (sb - sa) as u64;
             let b = o.coeff;
-            match (k <= 38).then(|| a.checked_mul(POW10[k as usize])).flatten() {
+            match (k <= 38)
+                .then(|| a.checked_mul(POW10[k as usize]))
+                .flatten()
+            {
                 Some(a) => a % b,
                 None => mul_mod(a % b, pow10_mod(k, b), b),
             }
@@ -907,12 +941,10 @@ impl Decimal {
         // the shorter coefficient, so the product stays below 10^34.
         match self.scale.cmp(&o.scale) {
             Ordering::Equal => self.coeff.cmp(&o.coeff),
-            Ordering::Less => {
-                (self.coeff * POW10[(o.scale - self.scale) as usize]).cmp(&o.coeff)
-            }
-            Ordering::Greater => {
-                self.coeff.cmp(&(o.coeff * POW10[(self.scale - o.scale) as usize]))
-            }
+            Ordering::Less => (self.coeff * POW10[(o.scale - self.scale) as usize]).cmp(&o.coeff),
+            Ordering::Greater => self
+                .coeff
+                .cmp(&(o.coeff * POW10[(self.scale - o.scale) as usize])),
         }
     }
 }
@@ -983,7 +1015,11 @@ fn add_impl(a: &Decimal, b_coeff: u128, b_scale: i32, b_neg: bool) -> Option<Dec
     let hv = mul_pow10(hc, d);
     // Here hv >= 2^128 > lc (or the u128 sum overflowed), so the result has
     // the sign of `hi`.
-    let v = if hn == ln { hv.add_u128(lc) } else { hv.sub_u128(lc) };
+    let v = if hn == ln {
+        hv.add_u128(lc)
+    } else {
+        hv.sub_u128(lc)
+    };
     let (c, s) = round34_u256(v, ls as i64);
     finish(hn, c, s)
 }
@@ -1095,7 +1131,11 @@ mod tests {
     fn digit_count_estimate_is_exact() {
         for bits in 1..=128u32 {
             let lo = 1u128 << (bits - 1);
-            let hi = if bits == 128 { u128::MAX } else { (1u128 << bits) - 1 };
+            let hi = if bits == 128 {
+                u128::MAX
+            } else {
+                (1u128 << bits) - 1
+            };
             for x in [lo, hi] {
                 assert_eq!(digits_u128(x) as usize, x.to_string().len(), "x={x}");
             }

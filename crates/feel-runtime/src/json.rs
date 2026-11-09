@@ -219,8 +219,13 @@ impl<'a> Decoder<'a> {
                 let end = c.get("end");
                 let si = c.get("startIncluded").and_then(|h| rt.as_bool(h)).unwrap_or(start.is_some());
                 let ei = c.get("endIncluded").and_then(|h| rt.as_bool(h)).unwrap_or(end.is_some());
-                Ok(rt.alloc(Value::Range(Range { start, end, start_incl: si, end_incl: ei })))
+                let ne = c.get("notEqual").and_then(|h| rt.as_bool(h)).unwrap_or(false);
+                let eq = c.get("equal").and_then(|h| rt.as_bool(h)).unwrap_or(false);
+                Ok(rt.alloc(Value::Range(Range { start, end, start_incl: si, end_incl: ei, ne, eq })))
             }
+            // function values cannot cross the boundary; their placeholder
+            // decodes to null
+            "@function" => Ok(NULL),
             "@context" => {
                 if rt.as_ctx(v).is_some() {
                     Ok(v)
@@ -425,6 +430,12 @@ pub fn encode_into(rt: &Runtime, h: H, out: &mut String, depth: u32) {
                 out.push(',');
             }
             let _ = write!(out, "\"startIncluded\":{},\"endIncluded\":{}", r.start_incl, r.end_incl);
+            if r.ne {
+                out.push_str(",\"notEqual\":true");
+            }
+            if r.eq {
+                out.push_str(",\"equal\":true");
+            }
             out.push_str("}}");
         }
         Value::Func(f) => {

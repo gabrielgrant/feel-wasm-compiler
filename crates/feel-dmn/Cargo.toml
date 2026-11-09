@@ -1,7 +1,19 @@
 [package]
 name = "feel-dmn"
+description = "DMN integration layer: DMN XML models lowered to FEEL (decision tables with hit policies, boxed expressions, DRG), plus the DMN TCK runner"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "feel-tck"
+path = "src/bin/tck.rs"
 
 [dependencies]
+feel-compiler.workspace = true
+feel-host.workspace = true
+feel-runtime.workspace = true
+roxmltree.workspace = true
+serde.workspace = true
+serde_json.workspace = true

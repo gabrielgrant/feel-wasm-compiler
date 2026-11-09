@@ -41,6 +41,8 @@ pub enum Ir {
     /// entries are evaluated in order into their locals, then the context is built
     Context(Vec<(ConstId, Local, Ir)>),
     Range { start: Option<Box<Ir>>, end: Option<Box<Ir>>, start_incl: bool, end_incl: bool, site: Site },
+    /// `= e` / `!= e` used as a range value
+    PointRange { value: Box<Ir>, ne: bool, site: Site },
     /// tri: `cand in (tests)` — `cand` is a local holding the candidate
     In { cand: Local, tests: Vec<TestIr>, negated: bool },
     /// tri

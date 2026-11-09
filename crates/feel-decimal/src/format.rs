@@ -4,7 +4,9 @@
 
 use core::fmt;
 
-use crate::{finish, round_up_needed, Decimal, Discard, RoundingMode, COEFF_LIMIT, MAX_DIGITS, POW10};
+use crate::{
+    finish, round_up_needed, Decimal, Discard, RoundingMode, COEFF_LIMIT, MAX_DIGITS, POW10,
+};
 
 /// Saturation bound for parsed exponents: any exponent this large is out of
 /// range regardless of the number of digits (lengths are far smaller).

@@ -52,13 +52,19 @@ impl U256 {
     #[inline]
     pub fn add_u128(self, v: u128) -> U256 {
         let (lo, c) = self.lo.overflowing_add(v);
-        U256 { hi: self.hi + c as u128, lo }
+        U256 {
+            hi: self.hi + c as u128,
+            lo,
+        }
     }
 
     #[inline]
     pub fn sub_u128(self, v: u128) -> U256 {
         let (lo, b) = self.lo.overflowing_sub(v);
-        U256 { hi: self.hi - b as u128, lo }
+        U256 {
+            hi: self.hi - b as u128,
+            lo,
+        }
     }
 
     /// Divides by a nonzero `u128`, returning `(quotient, remainder)`.
@@ -119,7 +125,11 @@ pub(crate) fn div_2x128(u1: u128, u0: u128, v: u128) -> (u128, u128) {
     let v = v << s;
     let vn1 = v >> 64;
     let vn0 = v & M64;
-    let un32 = if s == 0 { u1 } else { (u1 << s) | (u0 >> (128 - s)) };
+    let un32 = if s == 0 {
+        u1
+    } else {
+        (u1 << s) | (u0 >> (128 - s))
+    };
     let un10 = u0 << s;
     let un1 = un10 >> 64;
     let un0 = un10 & M64;
@@ -279,7 +289,15 @@ mod tests {
 
     #[test]
     fn pow10_mod_matches_naive() {
-        for m in [1u128, 2, 3, 7, 97, 1_000_000_007, 99_999_999_999_999_999_999_999_999_999_999u128] {
+        for m in [
+            1u128,
+            2,
+            3,
+            7,
+            97,
+            1_000_000_007,
+            99_999_999_999_999_999_999_999_999_999_999u128,
+        ] {
             let mut naive = 1 % m;
             for k in 0..200u64 {
                 assert_eq!(pow10_mod(k, m), naive, "k={k} m={m}");

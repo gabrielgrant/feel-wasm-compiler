@@ -35,6 +35,11 @@ pub fn compile(pattern: &str, flags: &str) -> Option<Regex> {
             let mut in_class = false;
             let mut esc = false;
             for ch in pattern.chars() {
+                // XPath: with the x flag all white space is removed, even
+                // after a backslash (so "\ s" means "\s")
+                if ch.is_whitespace() && !in_class {
+                    continue;
+                }
                 if esc {
                     out.push(ch);
                     esc = false;
@@ -61,7 +66,7 @@ pub fn compile(pattern: &str, flags: &str) -> Option<Regex> {
         } else {
             pattern.to_string()
         };
-        translate(&src, &mut pat)?;
+        translate(&src, &mut pat, s)?;
     }
     let mut prefix = String::new();
     if s || i || m {
@@ -81,7 +86,26 @@ pub fn compile(pattern: &str, flags: &str) -> Option<Regex> {
 }
 
 /// Translate XPath regex syntax into fancy-regex syntax.
-fn translate(src: &str, out: &mut String) -> Option<()> {
+/// Unicode block names used by XPath `\p{IsBlock}` (not supported by the
+/// regex engine), mapped to code point ranges.
+fn block_range(name: &str) -> Option<&'static str> {
+    Some(match name {
+        "BasicLatin" => "\\x{0}-\\x{7F}",
+        "Latin-1Supplement" => "\\x{80}-\\x{FF}",
+        "LatinExtended-A" => "\\x{100}-\\x{17F}",
+        "LatinExtended-B" => "\\x{180}-\\x{24F}",
+        "IPAExtensions" => "\\x{250}-\\x{2AF}",
+        "Greek" | "GreekandCoptic" => "\\x{370}-\\x{3FF}",
+        "Cyrillic" => "\\x{400}-\\x{4FF}",
+        "Hebrew" => "\\x{590}-\\x{5FF}",
+        "Arabic" => "\\x{600}-\\x{6FF}",
+        "GeneralPunctuation" => "\\x{2000}-\\x{206F}",
+        "CJKUnifiedIdeographs" => "\\x{4E00}-\\x{9FFF}",
+        _ => return None,
+    })
+}
+
+fn translate(src: &str, out: &mut String, dot_all: bool) -> Option<()> {
     let chars: Vec<char> = src.chars().collect();
     let mut k = 0;
     let mut depth_class = 0;
@@ -105,11 +129,27 @@ fn translate(src: &str, out: &mut String) -> Option<()> {
                         if chars.get(j) == Some(&'{') {
                             let close = chars[j..].iter().position(|&c| c == '}')? + j;
                             let name: String = chars[j + 1..close].iter().collect();
-                            let name = name.strip_prefix("Is").map(|b| b.to_string()).unwrap_or(name);
+                            j = close + 1;
+                            if let Some(b) = name.strip_prefix("Is") {
+                                let r = block_range(b)?;
+                                out.pop();
+                                out.pop();
+                                if depth_class > 0 {
+                                    if n == 'P' {
+                                        return None;
+                                    }
+                                    out.push_str(r);
+                                } else {
+                                    out.push_str(if n == 'P' { "[^" } else { "[" });
+                                    out.push_str(r);
+                                    out.push(']');
+                                }
+                                k = j;
+                                continue;
+                            }
                             out.push('{');
                             out.push_str(&name);
                             out.push('}');
-                            j = close + 1;
                         }
                         k = j;
                         continue;
@@ -142,6 +182,8 @@ fn translate(src: &str, out: &mut String) -> Option<()> {
                 depth_class += 1;
                 continue;
             }
+            // XPath '.' matches any character except \n and \r
+            '.' if depth_class == 0 && !dot_all => out.push_str("[^\\n\\r]"),
             c => out.push(c),
         }
         k += 1;

@@ -329,3 +329,171 @@ impl UnaryTest {
         }
     }
 }
+
+fn fmt_tests(f: &mut std::fmt::Formatter<'_>, ts: &[UnaryTest]) -> std::fmt::Result {
+    for (i, t) in ts.iter().enumerate() {
+        if i > 0 {
+            write!(f, ", ")?;
+        }
+        match t {
+            UnaryTest::Compare(op, e, _) => write!(f, "{} {}", op.as_str(), e)?,
+            UnaryTest::Interval(iv, _) => write!(
+                f,
+                "{}{}..{}{}",
+                if iv.start_incl { "[" } else { "(" },
+                iv.start,
+                iv.end,
+                if iv.end_incl { "]" } else { ")" }
+            )?,
+            UnaryTest::Expr(e, _) => write!(f, "{e}")?,
+        }
+    }
+    Ok(())
+}
+
+fn key_text(k: &str) -> String {
+    if k.chars().all(|c| c.is_alphanumeric() || c == '_' || c == ' ') && !k.is_empty() {
+        k.to_string()
+    } else {
+        format!("{k:?}")
+    }
+}
+
+/// FEEL-like rendering of an AST (used to inspect lowered DMN models).
+impl std::fmt::Display for Expr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match &self.kind {
+            ExprKind::Null => write!(f, "null"),
+            ExprKind::Bool(b) => write!(f, "{b}"),
+            ExprKind::Number(n) => write!(f, "{n}"),
+            ExprKind::String(s) => write!(f, "{s:?}"),
+            ExprKind::At(s) => write!(f, "@{s:?}"),
+            ExprKind::Name(n) => write!(f, "{}", n.text),
+            ExprKind::Path(e, n) => write!(f, "({e}).{}", n.text),
+            ExprKind::Filter(a, b) => write!(f, "({a})[{b}]"),
+            ExprKind::Call(c, args) => {
+                write!(f, "{c}(")?;
+                match args {
+                    Args::Positional(a) => {
+                        for (i, x) in a.iter().enumerate() {
+                            if i > 0 {
+                                write!(f, ", ")?;
+                            }
+                            write!(f, "{x}")?;
+                        }
+                    }
+                    Args::Named(a) => {
+                        for (i, (n, _, x)) in a.iter().enumerate() {
+                            if i > 0 {
+                                write!(f, ", ")?;
+                            }
+                            write!(f, "{}: {x}", n.text)?;
+                        }
+                    }
+                }
+                write!(f, ")")
+            }
+            ExprKind::Neg(e) => write!(f, "-({e})"),
+            ExprKind::Binary(op, a, b) => {
+                let s = match op {
+                    BinOp::Add => "+",
+                    BinOp::Sub => "-",
+                    BinOp::Mul => "*",
+                    BinOp::Div => "/",
+                    BinOp::Pow => "**",
+                };
+                write!(f, "({a} {s} {b})")
+            }
+            ExprKind::Compare(op, a, b) => write!(f, "({a} {} {b})", op.as_str()),
+            ExprKind::And(a, b) => write!(f, "({a} and {b})"),
+            ExprKind::Or(a, b) => write!(f, "({a} or {b})"),
+            ExprKind::Between(a, b, c) => write!(f, "({a} between {b} and {c})"),
+            ExprKind::In(e, ts) => {
+                write!(f, "({e} in (")?;
+                fmt_tests(f, ts)?;
+                write!(f, "))")
+            }
+            ExprKind::Tests(e, ts) => {
+                write!(f, "({e} satisfies tests ")?;
+                match &**ts {
+                    UnaryTests::Any => write!(f, "-")?,
+                    UnaryTests::Positive(t) => fmt_tests(f, t)?,
+                    UnaryTests::Negated(t) => {
+                        write!(f, "not(")?;
+                        fmt_tests(f, t)?;
+                        write!(f, ")")?
+                    }
+                }
+                write!(f, ")")
+            }
+            ExprKind::InstanceOf(e, t) => write!(f, "({e} instance of {t})"),
+            ExprKind::Coerce(e, t) => write!(f, "coerce({e}, {t})"),
+            ExprKind::If(a, b, c) => write!(f, "if {a} then {b} else {c}"),
+            ExprKind::For(its, b) => {
+                write!(f, "for ")?;
+                for (i, (n, _, ic)) in its.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    match ic {
+                        IterCtx::Expr(e) => write!(f, "{} in {e}", n.text)?,
+                        IterCtx::Range(a, b) => write!(f, "{} in {a}..{b}", n.text)?,
+                    }
+                }
+                write!(f, " return {b}")
+            }
+            ExprKind::Quantified(q, its, b) => {
+                write!(f, "{} ", if *q == Quantifier::Some { "some" } else { "every" })?;
+                for (i, (n, _, e)) in its.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{} in {e}", n.text)?;
+                }
+                write!(f, " satisfies {b}")
+            }
+            ExprKind::List(xs) => {
+                write!(f, "[")?;
+                for (i, x) in xs.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{x}")?;
+                }
+                write!(f, "]")
+            }
+            ExprKind::Context(es) => {
+                write!(f, "{{")?;
+                for (i, e) in es.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}: {}", key_text(&e.key), e.value)?;
+                }
+                write!(f, "}}")
+            }
+            ExprKind::FunctionDef(fd) => {
+                write!(f, "function(")?;
+                for (i, p) in fd.params.iter().enumerate() {
+                    if i > 0 {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{}", p.name.text)?;
+                    if let Some(t) = &p.ty {
+                        write!(f, ": {t}")?;
+                    }
+                }
+                write!(f, ") {}{}", if fd.external { "external " } else { "" }, fd.body)
+            }
+            ExprKind::Interval(iv) => write!(
+                f,
+                "{}{}..{}{}",
+                if iv.start_incl { "[" } else { "(" },
+                iv.start,
+                iv.end,
+                if iv.end_incl { "]" } else { ")" }
+            ),
+            ExprKind::UnaryRange(op, e) => write!(f, "({} {e})", op.as_str()),
+        }
+    }
+}
