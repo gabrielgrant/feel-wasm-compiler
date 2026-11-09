@@ -145,6 +145,8 @@ for k, (e, r) in enumerate([('starts with("foobar", "fo")', 'true'), ('ends with
 v("t-ms-eq", "Table 53", 'time("10:30:00.0001") = time("10:30:00.0002")', "true")
 v("t-ms-lt", "Table 54", 'time("10:30:00.1") < time("10:30:00.2")', "true")
 v("t-ms-dt", "Table 54", '@"2018-12-08T23:59:59.999" < @"2018-12-09T00:00:00"', "true")
+v("filter-callee-shadow", "10.3.2.5", '[{count: function(x) 42, v: 1}, {v: 2}][count([1,2]) > 2].v', "[1]")
+v("filter-builtin-call", "10.3.2.5", 'items[contains(name, "o")].name', '["foo"]', inputs={"items":[{"name":"foo"},{"name":"bar"}]})
 import json, re
 txt = json.dumps(V, indent=1, ensure_ascii=False)
 txt = re.sub(r'"__RAW__([^"]*)"', r'\1', txt)

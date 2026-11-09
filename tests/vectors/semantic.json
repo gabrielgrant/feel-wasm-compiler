@@ -2702,5 +2702,27 @@
   "clause": "Table 54",
   "expr": "@\"2018-12-08T23:59:59.999\" < @\"2018-12-09T00:00:00\"",
   "expect": "true"
+ },
+ {
+  "id": "filter-callee-shadow",
+  "clause": "10.3.2.5",
+  "expr": "[{count: function(x) 42, v: 1}, {v: 2}][count([1,2]) > 2].v",
+  "expect": "[1]"
+ },
+ {
+  "id": "filter-builtin-call",
+  "clause": "10.3.2.5",
+  "expr": "items[contains(name, \"o\")].name",
+  "expect": "[\"foo\"]",
+  "inputs": {
+   "items": [
+    {
+     "name": "foo"
+    },
+    {
+     "name": "bar"
+    }
+   ]
+  }
  }
 ]

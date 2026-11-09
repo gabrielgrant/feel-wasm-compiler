@@ -753,8 +753,12 @@ impl<'a> Lowerer<'a> {
 
     fn lower_call(&mut self, f: &Expr, args: &Args, span: Span) -> Ir {
         let site = self.site(span, "call");
+        // Inside a filter the entries of the current item come first in scope
+        // (10.3.2.5), so even a builtin name in call position may be shadowed
+        // by an item entry: such calls go through the dynamic lookup.
+        let in_filter = self.frames.iter().any(|fr| matches!(fr, Frame::Item { .. }));
         if let ExprKind::Name(n) = &f.kind {
-            if !self.lexically_bound(&n.tokens) {
+            if !self.lexically_bound(&n.tokens) && !in_filter {
                 if let Some(id) = self.builtin_id(&n.tokens.join(" ")) {
                     if n.tokens.len() == 1 && n.tokens[0] == "not" {
                         if let Args::Positional(a) = args {
