@@ -4,9 +4,12 @@ use core::cmp::Ordering;
 
 use crate::{Date, DateTime, Time, NANOS_PER_SEC};
 
-/// Whole seconds (floor) of a nanosecond value.
+/// Whole milliseconds (floor) of a nanosecond value: FEEL `=`/`<` on times
+/// and date-times compare at millisecond precision (TCK 0068 requires
+/// `time("10:30:00.0001") = time("10:30:00.0002")`, while
+/// `time("10:30:00.1") < time("10:30:00.2")` must still hold).
 fn whole_seconds(n: i128) -> i128 {
-    n.div_euclid(i128::from(NANOS_PER_SEC))
+    n.div_euclid(i128::from(NANOS_PER_SEC / 1000))
 }
 
 /// The two values `valuedt` compares: instants when both have a zone, local
@@ -35,10 +38,10 @@ pub fn cmp_date(a: &Date, b: &Date) -> Ordering {
     a.cmp(b)
 }
 
-/// `date and time` ordering (Table 54) at **whole-second** precision.
+/// `date and time` ordering (Table 54) at **millisecond** precision.
 ///
 /// The TCK (0068 `datetime_003_a`: `"…T00:00:00.0001" = "…T00:00:00.0000"`
-/// is `true`) compares `valuedt` truncated to whole seconds (as the
+/// is `true`) compares `valuedt` truncated to whole milliseconds (as the
 /// reference implementations' `toEpochSecond()` does); `=` and `<` use the
 /// same truncation so that they stay consistent. Use
 /// [`cmp_datetime_exact`] for nanosecond precision.
@@ -51,7 +54,7 @@ pub fn cmp_datetime(a: &DateTime, b: &DateTime) -> Option<Ordering> {
     Some(whole_seconds(x).cmp(&whole_seconds(y)))
 }
 
-/// FEEL `=` on date-times (Table 53), whole-second precision; see
+/// FEEL `=` on date-times (Table 53), millisecond precision; see
 /// [`cmp_datetime`].
 pub fn eq_datetime(a: &DateTime, b: &DateTime) -> Option<bool> {
     cmp_datetime(a, b).map(Ordering::is_eq)
@@ -68,7 +71,7 @@ pub fn eq_datetime_exact(a: &DateTime, b: &DateTime) -> Option<bool> {
     cmp_datetime_exact(a, b).map(Ordering::is_eq)
 }
 
-/// `time` ordering (Table 54) at **whole-second** precision (TCK 0068
+/// `time` ordering (Table 54) at **millisecond** precision (TCK 0068
 /// `time_005`: `time("10:30:00.0001") = time("10:30:00.0002")` is `true`).
 ///
 /// When both times have a zone, `valuet` (local time minus offset, a named
@@ -80,7 +83,7 @@ pub fn cmp_time(a: &Time, b: &Time) -> Option<Ordering> {
     Some(whole_seconds(x).cmp(&whole_seconds(y)))
 }
 
-/// FEEL `=` on times (Table 53), whole-second precision; see [`cmp_time`].
+/// FEEL `=` on times (Table 53), millisecond precision; see [`cmp_time`].
 pub fn eq_time(a: &Time, b: &Time) -> Option<bool> {
     cmp_time(a, b).map(Ordering::is_eq)
 }

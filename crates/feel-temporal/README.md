@@ -26,7 +26,7 @@ chrono-tz 0.10.4). The crate builds for `wasm32-unknown-unknown`.
 | `Zone` | `Offset(secs)` / `Named(iana id)`; `utc`, `offset`, `named`, `from_offset_duration`, `iana_name`, `standard_offset`, `offset_for_local_nanos`, `offset_for_epoch_nanos`. `Display` prints the suffix (`Z`, `+02:00`, `@Europe/Paris`) |
 | `DayTimeDuration { nanos }`, `YearMonthDuration { months }`, `Duration` | `parse_duration`, canonical `Display`, `days/hours/minutes/seconds_nanos`, `years/months`, `checked_add/sub/neg/abs`, `mul_div(num, den)` (Table 59 helper, truncates toward zero) |
 | Arithmetic | `datetime_sub`, `datetime_sub_date`, `date_sub_datetime`, `datetime_add_dtd/sub_dtd`, `datetime_add_ymd/sub_ymd`, `date_sub`, `date_add_dtd/sub_dtd`, `date_add_ymd/sub_ymd`, `time_sub`, `time_add_dtd/sub_dtd`, `years_and_months_between(_dates)` |
-| Comparison | `cmp_date`, `cmp_datetime`/`eq_datetime`, `cmp_time`/`eq_time` (whole-second, TCK), `*_exact` variants (nanoseconds), `is_same_date/time/datetime` (`is()`) |
+| Comparison | `cmp_date`, `cmp_datetime`/`eq_datetime`, `cmp_time`/`eq_time` (millisecond precision, TCK), `*_exact` variants (nanoseconds), `is_same_date/time/datetime` (`is()`) |
 | Misc | `weekday_name`, `month_name`, `tzdb_version`, `NANOS_PER_SEC`, `NANOS_PER_DAY`, `MIN_YEAR`, `MAX_YEAR`, `MAX_OFFSET_SECONDS` |
 
 The derived `==` and `Hash` on `Time` and `DateTime` are **identity**
@@ -116,14 +116,14 @@ These choices were checked against DMN TCK revision `5cd912f2`. The tests in
 
 ## Spec / TCK discrepancies and gaps
 
-1. **Equality and ordering use whole seconds.** Table 53/54 compare `valuet`
-   and `valuedt`, which have fractions. TCK 0068 expects
+1. **Equality and ordering use millisecond precision.** Table 53/54 compare
+   `valuet` and `valuedt`, which have fractions. TCK 0068 expects
    `time("10:30:00.0001") = time("10:30:00.0002")` and
    `date and time("…T00:00:00.0001") = date and time("…T00:00:00.0000")` to be
-   **true**, which is what the reference implementations' `toEpochSecond()`
-   and `toSecondOfDay()` produce. `eq_*` and `cmp_*` follow the TCK and floor
-   to whole seconds, so `=` and `<` stay consistent. The `*_exact` functions
-   compare nanoseconds. `is()` and subtraction stay exact.
+   **true** — the reference implementations compare at millisecond
+   precision. `eq_*` and `cmp_*` floor to whole milliseconds (so `=` and `<`
+   stay consistent and `time("10:30:00.1") < time("10:30:00.2")` holds); the
+   `*_exact` functions compare nanoseconds; `is()` and subtraction are exact.
 2. **End-of-month month arithmetic.** The literal Table 57 formula,
    `date(y, m, e1.day)`, gives null for `2017-01-31 + P1M`. The TCK has no
    case for this. This crate clamps, following XML Schema Part 2 Appendix E,

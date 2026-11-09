@@ -2684,5 +2684,23 @@
   "clause": "Table 74",
   "expr": "substring after(\"foobar\", \"ob\")",
   "expect": "\"ar\""
+ },
+ {
+  "id": "t-ms-eq",
+  "clause": "Table 53",
+  "expr": "time(\"10:30:00.0001\") = time(\"10:30:00.0002\")",
+  "expect": "true"
+ },
+ {
+  "id": "t-ms-lt",
+  "clause": "Table 54",
+  "expr": "time(\"10:30:00.1\") < time(\"10:30:00.2\")",
+  "expect": "true"
+ },
+ {
+  "id": "t-ms-dt",
+  "clause": "Table 54",
+  "expr": "@\"2018-12-08T23:59:59.999\" < @\"2018-12-09T00:00:00\"",
+  "expect": "true"
  }
 ]

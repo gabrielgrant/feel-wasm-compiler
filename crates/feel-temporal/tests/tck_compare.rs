@@ -213,15 +213,21 @@ fn zoned_vs_unzoned_comparisons() {
 }
 
 #[test]
-fn whole_second_comparison_is_consistent() {
-    let (a, b) = (t("10:30:00.1"), t("10:30:00.9"));
+fn millisecond_comparison_is_consistent() {
+    // sub-millisecond differences compare equal (TCK 0068 time_005)
+    let (a, b) = (t("10:30:00.0001"), t("10:30:00.0009"));
     assert_eq!(cmp_time(&a, &b), Some(Equal));
     assert_eq!(cmp_time_exact(&a, &b), Some(Less));
+    // ... but milliseconds and above are significant
+    assert_eq!(cmp_time(&t("10:30:00.1"), &t("10:30:00.2")), Some(Less));
     assert_eq!(cmp_time(&t("10:30:00.9"), &t("10:30:01")), Some(Less));
     let (a, b) = (dt("2018-12-08T23:59:59.999"), dt("2018-12-09T00:00:00"));
     assert_eq!(cmp_datetime(&a, &b), Some(Less));
     // floor, not truncation toward zero, before the epoch
-    let (a, b) = (dt("1969-12-31T23:59:59.5Z"), dt("1969-12-31T23:59:59Z"));
+    let (a, b) = (
+        dt("1969-12-31T23:59:59.5005Z"),
+        dt("1969-12-31T23:59:59.5Z"),
+    );
     assert_eq!(cmp_datetime(&a, &b), Some(Equal));
     assert_eq!(cmp_datetime(&a, &dt("1970-01-01T00:00:00Z")), Some(Less));
 }

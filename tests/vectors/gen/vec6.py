@@ -142,6 +142,9 @@ for k, (e, r) in enumerate([('starts with("foobar", "fo")', 'true'), ('ends with
                             ('split("John Doe", "\\\\s")', '["John","Doe"]'), ('string join(["a","b","c"], "_and_")', '"a_and_b_and_c"'),
                             ('string join([])', '""'), ('substring after("foobar", "ob")', '"ar"')]):
     v(f"t74-{k:03}", "Table 74", e, r)
+v("t-ms-eq", "Table 53", 'time("10:30:00.0001") = time("10:30:00.0002")', "true")
+v("t-ms-lt", "Table 54", 'time("10:30:00.1") < time("10:30:00.2")', "true")
+v("t-ms-dt", "Table 54", '@"2018-12-08T23:59:59.999" < @"2018-12-09T00:00:00"', "true")
 import json, re
 txt = json.dumps(V, indent=1, ensure_ascii=False)
 txt = re.sub(r'"__RAW__([^"]*)"', r'\1', txt)

@@ -44,7 +44,7 @@
 //! * **Named zones on bare times** (no date) use the zone's *standard*
 //!   (non-DST) offset as of 2025-01-01 for comparison, subtraction and the
 //!   `time offset` property; two times in the same zone compare by local time.
-//! * **Comparison / equality** of times and date-times is at **whole-second**
+//! * **Comparison / equality** of times and date-times is at **millisecond**
 //!   precision, as required by the TCK (0068 `time_005`, `datetime_003_a`);
 //!   `_exact` variants compare nanoseconds. A zoned value compared with an
 //!   unzoned one uses the zoned one's offset (i.e. local fields compare).
